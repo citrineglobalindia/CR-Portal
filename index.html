@@ -402,7 +402,7 @@ function renderClientTable(){
       <td class="pr-${r.priority}">${esc(r.priority)}</td>
       <td><span class="badge ${badgeClass(r.status)}">${esc(r.status)}</span></td>
       <td>${fmtDay(r.created_at)}</td>
-      <td><button class="link-btn" onclick="openDetail('${r.id}')">View</button></td>
+      <td style="white-space:nowrap">${r.status==="Done"?`<button class="btn btn-sm btn-ghost" onclick="reopenCR('${r.id}')">↺ Not completed</button> `:""}<button class="link-btn" onclick="openDetail('${r.id}')">View</button></td>
     </tr>`).join("")}</tbody></table>`:`<div class="empty">No change requests yet. Submit your first one above.</div>`;
 }
 async function submitCR(){
@@ -504,6 +504,14 @@ function renderAdminTable(){
     </tr>`).join("")}</tbody></table>`:`<div class="empty">No change requests match the current filters.</div>`;
 }
 async function completeCR(id){ await quickStatus(id,'Done'); closeModal(); }
+async function reopenCR(id){
+  const {error}=await sb.rpc("cr_reopen",{p_id:id});
+  if(error){toast(error.message||"Could not reopen.",true);return;}
+  notify("reopen",id).catch(()=>{});
+  toast("Request reopened — the team has been notified.");
+  closeModal();
+  if(ME.role==="admin"){ await loadRequests(); renderAdminTable(); } else { await loadAndRenderClient(); }
+}
 async function quickStatus(id,newStatus){
   const r=CACHE.find(x=>x.id===id); if(!r||r.status===newStatus)return;
   const old=r.status;
@@ -741,6 +749,9 @@ async function openDetail(id){
           <input id="d-status-note" class="inp" placeholder="Optional note…" style="flex:1"/>
           <button class="btn btn-sm" onclick="saveStatus('${r.id}')">Save</button>
         </div>`:""}
+        ${(!isAdmin && r.status==="Done")?`<div class="section-title">Not completed?</div>
+        <button class="btn btn-sm btn-ghost" onclick="reopenCR('${r.id}')">↺ Mark as not completed (reopen)</button>
+        <div class="hint">This reopens the request and notifies the team to look again.</div>`:""}
         ${files.length?`<div class="section-title">Attachments (${files.length})</div>
         <div>${files.map(a=>`<div class="att"><span>📎</span><span class="name">${esc(a.file_name)}</span>
           <button class="btn btn-sm btn-ghost" onclick="downloadAtt('${esc(a.file_path)}','${esc(a.file_name)}')">Download</button></div>`).join("")}</div>`:""}
