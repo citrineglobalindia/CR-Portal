@@ -113,6 +113,10 @@
   .toast.err{border-color:var(--danger)}
   .req{color:var(--danger)}
   .hint{font-size:12px;color:var(--muted);margin-top:4px}
+  .pw-wrap{position:relative}
+  .pw-wrap .inp{padding-right:46px}
+  .pw-eye{position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:0;
+    font-size:17px;line-height:1;color:var(--muted);padding:6px;cursor:pointer}
   .hero{display:flex;align-items:center;gap:16px;background:var(--panel);border:1px solid var(--line);
     border-radius:16px;padding:18px 20px;margin-bottom:18px;box-shadow:var(--shadow)}
   .hero .lg{width:60px;height:60px;border-radius:14px;object-fit:cover;border:1px solid var(--line);background:var(--panel2)}
@@ -159,7 +163,10 @@
       <label>Username or Email</label>
       <input id="li-id" class="inp" placeholder="username or you@company.com" autocomplete="username" />
       <label>Password</label>
-      <input id="li-pass" class="inp" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()" />
+      <div class="pw-wrap">
+        <input id="li-pass" class="inp" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()" />
+        <button type="button" class="pw-eye" onclick="togglePw('li-pass',this)" aria-label="Show password">👁</button>
+      </div>
       <button class="btn" id="li-btn" onclick="doLogin()">Log in</button>
     </div>
 
@@ -170,7 +177,10 @@
       <label>Full name</label>
       <input id="se-name" class="inp" placeholder="Your name" />
       <label>Password <span class="hint">(min 6 characters)</span></label>
-      <input id="se-pass" class="inp" type="password" placeholder="••••••••" />
+      <div class="pw-wrap">
+        <input id="se-pass" class="inp" type="password" placeholder="••••••••" />
+        <button type="button" class="pw-eye" onclick="togglePw('se-pass',this)" aria-label="Show password">👁</button>
+      </div>
       <button class="btn" id="se-btn" onclick="doSetup()">Create admin account</button>
     </div>
 
@@ -238,11 +248,15 @@ async function callFn(name,body){
 }
 
 // ===================== AUTH =====================
+function togglePw(id,btn){ const el=$(id); if(!el)return; const hidden=el.type==="password"; el.type=hidden?"text":"password"; btn.textContent=hidden?"🙈":"👁"; }
 async function doLogin(){
   const idv=$("li-id").value.trim(), pass=$("li-pass").value;
   if(!idv||!pass){authMsg("Enter your username/email and password.");return;}
-  const email = idv.includes("@") ? idv : `${slugify(idv)}@${CLIENT_LOGIN_DOMAIN}`;
   $("li-btn").disabled=true; $("li-btn").textContent="Logging in…";
+  // Resolve username OR notification email OR login email -> auth login email.
+  let email=null;
+  try{ const {data}=await sb.rpc("cr_resolve_login",{identifier:idv}); if(data) email=data; }catch(_){}
+  if(!email){ email = idv.includes("@") ? idv : `${slugify(idv)}@${CLIENT_LOGIN_DOMAIN}`; }
   const {error}=await sb.auth.signInWithPassword({email,password:pass});
   $("li-btn").disabled=false; $("li-btn").textContent="Log in";
   if(error){authMsg("Invalid username/email or password.");return;}
