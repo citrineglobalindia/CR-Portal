@@ -659,12 +659,30 @@ function renderAdminDash(){
     <div class="stats" id="admin-stats"></div>
     <div class="card">
       <div class="toolbar">
-        <input id="a-search" class="inp" placeholder="🔍 Search ref, heading, client…" oninput="renderAdminTable()" style="min-width:220px"/>
+        <input id="a-search" class="inp" placeholder="🔍 Search everything — ref, heading, client, description, tags, comments…" oninput="renderAdminTable()" style="min-width:300px;flex:1"/>
         <select id="a-status" class="inp" onchange="renderAdminTable()"><option value="">All statuses</option>${STATUSES.map(s=>`<option>${s}</option>`).join("")}</select>
         <select id="a-priority" class="inp" onchange="renderAdminTable()"><option value="">All priorities</option>${PRIORITIES.map(p=>`<option>${p}</option>`).join("")}</select>
         <select id="a-client" class="inp" onchange="renderAdminTable()"><option value="">All clients</option></select>
         <div class="spacer"></div>
+        <button class="btn btn-sm btn-ghost" id="adv-toggle" onclick="toggleAdvSearch()">⚙ Advanced</button>
         <button class="btn btn-sm btn-ghost" onclick="loadAndRenderAdmin()">↻ Refresh</button>
+      </div>
+      <div class="toolbar hidden" id="adv-panel" style="gap:10px;flex-wrap:wrap;align-items:center">
+        <span class="hint" style="margin:0;font-weight:700">Advanced:</span>
+        <label class="hint" style="margin:0">Search in</label>
+        <select id="a-scope" class="inp" onchange="renderAdminTable()">
+          <option value="all">All content</option>
+          <option value="heading">Heading</option>
+          <option value="desc">Description</option>
+          <option value="comments">Comments &amp; notes</option>
+          <option value="tags">Tags</option>
+          <option value="ref">Reference no.</option>
+        </select>
+        <select id="a-assignee" class="inp" onchange="renderAdminTable()"><option value="">Any assignee</option></select>
+        <input id="a-tag" class="inp" placeholder="Tag…" oninput="renderAdminTable()" style="max-width:140px"/>
+        <label class="hint" style="margin:0">From</label><input id="a-from" class="inp" type="date" onchange="renderAdminTable()" style="max-width:160px"/>
+        <label class="hint" style="margin:0">To</label><input id="a-to" class="inp" type="date" onchange="renderAdminTable()" style="max-width:160px"/>
+        <button class="btn btn-sm btn-ghost" onclick="clearAdvSearch()">Clear</button>
       </div>
       <div class="toolbar">
         <strong style="font-size:14px">Export:</strong>
@@ -688,6 +706,9 @@ async function assignCR(id,adminId){
 }
 async function loadAndRenderAdmin(){
   await loadRequests(); await loadClients(); await loadAdmins();
+  await loadSearchContent();
+  const asel=$("a-assignee");
+  if(asel){const acur=asel.value; asel.innerHTML=`<option value="">Any assignee</option><option value="__unassigned__">Unassigned</option>`+ADMINS.map(a=>`<option value="${a.id}" ${a.id===acur?"selected":""}>${esc(a.full_name||a.username||a.email)}</option>`).join("");}
   const clients=[...new Set(CACHE.map(r=>r.client_name).filter(Boolean))].sort();
   const sel=$("a-client"); const cur=sel.value;
   sel.innerHTML=`<option value="">All clients</option>`+clients.map(c=>`<option ${c===cur?"selected":""}>${esc(c)}</option>`).join("");
@@ -695,11 +716,59 @@ async function loadAndRenderAdmin(){
   if(acsel) acsel.innerHTML = CLIENTS.length ? CLIENTS.map(c=>`<option value="${c.id}">${esc(c.company||c.full_name||c.username)}</option>`).join("") : `<option value="">No clients yet — create one first</option>`;
   renderAdminTable();
 }
+let CONTENT_BY_REQ={};
+async function loadSearchContent(){
+  try{
+    const [{data:cm},{data:hi}]=await Promise.all([
+      sb.from("cr_comments").select("request_id,body"),
+      sb.from("cr_status_history").select("request_id,note")
+    ]);
+    CONTENT_BY_REQ={};
+    (cm||[]).forEach(c=>{ if(c.body) CONTENT_BY_REQ[c.request_id]=((CONTENT_BY_REQ[c.request_id]||"")+" "+c.body); });
+    (hi||[]).forEach(h=>{ if(h.note) CONTENT_BY_REQ[h.request_id]=((CONTENT_BY_REQ[h.request_id]||"")+" "+h.note); });
+    Object.keys(CONTENT_BY_REQ).forEach(k=>CONTENT_BY_REQ[k]=CONTENT_BY_REQ[k].toLowerCase());
+  }catch(_){ CONTENT_BY_REQ={}; }
+}
+function toggleAdvSearch(){
+  const p=$("adv-panel"); if(!p) return;
+  p.classList.toggle("hidden");
+  const t=$("adv-toggle"); if(t) t.textContent=p.classList.contains("hidden")?"⚙ Advanced":"⚙ Advanced ▲";
+}
+function clearAdvSearch(){
+  ["a-search","a-tag","a-from","a-to"].forEach(id=>{const e=$(id); if(e)e.value="";});
+  ["a-status","a-priority","a-client","a-scope","a-assignee"].forEach(id=>{const e=$(id); if(e)e.selectedIndex=0;});
+  renderAdminTable();
+}
+function crText(r){ return [r.ref_no,r.title,r.description,r.client_name,r.type,r.area,r.priority,r.status,r.assigned_name,(r.tags||[]).join(" "),r.page].filter(Boolean).join(" ").toLowerCase(); }
 function filteredAdmin(){
-  const term=($("a-search").value||"").toLowerCase();
+  const term=($("a-search").value||"").trim().toLowerCase();
   const st=$("a-status").value,pr=$("a-priority").value,cl=$("a-client").value;
-  return CACHE.filter(r=>(!st||r.status===st)&&(!pr||r.priority===pr)&&(!cl||r.client_name===cl)&&
-    (!term||((r.ref_no||"")+(r.title||"")+(r.client_name||"")+(r.description||"")).toLowerCase().includes(term)));
+  const scope=$("a-scope")?$("a-scope").value:"all";
+  const asg=$("a-assignee")?$("a-assignee").value:"";
+  const tag=($("a-tag")?$("a-tag").value:"").trim().toLowerCase();
+  const from=$("a-from")?$("a-from").value:"", to=$("a-to")?$("a-to").value:"";
+  const fromT=from?new Date(from+"T00:00:00").getTime():null;
+  const toT=to?new Date(to+"T23:59:59").getTime():null;
+  return CACHE.filter(r=>{
+    if(st&&r.status!==st) return false;
+    if(pr&&r.priority!==pr) return false;
+    if(cl&&r.client_name!==cl) return false;
+    if(asg){ if(asg==="__unassigned__"){ if(r.assigned_to) return false; } else if(r.assigned_to!==asg) return false; }
+    if(tag&&!((r.tags||[]).join(" ").toLowerCase().includes(tag))) return false;
+    if(fromT||toT){ const t=new Date(r.created_at).getTime(); if(fromT&&t<fromT) return false; if(toT&&t>toT) return false; }
+    if(term){
+      const content=CONTENT_BY_REQ[r.id]||"";
+      let hay;
+      if(scope==="heading") hay=(r.title||"").toLowerCase();
+      else if(scope==="desc") hay=(r.description||"").toLowerCase();
+      else if(scope==="comments") hay=content;
+      else if(scope==="tags") hay=(r.tags||[]).join(" ").toLowerCase();
+      else if(scope==="ref") hay=(r.ref_no||"").toLowerCase();
+      else hay=crText(r)+" "+content;
+      if(!hay.includes(term)) return false;
+    }
+    return true;
+  });
 }
 function renderAdminTable(){
   const rows=filteredAdmin();
