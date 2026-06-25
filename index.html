@@ -10,11 +10,12 @@
     --txt:#e7e9f3; --muted:#9aa0bd; --brand:#6c5ce7; --brand2:#8e7cff;
     --accent:#00d2a8; --danger:#ff6b6b; --warn:#ffb020; --ok:#22c55e;
     --chip:#252a45; --shadow:0 10px 30px rgba(0,0,0,.35);
+    --g1:rgba(108,92,231,.18); --g2:rgba(0,210,168,.12);
   }
   *{box-sizing:border-box}
   body{margin:0;font-family:'Segoe UI',system-ui,-apple-system,Roboto,Arial,sans-serif;background:
-    radial-gradient(1200px 600px at 80% -10%,rgba(108,92,231,.18),transparent),
-    radial-gradient(900px 500px at -10% 110%,rgba(0,210,168,.12),transparent),var(--bg);
+    radial-gradient(1200px 600px at 80% -10%,var(--g1),transparent),
+    radial-gradient(900px 500px at -10% 110%,var(--g2),transparent),var(--bg);
     color:var(--txt);min-height:100vh}
   a{color:var(--brand2)}
   .hidden{display:none!important}
@@ -164,6 +165,14 @@
   .avatar img{width:100%;height:100%;object-fit:cover}
   .who-name{font-size:13px;color:var(--txt);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .menu{position:absolute;right:0;top:48px;width:240px;background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);z-index:60;overflow:hidden}
+  .theme-wrap{position:relative}
+  .theme-menu{width:236px;padding:12px}
+  .theme-menu .mh3{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:0 0 9px}
+  .theme-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .theme-opt{display:flex;align-items:center;gap:8px;padding:8px 9px;border:1px solid var(--line);border-radius:10px;background:var(--panel2);color:var(--txt);cursor:pointer;font-size:12.5px;font-weight:600;text-align:left}
+  .theme-opt:hover{border-color:var(--brand2)}
+  .theme-opt.active{border-color:var(--brand2);box-shadow:0 0 0 2px var(--brand2) inset}
+  .theme-dot{width:16px;height:16px;border-radius:50%;flex:none;border:1px solid rgba(255,255,255,.25)}
   .menu-head{padding:14px}
   .menu-item{display:block;width:100%;text-align:left;background:none;border:0;color:var(--txt);padding:11px 14px;font-size:14px;border-top:1px solid var(--line)}
   .menu-item:hover{background:var(--panel2)}
@@ -182,6 +191,12 @@
   .client-card .lg.ph{display:grid;place-items:center;font-weight:800;color:#fff;font-size:18px;background:linear-gradient(135deg,var(--brand),var(--accent))}
   .client-card .cc-name{font-weight:700}
   .client-card .cc-meta{color:var(--muted);font-size:12px;margin-top:2px;line-height:1.5;word-break:break-word}
+  .client-card .cc-stats{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+  .cc-chip{font-size:11px;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:3px 9px;color:var(--muted)}
+  .cc-chip b{color:var(--txt)}
+  .cc-chip.open b{color:#ffb020}
+  .cc-chip.done b{color:#22c55e}
+  .client-card .cc-actions{margin-top:10px;display:flex;flex-wrap:wrap;gap:6px}
   .logo-preview{width:64px;height:64px;border-radius:12px;object-fit:cover;border:1px solid var(--line);margin-top:6px}
   .drop{border:1.5px dashed var(--line);border-radius:12px;padding:20px;text-align:center;color:var(--muted);
     cursor:pointer;transition:.15s;background:var(--panel2)}
@@ -247,6 +262,13 @@
       <div><h1 style="font-size:15px">Change Request Portal</h1><small>Stepstones</small></div>
     </div>
     <div class="who">
+      <div class="theme-wrap">
+        <button class="bell" id="theme-btn" onclick="toggleThemeMenu(event)" title="Colour theme">🎨</button>
+        <div id="theme-menu" class="menu theme-menu hidden">
+          <div class="mh3">Colour theme</div>
+          <div class="theme-grid" id="theme-grid"></div>
+        </div>
+      </div>
       <button class="bell" id="bell" onclick="openNotifs()" title="Notifications">🔔<span id="bell-badge" class="bell-badge hidden">0</span></button>
       <div class="profile-wrap">
         <button class="avatar-btn" id="avatar-btn" onclick="toggleProfileMenu(event)" title="Account">
@@ -398,6 +420,35 @@ function renderAvatar(){
 function toggleProfileMenu(e){ if(e)e.stopPropagation(); $("profile-menu").classList.toggle("hidden"); }
 document.addEventListener("click",function(e){
   const m=$("profile-menu"), b=$("avatar-btn");
+  if(m&&!m.classList.contains("hidden")&&b&&!b.contains(e.target)&&!m.contains(e.target)) m.classList.add("hidden");
+});
+const THEMES={
+  indigo:{name:"Indigo",dot:"linear-gradient(135deg,#6c5ce7,#00d2a8)",v:{"--bg":"#0f1220","--panel":"#171a2b","--panel2":"#1e2238","--line":"#2a2f4a","--txt":"#e7e9f3","--muted":"#9aa0bd","--brand":"#6c5ce7","--brand2":"#8e7cff","--accent":"#00d2a8","--chip":"#252a45","--g1":"rgba(108,92,231,.18)","--g2":"rgba(0,210,168,.12)"}},
+  ocean:{name:"Ocean",dot:"linear-gradient(135deg,#2563eb,#06b6d4)",v:{"--bg":"#0b1220","--panel":"#121a2e","--panel2":"#172339","--line":"#24324f","--txt":"#e6edf7","--muted":"#94a3c4","--brand":"#2563eb","--brand2":"#3b82f6","--accent":"#06b6d4","--chip":"#1c2a45","--g1":"rgba(37,99,235,.2)","--g2":"rgba(6,182,212,.14)"}},
+  emerald:{name:"Emerald",dot:"linear-gradient(135deg,#059669,#34d399)",v:{"--bg":"#0a1512","--panel":"#10211b","--panel2":"#152a22","--line":"#21402f","--txt":"#e6f5ee","--muted":"#94c2ad","--brand":"#059669","--brand2":"#10b981","--accent":"#34d399","--chip":"#16301f","--g1":"rgba(5,150,105,.2)","--g2":"rgba(52,211,153,.13)"}},
+  sunset:{name:"Sunset",dot:"linear-gradient(135deg,#ea580c,#f43f5e)",v:{"--bg":"#1a0f0c","--panel":"#241512","--panel2":"#2e1a16","--line":"#48281f","--txt":"#fae9e3","--muted":"#caa094","--brand":"#ea580c","--brand2":"#fb7185","--accent":"#f59e0b","--chip":"#3a1e18","--g1":"rgba(234,88,12,.2)","--g2":"rgba(244,63,94,.13)"}},
+  rose:{name:"Rose",dot:"linear-gradient(135deg,#db2777,#a855f7)",v:{"--bg":"#160e18","--panel":"#211526","--panel2":"#2a1a30","--line":"#43284c","--txt":"#f6e9f6","--muted":"#c39bc6","--brand":"#db2777","--brand2":"#e879f9","--accent":"#a855f7","--chip":"#321d39","--g1":"rgba(219,39,119,.2)","--g2":"rgba(168,85,247,.14)"}},
+  slate:{name:"Slate",dot:"linear-gradient(135deg,#475569,#94a3b8)",v:{"--bg":"#0d1117","--panel":"#161b22","--panel2":"#1c232c","--line":"#2d333b","--txt":"#e6edf3","--muted":"#9098a3","--brand":"#5b6b82","--brand2":"#8b9bb4","--accent":"#56b6c2","--chip":"#222a33","--g1":"rgba(91,107,130,.18)","--g2":"rgba(86,182,194,.1)"}},
+  light:{name:"Light",dot:"linear-gradient(135deg,#6c5ce7,#00b894)",v:{"--bg":"#f4f6fb","--panel":"#ffffff","--panel2":"#eef2fa","--line":"#dde3ee","--txt":"#1e2333","--muted":"#5d6680","--brand":"#6c5ce7","--brand2":"#5848d6","--accent":"#0ea5a0","--chip":"#e9edf7","--g1":"rgba(108,92,231,.1)","--g2":"rgba(0,184,148,.08)","--shadow":"0 10px 30px rgba(20,30,60,.08)"}}
+};
+let CUR_THEME="indigo";
+function applyTheme(key){
+  CUR_THEME=(key in THEMES)?key:"indigo";
+  const t=THEMES[CUR_THEME], root=document.documentElement;
+  Object.entries(THEMES.indigo.v).forEach(([k,v])=>root.style.setProperty(k,v));
+  root.style.removeProperty("--shadow");
+  Object.entries(t.v).forEach(([k,v])=>root.style.setProperty(k,v));
+  try{localStorage.setItem("cr_theme",CUR_THEME);}catch(_){}
+  renderThemeMenu();
+}
+function renderThemeMenu(){
+  const g=$("theme-grid"); if(!g) return;
+  g.innerHTML=Object.entries(THEMES).map(([k,t])=>`<button class="theme-opt ${k===CUR_THEME?"active":""}" onclick="applyTheme('${k}')"><span class="theme-dot" style="background:${t.dot}"></span>${t.name}</button>`).join("");
+}
+function toggleThemeMenu(e){ if(e)e.stopPropagation(); renderThemeMenu(); const m=$("theme-menu"); if(m) m.classList.toggle("hidden"); }
+function initTheme(){ let saved="indigo"; try{saved=localStorage.getItem("cr_theme")||"indigo";}catch(_){} applyTheme(saved); }
+document.addEventListener("click",function(e){
+  const m=$("theme-menu"), b=$("theme-btn");
   if(m&&!m.classList.contains("hidden")&&b&&!b.contains(e.target)&&!m.contains(e.target)) m.classList.add("hidden");
 });
 function openProfile(){
@@ -714,6 +765,7 @@ async function loadAndRenderAdmin(){
   sel.innerHTML=`<option value="">All clients</option>`+clients.map(c=>`<option ${c===cur?"selected":""}>${esc(c)}</option>`).join("");
   const acsel=$("ac-client");
   if(acsel) acsel.innerHTML = CLIENTS.length ? CLIENTS.map(c=>`<option value="${c.id}">${esc(c.company||c.full_name||c.username)}</option>`).join("") : `<option value="">No clients yet — create one first</option>`;
+  if(PENDING_CLIENT){ sel.value=PENDING_CLIENT; PENDING_CLIENT=null; }
   renderAdminTable();
 }
 let CONTENT_BY_REQ={};
@@ -1018,9 +1070,20 @@ async function renderAdminClients(){
       <button class="btn" style="max-width:240px" id="cl-btn" onclick="createClient()">Create client account</button>
     </div>
     <div class="card">
-      <h2>Clients</h2>
-      <div class="sub">All client accounts you've created.</div>
-      <div id="clients-list"></div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px">
+        <div><h2 style="margin:0">Clients <span id="cl-count" class="hint" style="font-weight:600"></span></h2>
+          <div class="sub" style="margin:4px 0 0">All client accounts you've created.</div></div>
+        <div class="toolbar" style="margin:0">
+          <input id="cl-search" class="inp" placeholder="🔍 Search clients — name, user, email, code…" oninput="renderClientsList()" style="min-width:240px"/>
+          <select id="cl-sort" class="inp" onchange="renderClientsList()">
+            <option value="name">Sort: Name (A–Z)</option>
+            <option value="most">Sort: Most CRs</option>
+            <option value="open">Sort: Most open</option>
+            <option value="recent">Sort: Recent activity</option>
+          </select>
+        </div>
+      </div>
+      <div id="clients-list" style="margin-top:14px"></div>
     </div>`;
   await loadRequests(); await loadClients();
   renderClientsList();
@@ -1058,24 +1121,50 @@ function initDrop(dropId,inputId,rowId,imgId,onPick){
   inp.onchange=()=>pick(inp.files[0]);
 }
 function clearLogo(){ LOGO_FILE=null; $("cl-logo").value=""; $("cl-logo-row").classList.add("hidden"); }
+let PENDING_CLIENT=null;
+function viewClientCRs(name){ PENDING_CLIENT=name; setAdminTab("dashboard"); }
+function clientStats(c){
+  const rs=CACHE.filter(r=>r.created_by===c.id);
+  const open=rs.filter(r=>r.status!=="Done"&&r.status!=="Rejected").length;
+  const done=rs.filter(r=>r.status==="Done").length;
+  const last=rs.reduce((m,r)=>Math.max(m,new Date(r.updated_at||r.created_at).getTime()),0);
+  return {total:rs.length,open,done,last};
+}
 function renderClientsList(){
-  $("clients-list").innerHTML=CLIENTS.length?`<div class="clients-grid">${CLIENTS.map(c=>{
+  const wrap=$("clients-list"); if(!wrap) return;
+  const term=($("cl-search")?$("cl-search").value:"").trim().toLowerCase();
+  const sort=$("cl-sort")?$("cl-sort").value:"name";
+  let list=CLIENTS.map(c=>({c,s:clientStats(c)}));
+  if(term) list=list.filter(({c})=>[c.company,c.full_name,c.username,c.notify_email,c.client_code,c.cr_prefix,c.phone].filter(Boolean).join(" ").toLowerCase().includes(term));
+  list.sort((a,b)=> sort==="most"?b.s.total-a.s.total : sort==="open"?b.s.open-a.s.open : sort==="recent"?b.s.last-a.s.last :
+    String(a.c.company||a.c.full_name||a.c.username).localeCompare(String(b.c.company||b.c.full_name||b.c.username)));
+  const cnt=$("cl-count"); if(cnt) cnt.textContent="· "+list.length+(list.length===1?" client":" clients");
+  wrap.innerHTML=list.length?`<div class="clients-grid">${list.map(({c,s})=>{
     const lg=logoUrl(c.logo_path);
-    const n=CACHE.filter(r=>r.created_by===c.id).length;
+    const nm=(c.company||c.full_name||c.username||"").replace(/'/g,"\\'");
     return `<div class="client-card">
       ${lg?`<img class="lg" src="${esc(lg)}"/>`:`<div class="lg ph">${esc(initials(c.company||c.full_name||c.username))}</div>`}
-      <div style="flex:1">
+      <div style="flex:1;min-width:0">
         <div class="cc-name">${esc(c.company||c.full_name||c.username)}</div>
         <div class="cc-meta">
           CR ref <span class="ref">${esc(c.cr_prefix||("CR-"+(c.client_code||"")))}-1</span><br>
           User: ${esc(c.username||"—")}<br>
           ${esc(c.notify_email||"—")}<br>
-          ${esc(c.phone||"")} ${c.website?`· <a href="${esc(c.website)}" target="_blank" rel="noopener">site</a>`:""}<br>
-          ${n} change request${n===1?"":"s"}
+          ${esc(c.phone||"")} ${c.website?`· <a href="${esc(c.website)}" target="_blank" rel="noopener">site</a>`:""}
         </div>
-        <div class="cc-actions"><button class="btn btn-sm btn-ghost" onclick="openClientEdit('${c.id}')">Edit</button> <button class="btn btn-sm btn-ghost" onclick="openVault('${c.id}')">🔒 Vault</button></div>
+        <div class="cc-stats">
+          <span class="cc-chip"><b>${s.total}</b> total</span>
+          <span class="cc-chip open"><b>${s.open}</b> open</span>
+          <span class="cc-chip done"><b>${s.done}</b> done</span>
+          ${s.last?`<span class="cc-chip">⏱ ${esc(fmtDay(new Date(s.last).toISOString()))}</span>`:""}
+        </div>
+        <div class="cc-actions">
+          <button class="btn btn-sm btn-ghost" onclick="viewClientCRs('${esc(nm)}')">View CRs</button>
+          <button class="btn btn-sm btn-ghost" onclick="openClientEdit('${c.id}')">Edit</button>
+          <button class="btn btn-sm btn-ghost" onclick="openVault('${c.id}')">🔒 Vault</button>
+        </div>
       </div>
-    </div>`;}).join("")}</div>`:`<div class="empty">No clients yet. Create your first one above.</div>`;
+    </div>`;}).join("")}</div>`:`<div class="empty">${term?"No clients match your search.":"No clients yet. Create your first one above."}</div>`;
 }
 function openClientEdit(id){
   const c=CLIENTS.find(x=>x.id===id); if(!c)return;
@@ -1452,6 +1541,7 @@ function exportWord(){
 function dl(blob,name){ const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1500); }
 
 if(sb) sb.auth.onAuthStateChange((_e,s)=>{SESSION=s;});
+initTheme();
 boot();
 </script>
 </body>
