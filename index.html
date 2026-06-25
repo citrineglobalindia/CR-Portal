@@ -1142,60 +1142,127 @@ async function dropCard(e,status){
 }
 
 // ----- Admin: Reports -----
-let CHARTS={};
+let CHARTS={}, REP_RANGE=0;
+const REP_SC={"New":"#9aa0bd","In Review":"#ffb020","Approved":"#8e7cff","In Progress":"#00d2a8","Done":"#22c55e","Rejected":"#ff6b6b"};
 async function renderAdminReports(){
   $("admin-pane").innerHTML=`
     <style>
-      .rep-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:22px}
-      .rep-stat{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px 20px;display:flex;align-items:center;gap:14px}
-      .rep-stat .ic{width:48px;height:48px;border-radius:13px;display:grid;place-items:center;font-size:24px;flex:none}
-      .rep-stat .n{font-size:30px;font-weight:800;line-height:1}
-      .rep-stat .l{color:var(--muted);font-size:13px;margin-top:5px;white-space:nowrap}
-      .rep-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:18px}
-      .rep-card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:22px 24px;box-shadow:var(--shadow)}
-      .rep-card h3{margin:0 0 16px;font-size:14px;font-weight:700;color:var(--muted);letter-spacing:.04em;text-transform:uppercase}
-      .rep-cv{position:relative;height:300px}
-      @media(max-width:760px){.rep-grid{grid-template-columns:1fr}}
+      .rep-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:18px}
+      .rep-stat{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px 18px;display:flex;align-items:center;gap:13px}
+      .rep-stat .ic{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;font-size:21px;flex:none}
+      .rep-stat .n{font-size:26px;font-weight:800;line-height:1}
+      .rep-stat .l{color:var(--muted);font-size:12px;margin-top:4px}
+      .rep-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+      .rep-bar h2{margin:0;font-size:18px}
+      .rng{display:inline-flex;background:var(--panel2);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+      .rng .rng-btn{background:transparent;border:0;color:var(--muted);padding:7px 13px;font-size:12.5px;font-weight:600;cursor:pointer}
+      .rng .rng-btn.on{background:var(--brand);color:#fff}
+      .rep-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+      .rep-grid .wide{grid-column:1/-1}
+      .rep-card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px 20px;box-shadow:var(--shadow)}
+      .rep-card h3{margin:0 0 14px;font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.04em;text-transform:uppercase}
+      .rep-cv{position:relative;height:230px}
+      .an-wrap{overflow-x:auto}
+      .an-table{width:100%;border-collapse:collapse;font-size:13px;min-width:640px}
+      .an-table th,.an-table td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+      .an-table th{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.03em;font-weight:700;cursor:pointer;user-select:none}
+      .an-table td.num,.an-table th.num{text-align:right}
+      .an-table tbody tr:hover{background:var(--panel2)}
+      .an-bar{height:7px;border-radius:6px;background:var(--panel2);overflow:hidden;min-width:70px}
+      .an-bar>span{display:block;height:100%;background:linear-gradient(90deg,var(--brand),var(--accent))}
+      @media(max-width:840px){.rep-grid{grid-template-columns:1fr}}
     </style>
+    <div class="rep-bar">
+      <h2>Analytics</h2>
+      <div class="rng" id="rep-rng">
+        <button class="rng-btn on" data-d="0" onclick="setRepRange(0)">All time</button>
+        <button class="rng-btn" data-d="90" onclick="setRepRange(90)">90 days</button>
+        <button class="rng-btn" data-d="30" onclick="setRepRange(30)">30 days</button>
+        <button class="rng-btn" data-d="7" onclick="setRepRange(7)">7 days</button>
+      </div>
+    </div>
     <div class="rep-stats" id="rep-stats"></div>
     <div class="rep-grid">
-      <div class="rep-card"><h3>Requests by status</h3><div class="rep-cv"><canvas id="ch-status"></canvas></div></div>
-      <div class="rep-card"><h3>Requests by priority</h3><div class="rep-cv"><canvas id="ch-priority"></canvas></div></div>
-      <div class="rep-card"><h3>Top clients</h3><div class="rep-cv"><canvas id="ch-clients"></canvas></div></div>
-      <div class="rep-card"><h3>Requests over time</h3><div class="rep-cv"><canvas id="ch-time"></canvas></div></div>
+      <div class="rep-card wide"><h3>Change requests raised — day by day</h3><div class="rep-cv"><canvas id="ch-daily"></canvas></div></div>
+      <div class="rep-card"><h3>By status</h3><div class="rep-cv"><canvas id="ch-status"></canvas></div></div>
+      <div class="rep-card"><h3>By priority</h3><div class="rep-cv"><canvas id="ch-priority"></canvas></div></div>
+      <div class="rep-card"><h3>Activity by day of week</h3><div class="rep-cv"><canvas id="ch-dow"></canvas></div></div>
+      <div class="rep-card"><h3>Top clients by volume</h3><div class="rep-cv"><canvas id="ch-clients"></canvas></div></div>
+      <div class="rep-card wide"><h3>Status mix per client</h3><div class="rep-cv" style="height:300px"><canvas id="ch-clientstatus"></canvas></div></div>
+      <div class="rep-card"><h3>Avg days to complete — by client</h3><div class="rep-cv"><canvas id="ch-resolution"></canvas></div></div>
+      <div class="rep-card"><h3>Cumulative requests over time</h3><div class="rep-cv"><canvas id="ch-cum"></canvas></div></div>
+      <div class="rep-card wide"><h3>Client performance breakdown</h3><div class="an-wrap" id="an-table"></div></div>
     </div>`;
   await loadRequests(); await loadClients();
   buildReports();
 }
-function repStat(icon,color,num,label){
-  return `<div class="rep-stat"><div class="ic" style="background:${color}1f;color:${color}">${icon}</div><div><div class="n" style="color:${color}">${num}</div><div class="l">${esc(label)}</div></div></div>`;
-}
+function setRepRange(d){ REP_RANGE=d; document.querySelectorAll('#rep-rng .rng-btn').forEach(b=>b.classList.toggle('on',+b.dataset.d===d)); buildReports(); }
+function repData(){ if(!REP_RANGE) return CACHE.slice(); const cut=Date.now()-REP_RANGE*86400000; return CACHE.filter(r=>new Date(r.created_at).getTime()>=cut); }
+function repStat(icon,color,num,label){ return `<div class="rep-stat"><div class="ic" style="background:${color}1f;color:${color}">${icon}</div><div><div class="n" style="color:${color}">${num}</div><div class="l">${esc(label)}</div></div></div>`; }
+function dkey(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
 function buildReports(){
-  const done=CACHE.filter(r=>r.status==="Done");
-  const avgDays=done.length ? (done.reduce((s,r)=>s+(new Date(r.updated_at)-new Date(r.created_at)),0)/done.length/86400000) : 0;
-  const compRate=CACHE.length ? Math.round(done.length/CACHE.length*100) : 0;
-  const open=CACHE.filter(r=>r.status!=="Done"&&r.status!=="Rejected").length;
+  const data=repData();
+  const done=data.filter(r=>r.status==="Done");
+  const avgDays=done.length?(done.reduce((s,r)=>s+(new Date(r.updated_at)-new Date(r.created_at)),0)/done.length/86400000):0;
+  const compRate=data.length?Math.round(done.length/data.length*100):0;
+  const open=data.filter(r=>r.status!=="Done"&&r.status!=="Rejected").length;
+  const last7=data.filter(r=>new Date(r.created_at).getTime()>=Date.now()-7*86400000).length;
   $("rep-stats").innerHTML=
-    repStat("📋","#8e7cff",CACHE.length,"Total CRs")+
+    repStat("📋","#8e7cff",data.length,"Total CRs")+
+    repStat("🆕","#00b8d4",last7,"New (7 days)")+
     repStat("🕒","#ffb020",open,"Open")+
     repStat("✅","#22c55e",done.length,"Completed")+
     repStat("📈","#00d2a8",compRate+"%","Completion rate")+
-    repStat("⏱️","#6c5ce7",avgDays?avgDays.toFixed(1):"—","Avg days");
+    repStat("⏱️","#6c5ce7",avgDays?avgDays.toFixed(1):"—","Avg days to close");
   if(typeof Chart==="undefined"){ return; }
   Object.values(CHARTS).forEach(c=>{try{c.destroy()}catch(_){}}); CHARTS={};
   Chart.defaults.color="#9aa0bd"; Chart.defaults.borderColor="rgba(255,255,255,.06)";
-  Chart.defaults.font.size=13; Chart.defaults.maintainAspectRatio=false; Chart.defaults.responsive=true;
-  const legBottom={legend:{position:"bottom",labels:{boxWidth:14,boxHeight:14,padding:16,font:{size:13}}}};
+  Chart.defaults.font.size=12; Chart.defaults.maintainAspectRatio=false; Chart.defaults.responsive=true;
+  const noLeg={plugins:{legend:{display:false}}};
   const by=(arr,key)=>{const m={};arr.forEach(r=>{const k=r[key]||"—";m[k]=(m[k]||0)+1});return m;};
-  const st=by(CACHE,"status");
-  CHARTS.status=new Chart($("ch-status"),{type:"doughnut",data:{labels:Object.keys(st),datasets:[{data:Object.values(st),backgroundColor:["#9aa0bd","#ffb020","#8e7cff","#00d2a8","#22c55e","#ff6b6b"],borderWidth:0}]},options:{cutout:"62%",plugins:legBottom}});
-  const pr=by(CACHE,"priority");
-  CHARTS.priority=new Chart($("ch-priority"),{type:"bar",data:{labels:Object.keys(pr),datasets:[{label:"CRs",data:Object.values(pr),backgroundColor:"#8e7cff",borderRadius:6,barThickness:40}]},options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0}},x:{grid:{display:false}}}}});
-  const cl=by(CACHE,"client_name"); const top=Object.entries(cl).sort((a,b)=>b[1]-a[1]).slice(0,7);
-  CHARTS.clients=new Chart($("ch-clients"),{type:"bar",data:{labels:top.map(e=>e[0]),datasets:[{label:"CRs",data:top.map(e=>e[1]),backgroundColor:"#00d2a8",borderRadius:6,barThickness:24}]},options:{indexAxis:"y",plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,ticks:{precision:0}},y:{grid:{display:false}}}}});
-  const mo={}; CACHE.forEach(r=>{const d=new Date(r.created_at); const k=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0"); mo[k]=(mo[k]||0)+1;});
-  const mk=Object.keys(mo).sort();
-  CHARTS.time=new Chart($("ch-time"),{type:"line",data:{labels:mk.map(k=>{const a=k.split("-");return new Date(a[0],a[1]-1).toLocaleDateString(undefined,{month:"short",year:"numeric"})}),datasets:[{label:"CRs raised",data:mk.map(k=>mo[k]),borderColor:"#6c5ce7",backgroundColor:"rgba(108,92,231,.18)",fill:true,tension:.35,pointRadius:3,pointBackgroundColor:"#6c5ce7"}]},options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0}},x:{grid:{display:false}}}}});
+  // Daily raised
+  const days=REP_RANGE||30; const today=new Date(); today.setHours(0,0,0,0);
+  const dlabels=[],dcounts=[]; const dmap={}; data.forEach(r=>{const k=dkey(new Date(r.created_at));dmap[k]=(dmap[k]||0)+1;});
+  for(let n=days-1;n>=0;n--){ const d=new Date(today.getTime()-n*86400000); const k=dkey(d); dlabels.push(d.toLocaleDateString(undefined,{month:"short",day:"numeric"})); dcounts.push(dmap[k]||0); }
+  CHARTS.daily=new Chart($("ch-daily"),{type:"bar",data:{labels:dlabels,datasets:[{label:"Raised",data:dcounts,backgroundColor:"#8e7cff",borderRadius:5,maxBarThickness:22}]},options:Object.assign({},noLeg,{scales:{y:{beginAtZero:true,ticks:{precision:0}},x:{grid:{display:false},ticks:{maxRotation:0,autoSkip:true,maxTicksLimit:12}}}})});
+  // Status
+  const st=by(data,"status");
+  CHARTS.status=new Chart($("ch-status"),{type:"doughnut",data:{labels:Object.keys(st),datasets:[{data:Object.values(st),backgroundColor:Object.keys(st).map(k=>REP_SC[k]||"#9aa0bd"),borderWidth:0}]},options:{cutout:"60%",plugins:{legend:{position:"bottom",labels:{boxWidth:10,boxHeight:10,padding:10}}}}});
+  // Priority
+  const pr=by(data,"priority");
+  CHARTS.priority=new Chart($("ch-priority"),{type:"bar",data:{labels:Object.keys(pr),datasets:[{data:Object.values(pr),backgroundColor:"#8e7cff",borderRadius:6,maxBarThickness:40}]},options:Object.assign({},noLeg,{scales:{y:{beginAtZero:true,ticks:{precision:0}},x:{grid:{display:false}}}})});
+  // Day of week
+  const dow=[0,0,0,0,0,0,0]; data.forEach(r=>{dow[new Date(r.created_at).getDay()]++;}); const dowL=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  CHARTS.dow=new Chart($("ch-dow"),{type:"bar",data:{labels:dowL,datasets:[{data:dow,backgroundColor:"#00d2a8",borderRadius:6,maxBarThickness:34}]},options:Object.assign({},noLeg,{scales:{y:{beginAtZero:true,ticks:{precision:0}},x:{grid:{display:false}}}})});
+  // Top clients
+  const cl=by(data,"client_name"); const top=Object.entries(cl).sort((a,b)=>b[1]-a[1]).slice(0,8); const topNames=top.map(e=>e[0]);
+  CHARTS.clients=new Chart($("ch-clients"),{type:"bar",data:{labels:topNames,datasets:[{data:top.map(e=>e[1]),backgroundColor:"#00d2a8",borderRadius:6,maxBarThickness:20}]},options:Object.assign({},noLeg,{indexAxis:"y",scales:{x:{beginAtZero:true,ticks:{precision:0}},y:{grid:{display:false}}}})});
+  // Status mix per client (stacked)
+  const sstatuses=["New","In Review","Approved","In Progress","Done","Rejected"];
+  const dsets=sstatuses.map(stt=>({label:stt,data:topNames.map(n=>data.filter(r=>r.client_name===n&&r.status===stt).length),backgroundColor:REP_SC[stt]}));
+  CHARTS.cstatus=new Chart($("ch-clientstatus"),{type:"bar",data:{labels:topNames,datasets:dsets},options:{indexAxis:"y",plugins:{legend:{position:"bottom",labels:{boxWidth:10,boxHeight:10,padding:10}}},scales:{x:{stacked:true,beginAtZero:true,ticks:{precision:0}},y:{stacked:true,grid:{display:false}}}}});
+  // Avg resolution by client
+  const resol=topNames.map(n=>{const dd=data.filter(r=>r.client_name===n&&r.status==="Done");return dd.length?(dd.reduce((s,r)=>s+(new Date(r.updated_at)-new Date(r.created_at)),0)/dd.length/86400000):0;});
+  CHARTS.resolution=new Chart($("ch-resolution"),{type:"bar",data:{labels:topNames,datasets:[{data:resol.map(x=>+x.toFixed(1)),backgroundColor:"#ffb020",borderRadius:6,maxBarThickness:20}]},options:Object.assign({},noLeg,{indexAxis:"y",scales:{x:{beginAtZero:true,title:{display:true,text:"days"}},y:{grid:{display:false}}}})});
+  // Cumulative over time (by month)
+  const mo={}; data.forEach(r=>{const d=new Date(r.created_at);const k=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");mo[k]=(mo[k]||0)+1;});
+  const mk=Object.keys(mo).sort(); let run=0; const cum=mk.map(k=>run+=mo[k]);
+  CHARTS.cum=new Chart($("ch-cum"),{type:"line",data:{labels:mk.map(k=>{const a=k.split("-");return new Date(a[0],a[1]-1).toLocaleDateString(undefined,{month:"short",year:"2-digit"})}),datasets:[{label:"Total",data:cum,borderColor:"#6c5ce7",backgroundColor:"rgba(108,92,231,.18)",fill:true,tension:.35,pointRadius:3}]},options:Object.assign({},noLeg,{scales:{y:{beginAtZero:true,ticks:{precision:0}},x:{grid:{display:false}}}})});
+  // Client performance table
+  const names=Object.keys(cl).sort((a,b)=>cl[b]-cl[a]); const maxTot=Math.max(1,...names.map(n=>cl[n]));
+  const rows=names.map(n=>{
+    const rr=data.filter(r=>r.client_name===n); const tot=rr.length;
+    const dn=rr.filter(r=>r.status==="Done"); const op=rr.filter(r=>r.status!=="Done"&&r.status!=="Rejected").length;
+    const ip=rr.filter(r=>r.status==="In Progress").length;
+    const cr=tot?Math.round(dn.length/tot*100):0;
+    const ad=dn.length?(dn.reduce((s,r)=>s+(new Date(r.updated_at)-new Date(r.created_at)),0)/dn.length/86400000):null;
+    const la=rr.reduce((m,r)=>Math.max(m,new Date(r.updated_at).getTime()),0);
+    return `<tr><td><b>${esc(n)}</b><div class="an-bar"><span style="width:${Math.round(tot/maxTot*100)}%"></span></div></td>
+      <td class="num">${tot}</td><td class="num">${op}</td><td class="num">${ip}</td><td class="num">${dn.length}</td>
+      <td class="num" style="color:${cr>=70?'#22c55e':cr>=40?'#ffb020':'#ff6b6b'};font-weight:700">${cr}%</td>
+      <td class="num">${ad==null?'—':ad.toFixed(1)}</td><td>${la?fmtDay(new Date(la)):'—'}</td></tr>`;
+  }).join("");
+  $("an-table").innerHTML=`<table class="an-table"><thead><tr><th>Client</th><th class="num">Total</th><th class="num">Open</th><th class="num">In&nbsp;Prog</th><th class="num">Done</th><th class="num">Compl.</th><th class="num">Avg&nbsp;days</th><th>Last activity</th></tr></thead><tbody>${rows||'<tr><td colspan="8" style="color:var(--muted)">No data in range.</td></tr>'}</tbody></table>`;
 }
 
 async function exportCRPdf(id){
