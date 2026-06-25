@@ -57,9 +57,21 @@
     padding:9px 16px;border-radius:10px;font-weight:600;font-size:14px}
   .navtabs button.active{background:var(--brand);color:#fff;border-color:var(--brand)}
   .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:20px}
-  .stat{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px}
-  .stat .n{font-size:26px;font-weight:800}
-  .stat .l{color:var(--muted);font-size:12px;margin-top:2px}
+  .stat{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px;position:relative;overflow:hidden}
+  .stat::after{content:'';position:absolute;right:-20px;top:-20px;width:80px;height:80px;border-radius:50%;background:rgba(255,255,255,.03)}
+  .stat .ic{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;font-size:20px;margin-bottom:10px}
+  .stat .n{font-size:28px;font-weight:800;line-height:1}
+  .stat .l{color:var(--muted);font-size:12px;margin-top:4px}
+  .welcome{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
+    background:linear-gradient(120deg,rgba(108,92,231,.28),rgba(0,210,168,.18));
+    border:1px solid var(--line);border-radius:18px;padding:20px 24px;margin-bottom:18px}
+  .welcome .w-hi{font-size:21px;font-weight:800}
+  .welcome .w-sub{color:#c7cbe6;font-size:13px;margin-top:3px}
+  .profile-banner{height:96px;background:linear-gradient(120deg,#6c5ce7,#00d2a8)}
+  .profile-av{width:96px;height:96px;border-radius:50%;border:4px solid var(--panel);margin:-58px auto 0;
+    overflow:hidden;display:grid;place-items:center;font-weight:800;color:#fff;font-size:34px;
+    background:linear-gradient(135deg,var(--brand),var(--accent))}
+  .profile-av img{width:100%;height:100%;object-fit:cover}
   .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px;margin-bottom:18px;box-shadow:var(--shadow)}
   .card h2{margin:0 0 4px;font-size:17px}
   .card .sub{color:var(--muted);font-size:13px;margin-bottom:16px}
@@ -277,6 +289,9 @@ const initials = s => (String(s||"?").trim()[0]||"?").toUpperCase();
 
 function toast(msg,isErr){ const t=$("toast"); t.textContent=msg; t.className="toast show"+(isErr?" err":""); setTimeout(()=>t.className="toast",3000); }
 function authMsg(msg,type){ const m=$("auth-msg"); m.textContent=msg; m.className="msg show "+(type||"err"); }
+function statCard(icon,color,num,label){
+  return `<div class="stat"><div class="ic" style="background:${color}1f;color:${color}">${icon}</div><div class="n" style="color:${color}">${num}</div><div class="l">${esc(label)}</div></div>`;
+}
 
 async function callFn(name,body){
   const {data,error}=await sb.functions.invoke(name,{body});
@@ -335,12 +350,15 @@ function openProfile(){
   const av=lg?`<img src="${esc(lg)}" style="width:100%;height:100%;object-fit:cover">`:esc(initials(ME.company||ME.full_name||ME.username));
   $("modal-root").innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()">
     <div class="modal" style="max-width:480px">
-      <div class="mh"><h2 style="margin:0">My profile</h2><button class="x" onclick="closeModal()">×</button></div>
-      <div class="mb" style="text-align:center">
-        <div style="margin:0 auto 12px;width:88px;height:88px;border-radius:50%;overflow:hidden;display:grid;place-items:center;font-weight:800;color:#fff;font-size:32px;background:linear-gradient(135deg,var(--brand),var(--accent))">${av}</div>
-        <div style="font-size:18px;font-weight:800">${esc(ME.full_name||ME.company||ME.username)}</div>
-        <span class="pill ${ME.role==="admin"?"admin":""}" style="display:inline-block;margin-top:6px">${ME.role==="admin"?"ADMIN":"CLIENT"}</span>
-        <div class="kv" style="text-align:left;margin-top:18px">
+      <div style="position:relative">
+        <div class="profile-banner"></div>
+        <button class="x" onclick="closeModal()" style="position:absolute;top:12px;right:14px">×</button>
+        <div class="profile-av">${av}</div>
+      </div>
+      <div class="mb" style="text-align:center;padding-top:14px">
+        <div style="font-size:20px;font-weight:800">${esc(ME.full_name||ME.company||ME.username)}</div>
+        <span class="pill ${ME.role==="admin"?"admin":""}" style="display:inline-block;margin-top:6px">${ME.role==="admin"?"ADMINISTRATOR":"CLIENT"}</span>
+        <div class="kv" style="text-align:left;margin-top:20px">
           ${ME.company?`<div class="k">Company</div><div>${esc(ME.company)}</div>`:""}
           ${ME.username?`<div class="k">Username</div><div>${esc(ME.username)}</div>`:""}
           ${ME.client_code?`<div class="k">Client code</div><div><span class="ref">${esc(ME.client_code)}</span></div>`:""}
@@ -490,11 +508,11 @@ function previewFiles(){ previewInto("f-files","file-preview"); }
 async function loadAndRenderClient(){ await loadRequests(); renderClientStats(); renderClientTable(); }
 function renderClientStats(){
   const by=s=>CACHE.filter(r=>r.status===s).length;
-  $("client-stats").innerHTML=`
-    <div class="stat"><div class="n">${CACHE.length}</div><div class="l">Total CRs</div></div>
-    <div class="stat"><div class="n" style="color:var(--muted)">${by("New")+by("In Review")}</div><div class="l">New / In Review</div></div>
-    <div class="stat"><div class="n" style="color:var(--accent)">${by("Approved")+by("In Progress")}</div><div class="l">Approved / In Progress</div></div>
-    <div class="stat"><div class="n" style="color:var(--ok)">${by("Done")}</div><div class="l">Done</div></div>`;
+  $("client-stats").innerHTML=
+    statCard("📋","#8e7cff",CACHE.length,"Total CRs")+
+    statCard("🕒","#ffb020",by("New")+by("In Review"),"New / In Review")+
+    statCard("⚙️","#00d2a8",by("Approved")+by("In Progress"),"In Progress")+
+    statCard("✅","#22c55e",by("Done"),"Completed");
 }
 function renderClientTable(){
   const term=($("c-search").value||"").toLowerCase(), st=$("c-status").value;
@@ -551,23 +569,12 @@ function setAdminTab(t){ ADMIN_TAB=t; renderAdmin(); }
 
 function renderAdminDash(){
   $("admin-pane").innerHTML=`
-    <div class="card">
-      <h2>Raise a Change Request <span style="color:var(--muted);font-weight:400;font-size:14px">— for a client</span></h2>
-      <div class="sub">Create a CR on behalf of a client. It is numbered with that client's prefix.</div>
-      <div class="grid3">
-        <div><label>Client <span class="req">*</span></label><select id="ac-client" class="inp"></select></div>
-        <div><label>Priority</label><select id="ac-priority" class="inp">${PRIORITIES.map(p=>`<option ${p==="Medium"?"selected":""}>${p}</option>`).join("")}</select></div>
-        <div><label>Type</label><select id="ac-type" class="inp">${TYPES.map(t=>`<option ${t==="Change"?"selected":""}>${t}</option>`).join("")}</select></div>
-        <div><label>Area</label><select id="ac-area" class="inp">${AREAS.map(a=>`<option ${a==="Other"?"selected":""}>${a}</option>`).join("")}</select></div>
-        <div><label>Needed by <span class="hint">(optional)</span></label><input id="ac-due" class="inp" type="date"/></div>
-        <div><label>Photo(s) <span class="hint">multiple</span></label><input id="ac-files" class="inp" type="file" accept="image/*" multiple onchange="previewInto('ac-files','ac-preview')"/></div>
+    <div class="welcome">
+      <div>
+        <div class="w-hi">Welcome back, ${esc(ME.full_name||ME.company||"Admin")} 👋</div>
+        <div class="w-sub">Here's what's happening across your change requests.</div>
       </div>
-      <label style="margin-top:12px">Heading <span class="req">*</span></label>
-      <input id="ac-title" class="inp" placeholder="Short summary of the change"/>
-      <label style="margin-top:12px">Description <span class="req">*</span></label>
-      <textarea id="ac-desc" class="inp" rows="3" placeholder="Explain what is expected…"></textarea>
-      <div id="ac-preview" class="photo-grid" style="margin-top:10px"></div>
-      <button class="btn" style="max-width:260px" id="ac-btn" onclick="adminCreateCR()">Create change request</button>
+      <button class="btn" style="width:auto;margin:0" onclick="openAdminCRForm()">➕ Raise CR for a client</button>
     </div>
     <div class="stats" id="admin-stats"></div>
     <div class="card">
@@ -609,12 +616,12 @@ function filteredAdmin(){
 function renderAdminTable(){
   const rows=filteredAdmin();
   const by=s=>CACHE.filter(r=>r.status===s).length;
-  $("admin-stats").innerHTML=`
-    <div class="stat"><div class="n">${CACHE.length}</div><div class="l">Total CRs</div></div>
-    <div class="stat"><div class="n" style="color:var(--muted)">${by("New")+by("In Review")}</div><div class="l">New / In Review</div></div>
-    <div class="stat"><div class="n" style="color:var(--accent)">${by("Approved")+by("In Progress")}</div><div class="l">Approved / In Progress</div></div>
-    <div class="stat"><div class="n" style="color:var(--ok)">${by("Done")}</div><div class="l">Done</div></div>
-    <div class="stat"><div class="n">${CLIENTS.length}</div><div class="l">Clients</div></div>`;
+  $("admin-stats").innerHTML=
+    statCard("📋","#8e7cff",CACHE.length,"Total CRs")+
+    statCard("🕒","#ffb020",by("New")+by("In Review"),"New / In Review")+
+    statCard("⚙️","#00d2a8",by("Approved")+by("In Progress"),"In Progress")+
+    statCard("✅","#22c55e",by("Done"),"Completed")+
+    statCard("👥","#6c5ce7",CLIENTS.length,"Clients");
   $("export-note").textContent=`${rows.length} of ${CACHE.length} shown — export uses current filters`;
   $("a-table").innerHTML=rows.length?`<table>
     <thead><tr><th>Ref</th><th>Heading</th><th>Client</th><th>Pri.</th><th>Status</th><th>Updated</th><th></th></tr></thead>
@@ -629,6 +636,30 @@ function renderAdminTable(){
       <td style="white-space:nowrap">${r.status!=="Done"?`<button class="btn btn-sm btn-ok" onclick="quickStatus('${r.id}','Done')">✓ Complete</button> `:""}<button class="link-btn" onclick="openDetail('${r.id}')">Open</button></td>
     </tr>`).join("")}</tbody></table>`:`<div class="empty">No change requests match the current filters.</div>`;
 }
+function openAdminCRForm(){
+  $("modal-root").innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()">
+    <div class="modal">
+      <div class="mh"><div><h2 style="margin:0">Raise a Change Request</h2><div class="hint">On behalf of a client — numbered with their prefix.</div></div>
+        <button class="x" onclick="closeModal()">×</button></div>
+      <div class="mb">
+        <div class="grid3">
+          <div><label>Client <span class="req">*</span></label><select id="ac-client" class="inp"></select></div>
+          <div><label>Priority</label><select id="ac-priority" class="inp">${PRIORITIES.map(p=>`<option ${p==="Medium"?"selected":""}>${p}</option>`).join("")}</select></div>
+          <div><label>Type</label><select id="ac-type" class="inp">${TYPES.map(t=>`<option ${t==="Change"?"selected":""}>${t}</option>`).join("")}</select></div>
+          <div><label>Area</label><select id="ac-area" class="inp">${AREAS.map(a=>`<option ${a==="Other"?"selected":""}>${a}</option>`).join("")}</select></div>
+          <div><label>Needed by <span class="hint">(optional)</span></label><input id="ac-due" class="inp" type="date"/></div>
+          <div><label>Photo(s) <span class="hint">multiple</span></label><input id="ac-files" class="inp" type="file" accept="image/*" multiple onchange="previewInto('ac-files','ac-preview')"/></div>
+        </div>
+        <label style="margin-top:12px">Heading <span class="req">*</span></label>
+        <input id="ac-title" class="inp" placeholder="Short summary of the change"/>
+        <label style="margin-top:12px">Description <span class="req">*</span></label>
+        <textarea id="ac-desc" class="inp" rows="3" placeholder="Explain what is expected…"></textarea>
+        <div id="ac-preview" class="photo-grid" style="margin-top:10px"></div>
+        <button class="btn" style="max-width:260px" id="ac-btn" onclick="adminCreateCR()">Create change request</button>
+      </div>
+    </div></div>`;
+  $("ac-client").innerHTML = CLIENTS.length ? CLIENTS.map(c=>`<option value="${c.id}">${esc(c.company||c.full_name||c.username)}</option>`).join("") : `<option value="">No clients yet — create one first</option>`;
+}
 async function adminCreateCR(){
   const client_id=$("ac-client").value, title=$("ac-title").value.trim(), desc=$("ac-desc").value.trim();
   if(!client_id){ toast("Create a client first, then raise a CR.",true); return; }
@@ -639,12 +670,33 @@ async function adminCreateCR(){
       area:$("ac-area").value, type:$("ac-type").value, priority:$("ac-priority").value, due_date:$("ac-due").value||null });
     for(const f of $("ac-files").files){ await uploadAttachment(res.id,f); }
     toast("Change request "+res.ref_no+" created.");
-    $("ac-title").value="";$("ac-desc").value="";$("ac-due").value="";$("ac-files").value="";$("ac-preview").innerHTML="";
-    await loadAndRenderAdmin();
-  }catch(e){ toast(e.message||"Could not create CR.",true); }
-  finally{ btn.disabled=false; btn.textContent="Create change request"; }
+    closeModal(); await loadAndRenderAdmin();
+  }catch(e){ toast(e.message||"Could not create CR.",true); if($("ac-btn")){btn.disabled=false; btn.textContent="Create change request";} }
 }
 async function completeCR(id){ await quickStatus(id,'Done'); closeModal(); }
+function deleteCR(id){
+  const r=CACHE.find(x=>x.id===id); if(!r)return;
+  $("modal-root").innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()">
+    <div class="modal" style="max-width:440px">
+      <div class="mh"><h2 style="margin:0;color:#ffb4b4">Delete change request</h2><button class="x" onclick="closeModal()">×</button></div>
+      <div class="mb">
+        <p style="color:var(--txt);line-height:1.55">You are about to permanently delete <b>${esc(r.ref_no)}</b> — "${esc(r.title)}". This also removes its comments, status history and attached files.</p>
+        <p style="color:#ffb4b4;font-size:13px;font-weight:600">This action cannot be undone.</p>
+        <div class="row" style="margin-top:16px">
+          <button class="btn btn-sm btn-danger" id="del-btn" onclick="confirmDeleteCR('${id}')">Yes, delete permanently</button>
+          <button class="btn btn-sm btn-ghost" onclick="closeModal()">Cancel</button>
+        </div>
+      </div>
+    </div></div>`;
+}
+async function confirmDeleteCR(id){
+  const btn=$("del-btn"); btn.disabled=true; btn.textContent="Deleting…";
+  try{
+    await callFn("admin-delete-cr",{request_id:id});
+    toast("Change request deleted.");
+    closeModal(); await loadAndRenderAdmin();
+  }catch(e){ toast(e.message||"Could not delete.",true); if($("del-btn")){btn.disabled=false; btn.textContent="Yes, delete permanently";} }
+}
 async function reopenCR(id){
   const {error}=await sb.rpc("cr_reopen",{p_id:id});
   if(error){toast(error.message||"Could not reopen.",true);return;}
@@ -684,12 +736,12 @@ function buildReports(){
   const avgDays=done.length ? (done.reduce((s,r)=>s+(new Date(r.updated_at)-new Date(r.created_at)),0)/done.length/86400000) : 0;
   const compRate=CACHE.length ? Math.round(done.length/CACHE.length*100) : 0;
   const open=CACHE.filter(r=>r.status!=="Done"&&r.status!=="Rejected").length;
-  $("rep-stats").innerHTML=`
-    <div class="stat"><div class="n">${CACHE.length}</div><div class="l">Total CRs</div></div>
-    <div class="stat"><div class="n" style="color:var(--warn)">${open}</div><div class="l">Open</div></div>
-    <div class="stat"><div class="n" style="color:var(--ok)">${done.length}</div><div class="l">Completed</div></div>
-    <div class="stat"><div class="n" style="color:var(--accent)">${compRate}%</div><div class="l">Completion rate</div></div>
-    <div class="stat"><div class="n" style="color:var(--brand2)">${avgDays?avgDays.toFixed(1):"—"}</div><div class="l">Avg days to complete</div></div>`;
+  $("rep-stats").innerHTML=
+    statCard("📋","#8e7cff",CACHE.length,"Total CRs")+
+    statCard("🕒","#ffb020",open,"Open")+
+    statCard("✅","#22c55e",done.length,"Completed")+
+    statCard("📈","#00d2a8",compRate+"%","Completion rate")+
+    statCard("⏱️","#6c5ce7",avgDays?avgDays.toFixed(1):"—","Avg days to complete");
   if(typeof Chart==="undefined"){ return; }
   Object.values(CHARTS).forEach(c=>{try{c.destroy()}catch(_){}}); CHARTS={};
   Chart.defaults.color="#9aa0bd"; Chart.defaults.borderColor="rgba(255,255,255,.06)";
@@ -943,7 +995,10 @@ async function openDetail(id){
         <div><div class="k" style="color:var(--muted);font-size:13px;margin-bottom:4px">Description</div>
           <div style="white-space:pre-wrap;font-size:14px;line-height:1.5">${esc(r.description||"")}</div></div>
         ${imgs.length?`<div class="section-title">Photos (${imgs.length})</div><div class="photo-grid" id="photo-grid"></div>`:""}
-        ${isAdmin?`<button class="btn btn-sm btn-ghost" style="margin-top:6px" onclick="exportCRPdf('${r.id}')">⬇ Export this CR (PDF)</button>
+        ${isAdmin?`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">
+          <button class="btn btn-sm btn-ghost" onclick="exportCRPdf('${r.id}')">⬇ Export this CR (PDF)</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteCR('${r.id}')">🗑 Delete CR</button>
+        </div>
         <div class="section-title">Update status</div>
         ${r.status!=="Done"?`<button class="btn btn-sm btn-ok" style="margin-bottom:10px" onclick="completeCR('${r.id}')">✓ Mark as Completed</button>`:""}
         <div class="row">
