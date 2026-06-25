@@ -819,15 +819,15 @@ let CHARTS={};
 async function renderAdminReports(){
   $("admin-pane").innerHTML=`
     <style>
-      .rep-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:10px;margin-bottom:16px}
-      .rep-stat{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:11px 13px;display:flex;align-items:center;gap:10px}
-      .rep-stat .ic{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;font-size:15px;flex:none}
-      .rep-stat .n{font-size:19px;font-weight:800;line-height:1}
-      .rep-stat .l{color:var(--muted);font-size:11px;margin-top:3px;white-space:nowrap}
-      .rep-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
-      .rep-card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:13px 15px;box-shadow:var(--shadow)}
-      .rep-card h3{margin:0 0 10px;font-size:11.5px;font-weight:700;color:var(--muted);letter-spacing:.04em;text-transform:uppercase}
-      .rep-cv{position:relative;height:178px}
+      .rep-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:22px}
+      .rep-stat{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px 20px;display:flex;align-items:center;gap:14px}
+      .rep-stat .ic{width:48px;height:48px;border-radius:13px;display:grid;place-items:center;font-size:24px;flex:none}
+      .rep-stat .n{font-size:30px;font-weight:800;line-height:1}
+      .rep-stat .l{color:var(--muted);font-size:13px;margin-top:5px;white-space:nowrap}
+      .rep-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:18px}
+      .rep-card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:22px 24px;box-shadow:var(--shadow)}
+      .rep-card h3{margin:0 0 16px;font-size:14px;font-weight:700;color:var(--muted);letter-spacing:.04em;text-transform:uppercase}
+      .rep-cv{position:relative;height:300px}
       @media(max-width:760px){.rep-grid{grid-template-columns:1fr}}
     </style>
     <div class="rep-stats" id="rep-stats"></div>
@@ -857,15 +857,15 @@ function buildReports(){
   if(typeof Chart==="undefined"){ return; }
   Object.values(CHARTS).forEach(c=>{try{c.destroy()}catch(_){}}); CHARTS={};
   Chart.defaults.color="#9aa0bd"; Chart.defaults.borderColor="rgba(255,255,255,.06)";
-  Chart.defaults.font.size=11; Chart.defaults.maintainAspectRatio=false; Chart.defaults.responsive=true;
-  const legBottom={legend:{position:"bottom",labels:{boxWidth:10,boxHeight:10,padding:10,font:{size:11}}}};
+  Chart.defaults.font.size=13; Chart.defaults.maintainAspectRatio=false; Chart.defaults.responsive=true;
+  const legBottom={legend:{position:"bottom",labels:{boxWidth:14,boxHeight:14,padding:16,font:{size:13}}}};
   const by=(arr,key)=>{const m={};arr.forEach(r=>{const k=r[key]||"—";m[k]=(m[k]||0)+1});return m;};
   const st=by(CACHE,"status");
   CHARTS.status=new Chart($("ch-status"),{type:"doughnut",data:{labels:Object.keys(st),datasets:[{data:Object.values(st),backgroundColor:["#9aa0bd","#ffb020","#8e7cff","#00d2a8","#22c55e","#ff6b6b"],borderWidth:0}]},options:{cutout:"62%",plugins:legBottom}});
   const pr=by(CACHE,"priority");
-  CHARTS.priority=new Chart($("ch-priority"),{type:"bar",data:{labels:Object.keys(pr),datasets:[{label:"CRs",data:Object.values(pr),backgroundColor:"#8e7cff",borderRadius:6,barThickness:26}]},options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0}},x:{grid:{display:false}}}}});
+  CHARTS.priority=new Chart($("ch-priority"),{type:"bar",data:{labels:Object.keys(pr),datasets:[{label:"CRs",data:Object.values(pr),backgroundColor:"#8e7cff",borderRadius:6,barThickness:40}]},options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0}},x:{grid:{display:false}}}}});
   const cl=by(CACHE,"client_name"); const top=Object.entries(cl).sort((a,b)=>b[1]-a[1]).slice(0,7);
-  CHARTS.clients=new Chart($("ch-clients"),{type:"bar",data:{labels:top.map(e=>e[0]),datasets:[{label:"CRs",data:top.map(e=>e[1]),backgroundColor:"#00d2a8",borderRadius:6,barThickness:18}]},options:{indexAxis:"y",plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,ticks:{precision:0}},y:{grid:{display:false}}}}});
+  CHARTS.clients=new Chart($("ch-clients"),{type:"bar",data:{labels:top.map(e=>e[0]),datasets:[{label:"CRs",data:top.map(e=>e[1]),backgroundColor:"#00d2a8",borderRadius:6,barThickness:24}]},options:{indexAxis:"y",plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,ticks:{precision:0}},y:{grid:{display:false}}}}});
   const mo={}; CACHE.forEach(r=>{const d=new Date(r.created_at); const k=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0"); mo[k]=(mo[k]||0)+1;});
   const mk=Object.keys(mo).sort();
   CHARTS.time=new Chart($("ch-time"),{type:"line",data:{labels:mk.map(k=>{const a=k.split("-");return new Date(a[0],a[1]-1).toLocaleDateString(undefined,{month:"short",year:"numeric"})}),datasets:[{label:"CRs raised",data:mk.map(k=>mo[k]),borderColor:"#6c5ce7",backgroundColor:"rgba(108,92,231,.18)",fill:true,tension:.35,pointRadius:3,pointBackgroundColor:"#6c5ce7"}]},options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0}},x:{grid:{display:false}}}}});
