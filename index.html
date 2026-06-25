@@ -166,7 +166,7 @@
   .who-name{font-size:13px;color:var(--txt);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .menu{position:absolute;right:0;top:48px;width:240px;background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);z-index:60;overflow:hidden}
   .theme-wrap{position:relative}
-  .theme-menu{width:236px;padding:12px}
+  .theme-menu{width:262px;padding:12px}
   .theme-menu .mh3{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:0 0 9px}
   .theme-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
   .theme-opt{display:flex;align-items:center;gap:8px;padding:8px 9px;border:1px solid var(--line);border-radius:10px;background:var(--panel2);color:var(--txt);cursor:pointer;font-size:12.5px;font-weight:600;text-align:left}
@@ -265,6 +265,24 @@
   .badge{transition:transform .2s}
   .badge:hover{transform:scale(1.06)}
   @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+  /* theme studio + extra controls */
+  .theme-extra{margin-top:10px;border-top:1px solid var(--line);padding-top:10px;display:flex;flex-direction:column;gap:7px}
+  .tm-block{display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .tm-lab{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+  .tm-seg{display:inline-flex;background:var(--panel2);border:1px solid var(--line);border-radius:9px;overflow:hidden}
+  .tm-seg button{flex:1;background:transparent;border:0;color:var(--muted);padding:6px 10px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}
+  .tm-seg button.on{background:var(--brand);color:#fff}
+  .theme-act{width:100%;text-align:left;background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:9px;padding:8px 11px;font-size:12.5px;font-weight:600;cursor:pointer;transition:border-color .2s,transform .15s}
+  .theme-act:hover{border-color:var(--brand2);transform:translateY(-1px)}
+  .theme-act.primary{background:linear-gradient(135deg,var(--brand),var(--brand2));border-color:transparent;color:#fff}
+  .theme-act.ghost{color:var(--muted)}
+  .cs-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px 14px}
+  .cs-row{display:flex;align-items:center;gap:8px}
+  .cs-lab{flex:1;font-size:12.5px;color:var(--muted)}
+  .cs-row input[type=color]{width:30px;height:30px;border:1px solid var(--line);border-radius:8px;background:none;padding:0;cursor:pointer;flex:none}
+  .cs-hex{width:92px;flex:none;padding:7px 8px;font-size:12px;font-family:ui-monospace,Menlo,Consolas,monospace}
+  @media(max-width:560px){.cs-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -272,10 +290,10 @@
 <div id="auth-view" class="auth-wrap">
   <div class="auth-card">
     <div class="logo">
-      <div class="mark">CR</div>
+      <div class="mark" id="brand-mark-1">CR</div>
       <div>
-        <h1>Change Request Portal</h1>
-        <small>Stepstones · Stepstones Global India</small>
+        <h1 id="brand-name-1">Change Request Portal</h1>
+        <small id="brand-sub-1">Stepstones · Stepstones Global India</small>
       </div>
     </div>
 
@@ -311,8 +329,8 @@
 <div id="app-view" class="hidden">
   <header class="top">
     <div class="logo">
-      <div class="mark">CR</div>
-      <div><h1 style="font-size:15px">Change Request Portal</h1><small>Stepstones</small></div>
+      <div class="mark" id="brand-mark-2">CR</div>
+      <div><h1 id="brand-name-2" style="font-size:15px">Change Request Portal</h1><small id="brand-sub-2">Stepstones</small></div>
     </div>
     <div class="who">
       <div class="theme-wrap">
@@ -320,6 +338,7 @@
         <div id="theme-menu" class="menu theme-menu hidden">
           <div class="mh3">Colour theme</div>
           <div class="theme-grid" id="theme-grid"></div>
+          <div id="theme-extra" class="theme-extra"></div>
         </div>
       </div>
       <button class="bell" id="bell" onclick="openNotifs()" title="Notifications">🔔<span id="bell-badge" class="bell-badge hidden">0</span></button>
@@ -484,22 +503,130 @@ const THEMES={
   slate:{name:"Slate",dot:"linear-gradient(135deg,#475569,#94a3b8)",v:{"--bg":"#0d1117","--panel":"#161b22","--panel2":"#1c232c","--line":"#2d333b","--txt":"#e6edf3","--muted":"#9098a3","--brand":"#5b6b82","--brand2":"#8b9bb4","--accent":"#56b6c2","--chip":"#222a33","--g1":"rgba(91,107,130,.18)","--g2":"rgba(86,182,194,.1)"}},
   light:{name:"Light",dot:"linear-gradient(135deg,#6c5ce7,#00b894)",v:{"--bg":"#f4f6fb","--panel":"#ffffff","--panel2":"#eef2fa","--line":"#dde3ee","--txt":"#1e2333","--muted":"#5d6680","--brand":"#6c5ce7","--brand2":"#5848d6","--accent":"#0ea5a0","--chip":"#e9edf7","--g1":"rgba(108,92,231,.1)","--g2":"rgba(0,184,148,.08)","--shadow":"0 10px 30px rgba(20,30,60,.08)"}}
 };
-let CUR_THEME="indigo";
-function applyTheme(key){
-  CUR_THEME=(key in THEMES)?key:"indigo";
-  const t=THEMES[CUR_THEME], root=document.documentElement;
-  Object.entries(THEMES.indigo.v).forEach(([k,v])=>root.style.setProperty(k,v));
-  root.style.removeProperty("--shadow");
-  Object.entries(t.v).forEach(([k,v])=>root.style.setProperty(k,v));
-  try{localStorage.setItem("cr_theme",CUR_THEME);}catch(_){}
+let GLOBAL_SETTINGS=null;
+let THEME_STATE={key:"indigo",custom:null,mode:"dark"};
+const MODE_NEUTRALS={
+  dark:{"--bg":"#0f1220","--panel":"#171a2b","--panel2":"#1e2238","--line":"#2a2f4a","--txt":"#e7e9f3","--muted":"#9aa0bd","--chip":"#252a45"},
+  light:{"--bg":"#f4f6fb","--panel":"#ffffff","--panel2":"#eef2fa","--line":"#dde3ee","--txt":"#1e2333","--muted":"#5d6680","--chip":"#e9edf7","--shadow":"0 10px 30px rgba(20,30,60,.08)"}
+};
+const CUSTOM_KEYS=[["--brand","Primary"],["--brand2","Primary light"],["--accent","Accent"],["--bg","Background"],["--panel","Panel"],["--panel2","Panel 2"],["--line","Border"],["--txt","Text"],["--muted","Muted text"],["--chip","Chip"]];
+function toHex(v){v=String(v||"").trim(); if(/^#[0-9a-f]{3}$/i.test(v))return "#"+v.slice(1).split("").map(c=>c+c).join(""); if(/^#[0-9a-f]{6}$/i.test(v))return v.toLowerCase(); return "#888888";}
+function safeKey(k){return k.replace(/[^a-z0-9]/gi,"");}
+function buildVars(st){
+  let v=Object.assign({},THEMES.indigo.v,(THEMES[st.key]||THEMES.indigo).v);
+  if(st.custom) v=Object.assign(v,st.custom);
+  if(st.mode==="light") v=Object.assign(v,MODE_NEUTRALS.light);
+  return v;
+}
+function applyVars(v){ const root=document.documentElement; root.style.removeProperty("--shadow"); Object.entries(v).forEach(([k,val])=>root.style.setProperty(k,val)); }
+function applyThemeState(st,opts){
+  opts=opts||{};
+  THEME_STATE=Object.assign({key:"indigo",custom:null,mode:"dark"},st);
+  applyVars(buildVars(THEME_STATE));
+  if(opts.persist!==false){ try{ localStorage.setItem("cr_theme_state",JSON.stringify(THEME_STATE)); if(opts.userSet) localStorage.setItem("cr_theme_user","1"); }catch(_){} }
   renderThemeMenu();
 }
+function applyTheme(key){ applyThemeState({key:key,custom:null,mode:THEME_STATE.mode},{userSet:true}); }
+function setMode(mode){ applyThemeState(Object.assign({},THEME_STATE,{mode:mode}),{userSet:true}); }
+function globalToState(s){ return s?{key:s.theme_key||"indigo",custom:s.custom_theme||null,mode:s.mode||"dark"}:{key:"indigo",custom:null,mode:"dark"}; }
 function renderThemeMenu(){
   const g=$("theme-grid"); if(!g) return;
-  g.innerHTML=Object.entries(THEMES).map(([k,t])=>`<button class="theme-opt ${k===CUR_THEME?"active":""}" onclick="applyTheme('${k}')"><span class="theme-dot" style="background:${t.dot}"></span>${t.name}</button>`).join("");
+  g.innerHTML=Object.entries(THEMES).map(([k,t])=>`<button class="theme-opt ${(!THEME_STATE.custom&&k===THEME_STATE.key)?"active":""}" onclick="applyTheme('${k}')"><span class="theme-dot" style="background:${t.dot}"></span>${t.name}</button>`).join("");
+  const isAdmin=(typeof ME!=="undefined"&&ME&&ME.role==="admin");
+  const extra=$("theme-extra"); if(!extra) return;
+  extra.innerHTML=`
+    <div class="tm-block"><span class="tm-lab">Appearance</span>
+      <div class="tm-seg">
+        <button class="${THEME_STATE.mode!=='light'?'on':''}" onclick="setMode('dark')">🌙 Dark</button>
+        <button class="${THEME_STATE.mode==='light'?'on':''}" onclick="setMode('light')">☀️ Light</button>
+      </div></div>
+    ${isAdmin?`<button class="theme-act" onclick="openThemeStudio()">🎛️ Advanced theme studio</button>
+    <button class="theme-act primary" onclick="saveGlobalDefault()">💾 Save as portal default</button>`:""}
+    <button class="theme-act ghost" onclick="resetToPortalDefault()">↺ Reset to portal default</button>`;
 }
 function toggleThemeMenu(e){ if(e)e.stopPropagation(); renderThemeMenu(); const m=$("theme-menu"); if(m) m.classList.toggle("hidden"); }
-function initTheme(){ let saved="indigo"; try{saved=localStorage.getItem("cr_theme")||"indigo";}catch(_){} applyTheme(saved); }
+function applyBranding(s){
+  const name=(s&&s.brand_name)||"Change Request Portal";
+  const sub=(s&&s.brand_sub)||"Stepstones · Stepstones Global India";
+  const mark=((s&&s.brand_mark)||"CR");
+  ["brand-name-1","brand-name-2"].forEach(id=>{const e=$(id); if(e)e.textContent=name;});
+  ["brand-sub-1","brand-sub-2"].forEach(id=>{const e=$(id); if(e)e.textContent=sub;});
+  ["brand-mark-1","brand-mark-2"].forEach(id=>{const e=$(id); if(!e)return; if(s&&s.logo_path){e.innerHTML=`<img src="${esc(logoUrl(s.logo_path))}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit">`;}else{e.textContent=mark;}});
+  try{document.title=name;}catch(_){}
+}
+async function loadGlobalSettings(){
+  try{ const {data}=await sb.from("cr_app_settings").select("*").eq("id",1).maybeSingle(); GLOBAL_SETTINGS=data||null; }catch(_){ GLOBAL_SETTINGS=null; }
+  applyBranding(GLOBAL_SETTINGS);
+  let userSet=false,userState=null;
+  try{ userSet=localStorage.getItem("cr_theme_user")==="1"; if(userSet) userState=JSON.parse(localStorage.getItem("cr_theme_state")||"null"); }catch(_){}
+  if(userSet&&userState) applyThemeState(userState,{persist:false});
+  else applyThemeState(globalToState(GLOBAL_SETTINGS),{persist:false});
+}
+async function persistGlobal(extra){
+  if(!(typeof ME!=="undefined"&&ME&&ME.role==="admin")){toast("Admins only.",true);return false;}
+  const payload=Object.assign({},GLOBAL_SETTINGS||{},{id:1,theme_key:THEME_STATE.key,custom_theme:THEME_STATE.custom,mode:THEME_STATE.mode,updated_by:(SESSION&&SESSION.user)?SESSION.user.id:null,updated_at:new Date().toISOString()},extra||{});
+  const {error}=await sb.from("cr_app_settings").upsert(payload,{onConflict:"id"});
+  if(error){toast(error.message||"Could not save.",true);return false;}
+  GLOBAL_SETTINGS=payload; applyBranding(GLOBAL_SETTINGS);
+  try{localStorage.removeItem("cr_theme_user");localStorage.removeItem("cr_theme_state");}catch(_){}
+  return true;
+}
+async function saveGlobalDefault(){ if(await persistGlobal()) toast("Saved as the portal default theme for everyone."); }
+async function resetToPortalDefault(){
+  try{localStorage.removeItem("cr_theme_user");localStorage.removeItem("cr_theme_state");}catch(_){}
+  applyThemeState(globalToState(GLOBAL_SETTINGS),{persist:false});
+  toast("Reverted to the portal default theme.");
+}
+function openThemeStudio(){
+  if(!(typeof ME!=="undefined"&&ME&&ME.role==="admin")){toast("Admins only.",true);return;}
+  const cur=buildVars(THEME_STATE);
+  const rows=CUSTOM_KEYS.map(([k,label])=>{ const val=toHex((THEME_STATE.custom&&THEME_STATE.custom[k])||cur[k]); const sk=safeKey(k);
+    return `<div class="cs-row"><span class="cs-lab">${label}</span><input type="color" id="cs-col-${sk}" value="${val}" oninput="studioSet('${k}',this.value)"><input class="inp cs-hex" id="cs-hex-${sk}" value="${val}" onchange="studioSet('${k}',this.value)"></div>`; }).join("");
+  const gs=GLOBAL_SETTINGS||{};
+  $("modal-root").innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()">
+    <div class="modal" style="max-width:580px">
+      <div class="mh"><div><h2 style="margin:0">🎛️ Theme studio</h2><div class="hint">Live preview — changes apply instantly. Save to make it everyone's default.</div></div><button class="x" onclick="closeModal()">×</button></div>
+      <div class="mb">
+        <div class="section-title" style="border-top:0;margin-top:0;padding-top:0">Appearance</div>
+        <div class="tm-seg" style="max-width:240px"><button id="ts-dark" class="${THEME_STATE.mode!=='light'?'on':''}" onclick="studioMode('dark')">🌙 Dark</button><button id="ts-light" class="${THEME_STATE.mode==='light'?'on':''}" onclick="studioMode('light')">☀️ Light</button></div>
+        <div class="section-title">Custom colours</div>
+        <div class="cs-grid">${rows}</div>
+        <div class="section-title">Portal branding</div>
+        <div class="grid2">
+          <div><label>Portal name</label><input id="br-name" class="inp" value="${esc(gs.brand_name||'Change Request Portal')}"/></div>
+          <div><label>Subtitle</label><input id="br-sub" class="inp" value="${esc(gs.brand_sub||'Stepstones · Stepstones Global India')}"/></div>
+          <div><label>Badge text <span class="hint">(2-3 chars)</span></label><input id="br-mark" class="inp" maxlength="3" value="${esc(gs.brand_mark||'CR')}"/></div>
+          <div><label>Logo image <span class="hint">(optional)</span></label><input id="br-logo" class="inp" type="file" accept="image/*"/></div>
+        </div>
+        <div class="row" style="margin-top:18px">
+          <button class="btn btn-sm btn-ok" id="ts-save" onclick="studioSaveDefault()">💾 Save as portal default (everyone)</button>
+          <button class="btn btn-sm btn-ghost" onclick="studioClear()">Clear custom colours</button>
+          <button class="btn btn-sm btn-ghost" onclick="closeModal()">Done</button>
+        </div>
+      </div>
+    </div></div>`;
+}
+function studioMode(m){ setMode(m); const d=$("ts-dark"),l=$("ts-light"); if(d&&l){d.classList.toggle("on",m!=="light"); l.classList.toggle("on",m==="light");} }
+function studioSet(k,val){
+  val=String(val).trim(); const cust=Object.assign({},THEME_STATE.custom||{}); cust[k]=val;
+  applyThemeState(Object.assign({},THEME_STATE,{custom:cust}),{userSet:true});
+  const sk=safeKey(k), c=$("cs-col-"+sk), h=$("cs-hex-"+sk), hex=toHex(val);
+  if(c&&/^#[0-9a-f]{6}$/i.test(hex))c.value=hex; if(h&&h.value!==val)h.value=val;
+}
+function studioClear(){ applyThemeState(Object.assign({},THEME_STATE,{custom:null}),{userSet:true}); openThemeStudio(); }
+async function studioSaveDefault(){
+  const brand_name=($("br-name").value||"").trim()||null;
+  const brand_sub=($("br-sub").value||"").trim()||null;
+  const brand_mark=(($("br-mark").value||"CR").trim()||"CR").slice(0,3);
+  let logo_path=(GLOBAL_SETTINGS&&GLOBAL_SETTINGS.logo_path)||null;
+  const lf=$("br-logo").files&&$("br-logo").files[0];
+  const btn=$("ts-save"); if(btn){btn.disabled=true;btn.textContent="Saving…";}
+  if(lf){ const path=`settings/logo_${Date.now()}_${lf.name.replace(/[^\w.\-]/g,"_")}`; const {error:ue}=await sb.storage.from("cr-logos").upload(path,lf,{upsert:true}); if(ue){toast("Logo upload failed: "+ue.message,true);} else { logo_path=path; } }
+  const ok=await persistGlobal({brand_name,brand_sub,brand_mark,logo_path});
+  if(btn){btn.disabled=false;btn.textContent="💾 Save as portal default (everyone)";}
+  if(ok){ toast("Saved. Portal theme & branding updated for everyone."); closeModal(); }
+}
+async function initTheme(){ await loadGlobalSettings(); }
 document.addEventListener("click",function(e){
   const m=$("theme-menu"), b=$("theme-btn");
   if(m&&!m.classList.contains("hidden")&&b&&!b.contains(e.target)&&!m.contains(e.target)) m.classList.add("hidden");
