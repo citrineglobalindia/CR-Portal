@@ -82,6 +82,7 @@ create sequence if not exists public.cr_ref_seq start with 1;
 create or replace function public.cr_set_ref_no()
 returns trigger
 language plpgsql
+set search_path = ''
 as $$
 begin
   if new.ref_no is null then
@@ -103,6 +104,7 @@ create trigger trg_cr_set_ref_no
 create or replace function public.cr_touch_updated_at()
 returns trigger
 language plpgsql
+set search_path = ''
 as $$
 begin
   new.updated_at := now();
@@ -240,8 +242,42 @@ create policy p_storage_cr_insert on storage.objects
   for insert to authenticated
   with check (bucket_id = 'cr-attachments');
 
+-- ---------------------------------------------------------------------
+-- 7. AUTO-ADMIN FOR THE OWNER EMAIL
+--    The portal owner is promoted to admin automatically on sign-up,
+--    so no manual SQL is needed. Change the email to your own.
+-- ---------------------------------------------------------------------
+
+create or replace function public.cr_auto_admin()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  if lower(new.email) = lower('citrineglobalindia@gmail.com') then
+    new.role := 'admin';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_cr_auto_admin on public.cr_profiles;
+create trigger trg_cr_auto_admin
+  before insert on public.cr_profiles
+  for each row execute function public.cr_auto_admin();
+
+-- ---------------------------------------------------------------------
+-- 8. FUNCTION HARDENING  (keeps Supabase security advisor clean)
+--    The RLS helpers must stay callable by signed-in users, but not by
+--    the anonymous (not-logged-in) role via the public REST RPC endpoint.
+-- ---------------------------------------------------------------------
+
+revoke execute on function public.cr_is_admin()             from public, anon;
+revoke execute on function public.cr_can_see_request(uuid)  from public, anon;
+grant  execute on function public.cr_is_admin()             to authenticated;
+grant  execute on function public.cr_can_see_request(uuid)  to authenticated;
+
 -- =====================================================================
--- 7. MAKE YOURSELF ADMIN
---    Sign up in the portal first, THEN run the line below with your email.
+-- MANUAL ADMIN (only needed for an email other than the owner above)
 -- =====================================================================
--- update public.cr_profiles set role = 'admin' where email = 'you@yourcompany.com';
+-- update public.cr_profiles set role = 'admin' where email = 'someone@else.com';
