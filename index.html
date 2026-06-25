@@ -356,7 +356,9 @@ function renderClient(){
       <input id="f-title" class="inp" placeholder="Short summary of the change"/>
       <div class="grid3" style="margin-top:12px">
         <div><label>Priority</label><select id="f-priority" class="inp">${PRIORITIES.map(p=>`<option ${p==="Medium"?"selected":""}>${p}</option>`).join("")}</select></div>
+        <div><label>Type</label><select id="f-type" class="inp">${TYPES.map(t=>`<option ${t==="Change"?"selected":""}>${t}</option>`).join("")}</select></div>
         <div><label>Area</label><select id="f-area" class="inp">${AREAS.map(a=>`<option ${a==="Other"?"selected":""}>${a}</option>`).join("")}</select></div>
+        <div><label>Needed by <span class="hint">(optional)</span></label><input id="f-due" class="inp" type="date"/></div>
         <div><label>Photo(s)</label><input id="f-files" class="inp" type="file" accept="image/*" multiple/></div>
       </div>
       <label style="margin-top:12px">Description <span class="req">*</span></label>
@@ -409,8 +411,8 @@ async function submitCR(){
   const title=$("f-title").value.trim(), desc=$("f-desc").value.trim();
   if(!title||!desc){toast("Heading and description are required.",true);return;}
   const btn=$("submit-cr"); btn.disabled=true; btn.textContent="Submitting…";
-  const payload={ title, area:$("f-area").value, type:"Change", priority:$("f-priority").value,
-    item_count:1, description:desc, created_by:SESSION.user.id,
+  const payload={ title, area:$("f-area").value, type:$("f-type").value, priority:$("f-priority").value,
+    item_count:1, description:desc, due_date:$("f-due").value||null, created_by:SESSION.user.id,
     client_name:ME.company||ME.full_name||ME.username, status:"New" };
   const {data,error}=await sb.from("cr_requests").insert(payload).select().single();
   if(error){btn.disabled=false;btn.textContent="Submit Change Request";toast(error.message,true);return;}
@@ -419,7 +421,7 @@ async function submitCR(){
     changed_by:SESSION.user.id,changed_by_name:ME.full_name||ME.username,note:"Request submitted"});
   notify("new_cr",data.id).catch(()=>{});
   btn.disabled=false; btn.textContent="Submit Change Request";
-  $("f-title").value="";$("f-desc").value="";$("f-files").value="";$("file-preview").innerHTML="";
+  $("f-title").value="";$("f-desc").value="";$("f-files").value="";$("file-preview").innerHTML="";$("f-due").value="";
   toast("Change request "+data.ref_no+" submitted.");
   loadAndRenderClient();
 }
@@ -445,6 +447,23 @@ function setAdminTab(t){ ADMIN_TAB=t; renderAdmin(); }
 
 function renderAdminDash(){
   $("admin-pane").innerHTML=`
+    <div class="card">
+      <h2>Raise a Change Request <span style="color:var(--muted);font-weight:400;font-size:14px">— for a client</span></h2>
+      <div class="sub">Create a CR on behalf of a client. It is numbered with that client's prefix.</div>
+      <div class="grid3">
+        <div><label>Client <span class="req">*</span></label><select id="ac-client" class="inp"></select></div>
+        <div><label>Priority</label><select id="ac-priority" class="inp">${PRIORITIES.map(p=>`<option ${p==="Medium"?"selected":""}>${p}</option>`).join("")}</select></div>
+        <div><label>Type</label><select id="ac-type" class="inp">${TYPES.map(t=>`<option ${t==="Change"?"selected":""}>${t}</option>`).join("")}</select></div>
+        <div><label>Area</label><select id="ac-area" class="inp">${AREAS.map(a=>`<option ${a==="Other"?"selected":""}>${a}</option>`).join("")}</select></div>
+        <div><label>Needed by <span class="hint">(optional)</span></label><input id="ac-due" class="inp" type="date"/></div>
+        <div><label>Photo(s)</label><input id="ac-files" class="inp" type="file" accept="image/*" multiple/></div>
+      </div>
+      <label style="margin-top:12px">Heading <span class="req">*</span></label>
+      <input id="ac-title" class="inp" placeholder="Short summary of the change"/>
+      <label style="margin-top:12px">Description <span class="req">*</span></label>
+      <textarea id="ac-desc" class="inp" rows="3" placeholder="Explain what is expected…"></textarea>
+      <button class="btn" style="max-width:260px" id="ac-btn" onclick="adminCreateCR()">Create change request</button>
+    </div>
     <div class="stats" id="admin-stats"></div>
     <div class="card">
       <div class="toolbar">
@@ -472,6 +491,8 @@ async function loadAndRenderAdmin(){
   const clients=[...new Set(CACHE.map(r=>r.client_name).filter(Boolean))].sort();
   const sel=$("a-client"); const cur=sel.value;
   sel.innerHTML=`<option value="">All clients</option>`+clients.map(c=>`<option ${c===cur?"selected":""}>${esc(c)}</option>`).join("");
+  const acsel=$("ac-client");
+  if(acsel) acsel.innerHTML = CLIENTS.length ? CLIENTS.map(c=>`<option value="${c.id}">${esc(c.company||c.full_name||c.username)}</option>`).join("") : `<option value="">No clients yet — create one first</option>`;
   renderAdminTable();
 }
 function filteredAdmin(){
@@ -502,6 +523,21 @@ function renderAdminTable(){
       <td>${fmtDay(r.updated_at)}</td>
       <td style="white-space:nowrap">${r.status!=="Done"?`<button class="btn btn-sm btn-ok" onclick="quickStatus('${r.id}','Done')">✓ Complete</button> `:""}<button class="link-btn" onclick="openDetail('${r.id}')">Open</button></td>
     </tr>`).join("")}</tbody></table>`:`<div class="empty">No change requests match the current filters.</div>`;
+}
+async function adminCreateCR(){
+  const client_id=$("ac-client").value, title=$("ac-title").value.trim(), desc=$("ac-desc").value.trim();
+  if(!client_id){ toast("Create a client first, then raise a CR.",true); return; }
+  if(!title||!desc){ toast("Heading and description are required.",true); return; }
+  const btn=$("ac-btn"); btn.disabled=true; btn.textContent="Creating…";
+  try{
+    const res=await callFn("admin-create-cr",{ client_id, title, description:desc,
+      area:$("ac-area").value, type:$("ac-type").value, priority:$("ac-priority").value, due_date:$("ac-due").value||null });
+    for(const f of $("ac-files").files){ await uploadAttachment(res.id,f); }
+    toast("Change request "+res.ref_no+" created.");
+    $("ac-title").value="";$("ac-desc").value="";$("ac-due").value="";$("ac-files").value="";
+    await loadAndRenderAdmin();
+  }catch(e){ toast(e.message||"Could not create CR.",true); }
+  finally{ btn.disabled=false; btn.textContent="Create change request"; }
 }
 async function completeCR(id){ await quickStatus(id,'Done'); closeModal(); }
 async function reopenCR(id){
@@ -735,9 +771,12 @@ async function openDetail(id){
       <div class="mb">
         <div class="kv">
           <div class="k">Client</div><div>${esc(r.client_name||"—")}</div>
+          <div class="k">Type</div><div>${esc(r.type||"—")}</div>
+          <div class="k">Area</div><div>${esc(r.area||"—")}</div>
           <div class="k">Priority</div><div class="pr-${r.priority}">${esc(r.priority)}</div>
           <div class="k">Status</div><div><span class="badge ${badgeClass(r.status)}">${esc(r.status)}</span></div>
           <div class="k">Submitted</div><div>${fmtDate(r.created_at)}</div>
+          <div class="k">Needed by</div><div>${r.due_date?fmtDay(r.due_date):"—"}</div>
         </div>
         <div><div class="k" style="color:var(--muted);font-size:13px;margin-bottom:4px">Description</div>
           <div style="white-space:pre-wrap;font-size:14px;line-height:1.5">${esc(r.description||"")}</div></div>
