@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>CR Portal — StudioAI Pro | Citrine Global India</title>
+<title>CR Portal — StudioAI Pro | Stepstones Global India</title>
 <style>
   :root{
     --bg:#0f1220; --panel:#171a2b; --panel2:#1e2238; --line:#2a2f4a;
@@ -21,16 +21,13 @@
   button{cursor:pointer;font-family:inherit}
   input,select,textarea{font-family:inherit}
   .auth-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
-  .auth-card{width:100%;max-width:420px;background:var(--panel);border:1px solid var(--line);
+  .auth-card{width:100%;max-width:430px;background:var(--panel);border:1px solid var(--line);
     border-radius:18px;padding:30px;box-shadow:var(--shadow)}
   .logo{display:flex;align-items:center;gap:12px;margin-bottom:6px}
   .logo .mark{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,var(--brand),var(--accent));
     display:grid;place-items:center;font-weight:800;color:#fff;font-size:18px}
   .logo h1{font-size:18px;margin:0}
   .logo small{color:var(--muted)}
-  .tabs{display:flex;background:var(--panel2);border-radius:12px;padding:4px;margin:20px 0}
-  .tabs button{flex:1;border:0;background:transparent;color:var(--muted);padding:10px;border-radius:9px;font-weight:600}
-  .tabs button.active{background:var(--brand);color:#fff}
   label{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
   .inp{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--txt);
     padding:11px 12px;border-radius:10px;font-size:14px;outline:none}
@@ -40,14 +37,13 @@
   .btn:disabled{opacity:.6}
   .btn-sm{width:auto;padding:8px 14px;font-size:13px;margin:0;border-radius:9px}
   .btn-ghost{background:var(--chip);color:var(--txt);border:1px solid var(--line)}
-  .btn-danger{background:linear-gradient(135deg,#ff5f6d,#ff8a5b)}
   .btn-ok{background:linear-gradient(135deg,#16a34a,#22c55e)}
   .msg{margin-top:14px;font-size:13px;padding:10px;border-radius:9px;display:none}
   .msg.show{display:block}
   .msg.err{background:rgba(255,107,107,.12);color:#ffb4b4;border:1px solid rgba(255,107,107,.3)}
   .msg.ok{background:rgba(34,197,94,.12);color:#9af5c0;border:1px solid rgba(34,197,94,.3)}
-  .linkrow{margin-top:12px;text-align:center;font-size:13px}
-  .linkrow button{background:none;border:0;color:var(--brand2);font-weight:600}
+  .setup-note{background:rgba(108,92,231,.12);border:1px solid rgba(108,92,231,.35);color:#cfc6ff;
+    padding:10px 12px;border-radius:9px;font-size:12.5px;margin:8px 0 4px}
   header.top{display:flex;align-items:center;justify-content:space-between;padding:14px 22px;
     background:rgba(23,26,43,.8);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);
     position:sticky;top:0;z-index:30}
@@ -56,6 +52,10 @@
   .pill.admin{background:rgba(108,92,231,.2);border-color:var(--brand);color:#cfc6ff}
   .wrap{max-width:1180px;margin:0 auto;padding:22px}
   .row{display:flex;gap:16px;flex-wrap:wrap}
+  .navtabs{display:flex;gap:8px;margin-bottom:18px}
+  .navtabs button{background:var(--panel2);border:1px solid var(--line);color:var(--muted);
+    padding:9px 16px;border-radius:10px;font-weight:600;font-size:14px}
+  .navtabs button.active{background:var(--brand);color:#fff;border-color:var(--brand)}
   .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:20px}
   .stat{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px}
   .stat .n{font-size:26px;font-weight:800}
@@ -100,18 +100,33 @@
   .comment{background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:12px;margin-bottom:10px}
   .comment .meta{font-size:12px;color:var(--muted);margin-bottom:5px}
   .hist{font-size:13px;color:var(--muted);border-left:2px solid var(--brand);padding:4px 0 4px 12px;margin-bottom:8px}
-  .att{display:flex;align-items:center;gap:8px;background:var(--panel2);border:1px solid var(--line);
+  .att{display:flex;align-items:center;gap:10px;background:var(--panel2);border:1px solid var(--line);
     border-radius:9px;padding:8px 12px;margin-bottom:8px;font-size:13px}
   .att .name{flex:1}
-  .filechip{display:inline-flex;align-items:center;gap:6px;background:var(--chip);border:1px solid var(--line);
-    border-radius:8px;padding:5px 9px;font-size:12px;margin:4px 6px 0 0}
+  .photo-grid{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+  .photo-grid a{display:block}
+  .photo-grid img{width:120px;height:90px;object-fit:cover;border-radius:10px;border:1px solid var(--line)}
   .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--panel2);
     border:1px solid var(--line);padding:12px 18px;border-radius:11px;box-shadow:var(--shadow);z-index:100;
-    font-size:14px;opacity:0;transition:.25s;pointer-events:none}
+    font-size:14px;opacity:0;transition:.25s;pointer-events:none;max-width:90vw}
   .toast.show{opacity:1;bottom:30px}
   .toast.err{border-color:var(--danger)}
   .req{color:var(--danger)}
   .hint{font-size:12px;color:var(--muted);margin-top:4px}
+  .hero{display:flex;align-items:center;gap:16px;background:var(--panel);border:1px solid var(--line);
+    border-radius:16px;padding:18px 20px;margin-bottom:18px;box-shadow:var(--shadow)}
+  .hero .lg{width:60px;height:60px;border-radius:14px;object-fit:cover;border:1px solid var(--line);background:var(--panel2)}
+  .hero .lg.ph{display:grid;place-items:center;font-weight:800;color:#fff;font-size:22px;
+    background:linear-gradient(135deg,var(--brand),var(--accent))}
+  .hero .h-name{font-size:18px;font-weight:800}
+  .hero .h-sub{color:var(--muted);font-size:13px}
+  .clients-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+  .client-card{background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;gap:12px;align-items:flex-start}
+  .client-card .lg{width:48px;height:48px;border-radius:11px;object-fit:cover;border:1px solid var(--line);background:var(--panel)}
+  .client-card .lg.ph{display:grid;place-items:center;font-weight:800;color:#fff;font-size:18px;background:linear-gradient(135deg,var(--brand),var(--accent))}
+  .client-card .cc-name{font-weight:700}
+  .client-card .cc-meta{color:var(--muted);font-size:12px;margin-top:2px;line-height:1.5;word-break:break-word}
+  .logo-preview{width:64px;height:64px;border-radius:12px;object-fit:cover;border:1px solid var(--line);margin-top:6px}
   .config-warn{max-width:680px;margin:60px auto;background:var(--panel);border:1px solid var(--danger);
     border-radius:16px;padding:26px;box-shadow:var(--shadow)}
   .config-warn h2{margin:0 0 10px;color:#ffb4b4}
@@ -126,32 +141,29 @@
       <div class="mark">CR</div>
       <div>
         <h1>Change Request Portal</h1>
-        <small>StudioAI Pro · Citrine Global India</small>
+        <small>StudioAI Pro · Stepstones Global India</small>
       </div>
     </div>
-    <div class="tabs">
-      <button id="tab-login" class="active" onclick="switchTab('login')">Log in</button>
-      <button id="tab-signup" onclick="switchTab('signup')">Sign up</button>
-    </div>
+
     <div id="form-login">
-      <label>Email</label>
-      <input id="li-email" class="inp" type="email" placeholder="you@company.com" autocomplete="username" />
+      <label>Username or Email</label>
+      <input id="li-id" class="inp" placeholder="username or you@company.com" autocomplete="username" />
       <label>Password</label>
       <input id="li-pass" class="inp" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()" />
       <button class="btn" id="li-btn" onclick="doLogin()">Log in</button>
-      <div class="linkrow"><button onclick="doReset()">Forgot password?</button></div>
     </div>
-    <div id="form-signup" class="hidden">
+
+    <div id="form-setup" class="hidden">
+      <div class="setup-note">First-time setup — create the administrator account for this portal.</div>
+      <label>Admin email</label>
+      <input id="se-email" class="inp" type="email" placeholder="you@company.com" />
       <label>Full name</label>
-      <input id="su-name" class="inp" placeholder="Your name" />
-      <label>Company / Studio</label>
-      <input id="su-company" class="inp" placeholder="Company name" />
-      <label>Email</label>
-      <input id="su-email" class="inp" type="email" placeholder="you@company.com" />
+      <input id="se-name" class="inp" placeholder="Your name" />
       <label>Password <span class="hint">(min 6 characters)</span></label>
-      <input id="su-pass" class="inp" type="password" placeholder="••••••••" />
-      <button class="btn" id="su-btn" onclick="doSignup()">Create client account</button>
+      <input id="se-pass" class="inp" type="password" placeholder="••••••••" />
+      <button class="btn" id="se-btn" onclick="doSetup()">Create admin account</button>
     </div>
+
     <div id="auth-msg" class="msg"></div>
   </div>
 </div>
@@ -179,100 +191,92 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script>
-// =====================================================================
-//  CONFIG — point this at your Supabase project.
-//  Dashboard → Project Settings → API → "Project URL" and the
-//  "anon"/"publishable" key (safe to expose in client-side code).
-// =====================================================================
+// ===================== CONFIG =====================
 const SUPABASE_URL = "https://kjegcgnraahyubfnvqte.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtqZWdjZ25yYWFoeXViZm52cXRlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIzNzA1MzksImV4cCI6MjA5Nzk0NjUzOX0.EbuOY5ZW9Xyl6DbKUzwVxxwZqX012Pk2DP4gMp2WVc0";
+const CLIENT_LOGIN_DOMAIN = "clients.crportal.app";  // synthetic login domain for username-based clients
 
 const CONFIGURED = SUPABASE_URL.startsWith("https://") && !SUPABASE_KEY.startsWith("REPLACE_");
 let sb = null;
 if (CONFIGURED) sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-const AREAS = ["Equipment Tracking","Payments","Billing","Reporting","Dashboard","Settings","Venue","Services","Billing / Documents","Leads","Requirements","Other"];
+const AREAS = ["Equipment Tracking","Payments","Billing","Reporting","Dashboard","Settings","Venue","Services","Leads","Requirements","Other"];
 const TYPES = ["New Feature","Enhancement","Bug Fix","Removal","Change"];
 const PRIORITIES = ["Low","Medium","High","Critical"];
 const STATUSES = ["New","In Review","Approved","In Progress","Done","Rejected"];
 
-let ME = null, SESSION = null, CACHE = [];
+let ME=null, SESSION=null, CACHE=[], CLIENTS=[], ADMIN_TAB="dashboard";
 
 const $ = id => document.getElementById(id);
 const esc = s => (s==null?"":String(s)).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const badgeClass = s => "b-"+String(s||"").replace(/\s/g,"");
 const fmtDate = d => d?new Date(d).toLocaleString(undefined,{year:"numeric",month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"}):"—";
-const fmtDay = d => d?new Date(d).toLocaleDateString(undefined,{year:"numeric",month:"short",day:"numeric"}):"—";
+const fmtDay  = d => d?new Date(d).toLocaleDateString(undefined,{year:"numeric",month:"short",day:"numeric"}):"—";
+const slugify = s => String(s||"").toLowerCase().replace(/[^a-z0-9._-]/g,"");
+const codeify = s => String(s||"").replace(/[^A-Za-z0-9]/g,"");
+const logoUrl = p => p ? sb.storage.from("cr-logos").getPublicUrl(p).data.publicUrl : "";
+const initials = s => (String(s||"?").trim()[0]||"?").toUpperCase();
 
-function toast(msg, isErr){
-  const t=$("toast"); t.textContent=msg; t.className="toast show"+(isErr?" err":"");
-  setTimeout(()=>t.className="toast",2600);
-}
+function toast(msg,isErr){ const t=$("toast"); t.textContent=msg; t.className="toast show"+(isErr?" err":""); setTimeout(()=>t.className="toast",3000); }
 function authMsg(msg,type){ const m=$("auth-msg"); m.textContent=msg; m.className="msg show "+(type||"err"); }
-function switchTab(t){
-  $("tab-login").classList.toggle("active",t==="login");
-  $("tab-signup").classList.toggle("active",t==="signup");
-  $("form-login").classList.toggle("hidden",t!=="login");
-  $("form-signup").classList.toggle("hidden",t!=="signup");
-  $("auth-msg").className="msg";
+
+async function callFn(name,body){
+  const {data,error}=await sb.functions.invoke(name,{body});
+  if(error){ let m=error.message; try{const j=await error.context.json(); if(j&&j.error)m=j.error;}catch(_){ } throw new Error(m); }
+  if(data&&data.error) throw new Error(data.error);
+  return data;
 }
 
-async function doSignup(){
-  const name=$("su-name").value.trim(), company=$("su-company").value.trim();
-  const email=$("su-email").value.trim(), pass=$("su-pass").value;
-  if(!name||!email||pass.length<6){authMsg("Enter name, email and a 6+ char password.");return;}
-  $("su-btn").disabled=true; $("su-btn").textContent="Creating…";
-  const {data,error}=await sb.auth.signUp({email,password:pass,options:{data:{full_name:name,company}}});
-  $("su-btn").disabled=false; $("su-btn").textContent="Create client account";
-  if(error){authMsg(error.message);return;}
-  if(data.user){
-    if(data.session){
-      await sb.from("cr_profiles").upsert({id:data.user.id,email,full_name:name,company,role:"client"});
-      await boot();
-    }else{
-      authMsg("Account created. Please check your email to confirm, then log in.","ok");
-      switchTab("login");
-    }
-  }
-}
+// ===================== AUTH =====================
 async function doLogin(){
-  const email=$("li-email").value.trim(), pass=$("li-pass").value;
-  if(!email||!pass){authMsg("Enter email and password.");return;}
+  const idv=$("li-id").value.trim(), pass=$("li-pass").value;
+  if(!idv||!pass){authMsg("Enter your username/email and password.");return;}
+  const email = idv.includes("@") ? idv : `${slugify(idv)}@${CLIENT_LOGIN_DOMAIN}`;
   $("li-btn").disabled=true; $("li-btn").textContent="Logging in…";
-  const {data,error}=await sb.auth.signInWithPassword({email,password:pass});
+  const {error}=await sb.auth.signInWithPassword({email,password:pass});
   $("li-btn").disabled=false; $("li-btn").textContent="Log in";
-  if(error){authMsg(error.message);return;}
+  if(error){authMsg("Invalid username/email or password.");return;}
   await boot();
 }
-async function doReset(){
-  const email=$("li-email").value.trim();
-  if(!email){authMsg("Enter your email above, then click 'Forgot password?'.");return;}
-  const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.href});
-  if(error){authMsg(error.message);return;}
-  authMsg("Password reset link sent. Check your email.","ok");
+async function doSetup(){
+  const email=$("se-email").value.trim(), name=$("se-name").value.trim(), pass=$("se-pass").value;
+  if(!email||pass.length<6){authMsg("Enter an email and a 6+ character password.");return;}
+  $("se-btn").disabled=true; $("se-btn").textContent="Creating…";
+  try{
+    await callFn("bootstrap-admin",{email,password:pass,full_name:name});
+    const {error}=await sb.auth.signInWithPassword({email,password:pass});
+    if(error) throw error;
+    await boot();
+  }catch(e){ authMsg(e.message||"Setup failed."); }
+  finally{ $("se-btn").disabled=false; $("se-btn").textContent="Create admin account"; }
 }
 async function doLogout(){ await sb.auth.signOut(); location.reload(); }
 
 async function ensureProfile(){
   const u=SESSION.user;
-  let {data:prof}=await sb.from("cr_profiles").select("*").eq("id",u.id).maybeSingle();
-  if(!prof){
-    const md=u.user_metadata||{};
-    await sb.from("cr_profiles").upsert({id:u.id,email:u.email,full_name:md.full_name||u.email,company:md.company||"",role:"client"});
-    ({data:prof}=await sb.from("cr_profiles").select("*").eq("id",u.id).maybeSingle());
-  }
+  const {data:prof}=await sb.from("cr_profiles").select("*").eq("id",u.id).maybeSingle();
   ME=prof;
 }
 
 async function boot(){
   if(!CONFIGURED){ showConfigWarning(); return; }
   const {data:{session}}=await sb.auth.getSession();
-  if(!session){ $("auth-view").classList.remove("hidden"); $("app-view").classList.add("hidden"); return; }
+  if(!session){
+    let needs=false;
+    try{ const {data}=await sb.rpc("cr_needs_setup"); needs=!!data; }catch(_){}
+    $("app-view").classList.add("hidden");
+    $("auth-view").classList.remove("hidden");
+    $("form-setup").classList.toggle("hidden",!needs);
+    $("form-login").classList.toggle("hidden",needs);
+    if(needs) $("se-email").value="stepstonesdigital@gmail.com";
+    return;
+  }
   SESSION=session;
   await ensureProfile();
+  if(!ME){ toast("No profile found for this account.",true); await sb.auth.signOut(); location.reload(); return; }
   $("auth-view").classList.add("hidden");
   $("app-view").classList.remove("hidden");
-  $("who-name").textContent=ME.full_name||ME.email;
+  $("who-name").textContent=ME.company||ME.full_name||ME.username||ME.email;
   $("who-role").textContent=ME.role==="admin"?"ADMIN":"CLIENT";
   $("who-role").className="pill"+(ME.role==="admin"?" admin":"");
   if(ME.role==="admin") renderAdmin(); else renderClient();
@@ -280,37 +284,47 @@ async function boot(){
 
 function showConfigWarning(){
   $("auth-view").classList.add("hidden");
-  document.body.insertAdjacentHTML("beforeend",`
-    <div class="config-warn">
-      <h2>⚠ Supabase not configured</h2>
-      <p>Edit <code>cr-portal.html</code> and set <code>SUPABASE_URL</code> and
-      <code>SUPABASE_KEY</code> near the top of the &lt;script&gt; block to your project's
-      values (Dashboard → Project Settings → API), then reload.</p>
-    </div>`);
+  document.body.insertAdjacentHTML("beforeend",
+    `<div class="config-warn"><h2>⚠ Supabase not configured</h2><p>Set <code>SUPABASE_URL</code> and <code>SUPABASE_KEY</code> in index.html.</p></div>`);
 }
 
+// ===================== DATA =====================
 async function loadRequests(){
   const {data,error}=await sb.from("cr_requests").select("*").order("created_at",{ascending:false});
   if(error){toast(error.message,true);return [];}
   CACHE=data||[]; return CACHE;
 }
+async function loadClients(){
+  const {data,error}=await sb.from("cr_profiles").select("*").eq("role","client").order("created_at",{ascending:false});
+  if(error){toast(error.message,true);return [];}
+  CLIENTS=data||[]; return CLIENTS;
+}
 
+// ===================== CLIENT VIEW =====================
 function renderClient(){
+  const lg=logoUrl(ME.logo_path);
   $("app-body").innerHTML=`
+    <div class="hero">
+      ${lg?`<img class="lg" src="${esc(lg)}" alt="logo"/>`:`<div class="lg ph">${esc(initials(ME.company||ME.full_name||ME.username))}</div>`}
+      <div>
+        <div class="h-name">${esc(ME.company||ME.full_name||ME.username||"Welcome")}</div>
+        <div class="h-sub">Client code <span class="ref">${esc(ME.client_code||"—")}</span> · Notifications to ${esc(ME.notify_email||"—")}</div>
+      </div>
+    </div>
+    <div class="stats" id="client-stats"></div>
     <div class="card">
       <h2>Raise a Change Request</h2>
-      <div class="sub">Describe the change you need for StudioAI Pro. Fields marked <span class="req">*</span> are required.</div>
-      <div class="grid3">
-        <div><label>Title <span class="req">*</span></label><input id="f-title" class="inp" placeholder="Short summary of the change"/></div>
-        <div><label>Area</label><select id="f-area" class="inp">${AREAS.map(a=>`<option>${a}</option>`).join("")}</select></div>
-        <div><label>Type <span class="req">*</span></label><select id="f-type" class="inp">${TYPES.map(t=>`<option>${t}</option>`).join("")}</select></div>
-        <div><label>Priority <span class="req">*</span></label><select id="f-priority" class="inp">${PRIORITIES.map(p=>`<option ${p==="Medium"?"selected":""}>${p}</option>`).join("")}</select></div>
-        <div><label>Count / Quantity</label><input id="f-count" class="inp" type="number" min="1" value="1"/></div>
-        <div><label>Attachments</label><input id="f-files" class="inp" type="file" multiple/></div>
+      <div class="sub">Add a heading, a description and an optional photo, then submit. Your reference number is generated automatically.</div>
+      <label>Heading <span class="req">*</span></label>
+      <input id="f-title" class="inp" placeholder="Short summary of the change"/>
+      <div class="grid3" style="margin-top:12px">
+        <div><label>Priority</label><select id="f-priority" class="inp">${PRIORITIES.map(p=>`<option ${p==="Medium"?"selected":""}>${p}</option>`).join("")}</select></div>
+        <div><label>Area</label><select id="f-area" class="inp">${AREAS.map(a=>`<option ${a==="Other"?"selected":""}>${a}</option>`).join("")}</select></div>
+        <div><label>Photo(s)</label><input id="f-files" class="inp" type="file" accept="image/*" multiple/></div>
       </div>
-      <label>Description <span class="req">*</span></label>
+      <label style="margin-top:12px">Description <span class="req">*</span></label>
       <textarea id="f-desc" class="inp" rows="4" placeholder="Explain what is expected, affected screens, expected behaviour…"></textarea>
-      <div id="file-preview"></div>
+      <div id="file-preview" class="photo-grid" style="margin-top:10px"></div>
       <button class="btn" style="max-width:240px" id="submit-cr" onclick="submitCR()">Submit Change Request</button>
     </div>
     <div class="card">
@@ -329,19 +343,25 @@ function renderClient(){
 }
 function previewFiles(){
   const files=$("f-files").files;
-  $("file-preview").innerHTML=[...files].map(f=>`<span class="filechip">📎 ${esc(f.name)}</span>`).join("");
+  $("file-preview").innerHTML=[...files].map(f=>`<img src="${URL.createObjectURL(f)}" title="${esc(f.name)}"/>`).join("");
 }
-async function loadAndRenderClient(){ await loadRequests(); renderClientTable(); }
+async function loadAndRenderClient(){ await loadRequests(); renderClientStats(); renderClientTable(); }
+function renderClientStats(){
+  const by=s=>CACHE.filter(r=>r.status===s).length;
+  $("client-stats").innerHTML=`
+    <div class="stat"><div class="n">${CACHE.length}</div><div class="l">Total CRs</div></div>
+    <div class="stat"><div class="n" style="color:var(--muted)">${by("New")+by("In Review")}</div><div class="l">New / In Review</div></div>
+    <div class="stat"><div class="n" style="color:var(--accent)">${by("Approved")+by("In Progress")}</div><div class="l">Approved / In Progress</div></div>
+    <div class="stat"><div class="n" style="color:var(--ok)">${by("Done")}</div><div class="l">Done</div></div>`;
+}
 function renderClientTable(){
-  const term=($("c-search").value||"").toLowerCase();
-  const st=$("c-status").value;
-  const rows=CACHE.filter(r=>(!st||r.status===st) && (!term||(r.title+r.ref_no+r.area+r.type+(r.description||"")).toLowerCase().includes(term)));
+  const term=($("c-search").value||"").toLowerCase(), st=$("c-status").value;
+  const rows=CACHE.filter(r=>(!st||r.status===st)&&(!term||((r.title||"")+(r.ref_no||"")+(r.description||"")).toLowerCase().includes(term)));
   $("c-table").innerHTML=rows.length?`<table>
-    <thead><tr><th>Ref</th><th>Title</th><th>Type</th><th>Priority</th><th>Status</th><th>Submitted</th><th></th></tr></thead>
+    <thead><tr><th>Ref</th><th>Heading</th><th>Priority</th><th>Status</th><th>Submitted</th><th></th></tr></thead>
     <tbody>${rows.map(r=>`<tr>
       <td><span class="ref">${esc(r.ref_no)}</span></td>
       <td>${esc(r.title)}</td>
-      <td>${esc(r.type)}</td>
       <td class="pr-${r.priority}">${esc(r.priority)}</td>
       <td><span class="badge ${badgeClass(r.status)}">${esc(r.status)}</span></td>
       <td>${fmtDay(r.created_at)}</td>
@@ -350,19 +370,19 @@ function renderClientTable(){
 }
 async function submitCR(){
   const title=$("f-title").value.trim(), desc=$("f-desc").value.trim();
-  if(!title||!desc){toast("Title and description are required.",true);return;}
+  if(!title||!desc){toast("Heading and description are required.",true);return;}
   const btn=$("submit-cr"); btn.disabled=true; btn.textContent="Submitting…";
-  const payload={ title, area:$("f-area").value, type:$("f-type").value, priority:$("f-priority").value,
-    item_count:parseInt($("f-count").value||"1"), description:desc,
-    created_by:SESSION.user.id, client_name:ME.full_name||ME.email, status:"New" };
+  const payload={ title, area:$("f-area").value, type:"Change", priority:$("f-priority").value,
+    item_count:1, description:desc, created_by:SESSION.user.id,
+    client_name:ME.company||ME.full_name||ME.username, status:"New" };
   const {data,error}=await sb.from("cr_requests").insert(payload).select().single();
   if(error){btn.disabled=false;btn.textContent="Submit Change Request";toast(error.message,true);return;}
-  const files=$("f-files").files;
-  for(const f of files){ await uploadAttachment(data.id,f); }
+  for(const f of $("f-files").files){ await uploadAttachment(data.id,f); }
   await sb.from("cr_status_history").insert({request_id:data.id,old_status:null,new_status:"New",
-    changed_by:SESSION.user.id,changed_by_name:ME.full_name||ME.email,note:"Request submitted"});
+    changed_by:SESSION.user.id,changed_by_name:ME.full_name||ME.username,note:"Request submitted"});
+  notify("new_cr",data.id).catch(()=>{});
   btn.disabled=false; btn.textContent="Submit Change Request";
-  $("f-title").value="";$("f-desc").value="";$("f-count").value="1";$("f-files").value="";$("file-preview").innerHTML="";
+  $("f-title").value="";$("f-desc").value="";$("f-files").value="";$("file-preview").innerHTML="";
   toast("Change request "+data.ref_no+" submitted.");
   loadAndRenderClient();
 }
@@ -374,14 +394,25 @@ async function uploadAttachment(reqId,file){
     file_size:file.size,mime_type:file.type,uploaded_by:SESSION.user.id});
 }
 
+// ===================== ADMIN VIEW =====================
 function renderAdmin(){
   $("app-body").innerHTML=`
+    <div class="navtabs">
+      <button id="nt-dash" class="${ADMIN_TAB==='dashboard'?'active':''}" onclick="setAdminTab('dashboard')">Change Requests</button>
+      <button id="nt-clients" class="${ADMIN_TAB==='clients'?'active':''}" onclick="setAdminTab('clients')">Clients</button>
+    </div>
+    <div id="admin-pane"></div>`;
+  if(ADMIN_TAB==="clients") renderAdminClients(); else renderAdminDash();
+}
+function setAdminTab(t){ ADMIN_TAB=t; renderAdmin(); }
+
+function renderAdminDash(){
+  $("admin-pane").innerHTML=`
     <div class="stats" id="admin-stats"></div>
     <div class="card">
       <div class="toolbar">
-        <input id="a-search" class="inp" placeholder="🔍 Search ref, title, client…" oninput="renderAdminTable()" style="min-width:220px"/>
+        <input id="a-search" class="inp" placeholder="🔍 Search ref, heading, client…" oninput="renderAdminTable()" style="min-width:220px"/>
         <select id="a-status" class="inp" onchange="renderAdminTable()"><option value="">All statuses</option>${STATUSES.map(s=>`<option>${s}</option>`).join("")}</select>
-        <select id="a-type" class="inp" onchange="renderAdminTable()"><option value="">All types</option>${TYPES.map(t=>`<option>${t}</option>`).join("")}</select>
         <select id="a-priority" class="inp" onchange="renderAdminTable()"><option value="">All priorities</option>${PRIORITIES.map(p=>`<option>${p}</option>`).join("")}</select>
         <select id="a-client" class="inp" onchange="renderAdminTable()"><option value="">All clients</option></select>
         <div class="spacer"></div>
@@ -389,9 +420,9 @@ function renderAdmin(){
       </div>
       <div class="toolbar">
         <strong style="font-size:14px">Export:</strong>
-        <button class="btn btn-sm btn-ok" onclick="exportExcel()">⬇ Excel (.xlsx)</button>
-        <button class="btn btn-sm" onclick="exportPDF()">⬇ PDF report</button>
-        <button class="btn btn-sm btn-ghost" onclick="exportWord()">⬇ Word (.doc)</button>
+        <button class="btn btn-sm btn-ok" onclick="exportExcel()">⬇ Excel</button>
+        <button class="btn btn-sm" onclick="exportPDF()">⬇ PDF</button>
+        <button class="btn btn-sm btn-ghost" onclick="exportWord()">⬇ Word</button>
         <button class="btn btn-sm btn-ghost" onclick="exportCSV()">⬇ CSV</button>
         <span class="hint" id="export-note"></span>
       </div>
@@ -400,7 +431,7 @@ function renderAdmin(){
   loadAndRenderAdmin();
 }
 async function loadAndRenderAdmin(){
-  await loadRequests();
+  await loadRequests(); await loadClients();
   const clients=[...new Set(CACHE.map(r=>r.client_name).filter(Boolean))].sort();
   const sel=$("a-client"); const cur=sel.value;
   sel.innerHTML=`<option value="">All clients</option>`+clients.map(c=>`<option ${c===cur?"selected":""}>${esc(c)}</option>`).join("");
@@ -408,9 +439,9 @@ async function loadAndRenderAdmin(){
 }
 function filteredAdmin(){
   const term=($("a-search").value||"").toLowerCase();
-  const st=$("a-status").value,ty=$("a-type").value,pr=$("a-priority").value,cl=$("a-client").value;
-  return CACHE.filter(r=>(!st||r.status===st)&&(!ty||r.type===ty)&&(!pr||r.priority===pr)&&(!cl||r.client_name===cl)&&
-    (!term||(r.ref_no+r.title+(r.client_name||"")+r.area+r.type+(r.description||"")).toLowerCase().includes(term)));
+  const st=$("a-status").value,pr=$("a-priority").value,cl=$("a-client").value;
+  return CACHE.filter(r=>(!st||r.status===st)&&(!pr||r.priority===pr)&&(!cl||r.client_name===cl)&&
+    (!term||((r.ref_no||"")+(r.title||"")+(r.client_name||"")+(r.description||"")).toLowerCase().includes(term)));
 }
 function renderAdminTable(){
   const rows=filteredAdmin();
@@ -420,16 +451,14 @@ function renderAdminTable(){
     <div class="stat"><div class="n" style="color:var(--muted)">${by("New")+by("In Review")}</div><div class="l">New / In Review</div></div>
     <div class="stat"><div class="n" style="color:var(--accent)">${by("Approved")+by("In Progress")}</div><div class="l">Approved / In Progress</div></div>
     <div class="stat"><div class="n" style="color:var(--ok)">${by("Done")}</div><div class="l">Done</div></div>
-    <div class="stat"><div class="n" style="color:var(--danger)">${CACHE.filter(r=>r.priority==="High"||r.priority==="Critical").length}</div><div class="l">High / Critical</div></div>`;
+    <div class="stat"><div class="n">${CLIENTS.length}</div><div class="l">Clients</div></div>`;
   $("export-note").textContent=`${rows.length} of ${CACHE.length} shown — export uses current filters`;
   $("a-table").innerHTML=rows.length?`<table>
-    <thead><tr><th>Ref</th><th>Title</th><th>Client</th><th>Area</th><th>Type</th><th>Pri.</th><th>Status</th><th>Updated</th><th></th></tr></thead>
+    <thead><tr><th>Ref</th><th>Heading</th><th>Client</th><th>Pri.</th><th>Status</th><th>Updated</th><th></th></tr></thead>
     <tbody>${rows.map(r=>`<tr>
       <td><span class="ref">${esc(r.ref_no)}</span></td>
       <td>${esc(r.title)}</td>
       <td>${esc(r.client_name||"—")}</td>
-      <td>${esc(r.area||"—")}</td>
-      <td>${esc(r.type)}</td>
       <td class="pr-${r.priority}">${esc(r.priority)}</td>
       <td><select class="inp" style="padding:5px 6px;font-size:12px" onchange="quickStatus('${r.id}',this.value)">
           ${STATUSES.map(s=>`<option ${s===r.status?"selected":""}>${s}</option>`).join("")}</select></td>
@@ -444,10 +473,89 @@ async function quickStatus(id,newStatus){
   if(error){toast(error.message,true);return;}
   await sb.from("cr_status_history").insert({request_id:id,old_status:old,new_status:newStatus,
     changed_by:SESSION.user.id,changed_by_name:ME.full_name,note:"Status changed via dashboard"});
+  notify("status",id,newStatus).catch(()=>{});
   r.status=newStatus; r.updated_at=new Date().toISOString();
   toast(`${r.ref_no} → ${newStatus}`); renderAdminTable();
 }
 
+// ----- Admin: Clients -----
+async function renderAdminClients(){
+  $("admin-pane").innerHTML=`
+    <div class="card">
+      <h2>Create a Client</h2>
+      <div class="sub">Set up the client's login (username + password), their contact email for notifications, business details and logo.</div>
+      <div class="grid3">
+        <div><label>Full name <span class="req">*</span></label><input id="cl-name" class="inp" placeholder="Contact person"/></div>
+        <div><label>Company / Studio <span class="req">*</span></label><input id="cl-company" class="inp" placeholder="Business name" oninput="autoCode()"/></div>
+        <div><label>Client code <span class="req">*</span><span class="hint"> used in CR-CODE-1</span></label><input id="cl-code" class="inp" placeholder="e.g. BharatOne" oninput="this.dataset.touched=1"/></div>
+        <div><label>Username <span class="req">*</span></label><input id="cl-username" class="inp" placeholder="login username"/></div>
+        <div><label>Password <span class="req">*</span><span class="hint"> min 6</span></label><input id="cl-pass" class="inp" type="text" placeholder="set a password"/></div>
+        <div><label>Notification email <span class="req">*</span></label><input id="cl-email" class="inp" type="email" placeholder="client@company.com"/></div>
+        <div><label>Phone</label><input id="cl-phone" class="inp" placeholder="+91…"/></div>
+        <div><label>GST / Tax ID</label><input id="cl-gst" class="inp" placeholder="GSTIN / Tax no."/></div>
+        <div><label>Website</label><input id="cl-web" class="inp" placeholder="https://…"/></div>
+      </div>
+      <label style="margin-top:12px">Address</label>
+      <textarea id="cl-address" class="inp" rows="2" placeholder="Business address"></textarea>
+      <label style="margin-top:12px">Logo</label>
+      <input id="cl-logo" class="inp" type="file" accept="image/*" onchange="previewLogo()"/>
+      <div><img id="cl-logo-prev" class="logo-preview hidden" alt="logo preview"/></div>
+      <button class="btn" style="max-width:240px" id="cl-btn" onclick="createClient()">Create client account</button>
+    </div>
+    <div class="card">
+      <h2>Clients</h2>
+      <div class="sub">All client accounts you've created.</div>
+      <div id="clients-list"></div>
+    </div>`;
+  await loadRequests(); await loadClients();
+  renderClientsList();
+}
+function autoCode(){ const c=$("cl-code"); if(!c.dataset.touched){ c.value=codeify($("cl-company").value); } }
+function previewLogo(){
+  const f=$("cl-logo").files[0]; const img=$("cl-logo-prev");
+  if(f){ img.src=URL.createObjectURL(f); img.classList.remove("hidden"); } else img.classList.add("hidden");
+}
+function renderClientsList(){
+  $("clients-list").innerHTML=CLIENTS.length?`<div class="clients-grid">${CLIENTS.map(c=>{
+    const lg=logoUrl(c.logo_path);
+    const n=CACHE.filter(r=>r.created_by===c.id).length;
+    return `<div class="client-card">
+      ${lg?`<img class="lg" src="${esc(lg)}"/>`:`<div class="lg ph">${esc(initials(c.company||c.full_name||c.username))}</div>`}
+      <div>
+        <div class="cc-name">${esc(c.company||c.full_name||c.username)}</div>
+        <div class="cc-meta">
+          Code <span class="ref">${esc(c.client_code||"—")}</span><br>
+          User: ${esc(c.username||"—")}<br>
+          ${esc(c.notify_email||"—")}<br>
+          ${esc(c.phone||"")} ${c.website?`· <a href="${esc(c.website)}" target="_blank" rel="noopener">site</a>`:""}<br>
+          ${n} change request${n===1?"":"s"}
+        </div>
+      </div>
+    </div>`;}).join("")}</div>`:`<div class="empty">No clients yet. Create your first one above.</div>`;
+}
+async function createClient(){
+  const name=$("cl-name").value.trim(), company=$("cl-company").value.trim(), code=$("cl-code").value.trim();
+  const username=$("cl-username").value.trim(), pass=$("cl-pass").value, email=$("cl-email").value.trim();
+  if(!name||!company||!code||!username||pass.length<6||!email){ toast("Fill name, company, code, username, 6+ char password and email.",true); return; }
+  const btn=$("cl-btn"); btn.disabled=true; btn.textContent="Creating…";
+  try{
+    let logo_path=null;
+    const f=$("cl-logo").files[0];
+    if(f){ logo_path=`${slugify(code)||"client"}/${Date.now()}_${f.name.replace(/[^\w.\-]/g,"_")}`;
+      const {error}=await sb.storage.from("cr-logos").upload(logo_path,f,{upsert:true});
+      if(error) throw error; }
+    await callFn("admin-create-client",{ username, password:pass, email, full_name:name,
+      company, phone:$("cl-phone").value.trim(), address:$("cl-address").value.trim(),
+      gst_no:$("cl-gst").value.trim(), website:$("cl-web").value.trim(), client_code:code, logo_path });
+    toast(`Client "${company}" created. Login: ${username}`);
+    ["cl-name","cl-company","cl-code","cl-username","cl-pass","cl-email","cl-phone","cl-gst","cl-web","cl-address"].forEach(i=>$(i).value="");
+    $("cl-code").dataset.touched=""; $("cl-logo").value=""; $("cl-logo-prev").classList.add("hidden");
+    await loadClients(); renderClientsList();
+  }catch(e){ toast(e.message||"Could not create client.",true); }
+  finally{ btn.disabled=false; btn.textContent="Create client account"; }
+}
+
+// ===================== DETAIL MODAL =====================
 async function openDetail(id){
   const r=CACHE.find(x=>x.id===id); if(!r)return;
   const [{data:comments},{data:hist},{data:atts}]=await Promise.all([
@@ -456,6 +564,8 @@ async function openDetail(id){
     sb.from("cr_attachments").select("*").eq("request_id",id).order("created_at")
   ]);
   const isAdmin=ME.role==="admin";
+  const imgs=(atts||[]).filter(a=>(a.mime_type||"").startsWith("image/"));
+  const files=(atts||[]).filter(a=>!(a.mime_type||"").startsWith("image/"));
   $("modal-root").innerHTML=`
   <div class="overlay" onclick="if(event.target===this)closeModal()">
     <div class="modal">
@@ -467,28 +577,22 @@ async function openDetail(id){
       <div class="mb">
         <div class="kv">
           <div class="k">Client</div><div>${esc(r.client_name||"—")}</div>
-          <div class="k">Area</div><div>${esc(r.area||"—")}</div>
-          <div class="k">Type</div><div>${esc(r.type)}</div>
           <div class="k">Priority</div><div class="pr-${r.priority}">${esc(r.priority)}</div>
-          <div class="k">Count</div><div>${esc(r.item_count||1)}</div>
           <div class="k">Status</div><div><span class="badge ${badgeClass(r.status)}">${esc(r.status)}</span></div>
           <div class="k">Submitted</div><div>${fmtDate(r.created_at)}</div>
         </div>
         <div><div class="k" style="color:var(--muted);font-size:13px;margin-bottom:4px">Description</div>
           <div style="white-space:pre-wrap;font-size:14px;line-height:1.5">${esc(r.description||"")}</div></div>
+        ${imgs.length?`<div class="section-title">Photos (${imgs.length})</div><div class="photo-grid" id="photo-grid"></div>`:""}
         ${isAdmin?`<div class="section-title">Update status</div>
         <div class="row">
           <select id="d-status" class="inp" style="max-width:200px">${STATUSES.map(s=>`<option ${s===r.status?"selected":""}>${s}</option>`).join("")}</select>
           <input id="d-status-note" class="inp" placeholder="Optional note…" style="flex:1"/>
           <button class="btn btn-sm" onclick="saveStatus('${r.id}')">Save</button>
         </div>`:""}
-        <div class="section-title">Attachments (${(atts||[]).length})</div>
-        <div id="att-list">${(atts||[]).map(a=>`<div class="att"><span>📎</span><span class="name">${esc(a.file_name)}</span>
-          <button class="btn btn-sm btn-ghost" onclick="downloadAtt('${esc(a.file_path)}','${esc(a.file_name)}')">Download</button></div>`).join("")||'<div class="hint">No attachments.</div>'}</div>
-        <div class="row" style="margin-top:8px">
-          <input id="d-file" class="inp" type="file" style="flex:1"/>
-          <button class="btn btn-sm btn-ghost" onclick="addAtt('${r.id}')">Upload</button>
-        </div>
+        ${files.length?`<div class="section-title">Attachments (${files.length})</div>
+        <div>${files.map(a=>`<div class="att"><span>📎</span><span class="name">${esc(a.file_name)}</span>
+          <button class="btn btn-sm btn-ghost" onclick="downloadAtt('${esc(a.file_path)}','${esc(a.file_name)}')">Download</button></div>`).join("")}</div>`:""}
         <div class="section-title">Status history</div>
         <div>${(hist||[]).map(h=>`<div class="hist">${h.old_status?esc(h.old_status)+" → ":""}<strong>${esc(h.new_status)}</strong> · ${esc(h.changed_by_name||"")} · ${fmtDate(h.created_at)}${h.note?`<br><em>${esc(h.note)}</em>`:""}</div>`).join("")||'<div class="hint">No history.</div>'}</div>
         <div class="section-title">Comments (${(comments||[]).length})</div>
@@ -500,6 +604,14 @@ async function openDetail(id){
       </div>
     </div>
   </div>`;
+  if(imgs.length){
+    const g=$("photo-grid");
+    for(const a of imgs){
+      const {data}=await sb.storage.from("cr-attachments").createSignedUrl(a.file_path,600);
+      if(data&&data.signedUrl){ const wrap=document.createElement("a"); wrap.href=data.signedUrl; wrap.target="_blank"; wrap.rel="noopener";
+        const im=document.createElement("img"); im.src=data.signedUrl; im.alt=a.file_name; wrap.appendChild(im); g.appendChild(wrap); }
+    }
+  }
 }
 function closeModal(){ $("modal-root").innerHTML=""; }
 async function saveStatus(id){
@@ -511,6 +623,7 @@ async function saveStatus(id){
     if(error){toast(error.message,true);return;}
     await sb.from("cr_status_history").insert({request_id:id,old_status:old,new_status:ns,
       changed_by:SESSION.user.id,changed_by_name:ME.full_name,note:note||"Status updated"});
+    notify("status",id,ns).catch(()=>{});
     r.status=ns; r.updated_at=new Date().toISOString();
   }else if(note){
     await sb.from("cr_status_history").insert({request_id:id,old_status:r.status,new_status:r.status,
@@ -522,13 +635,9 @@ async function saveStatus(id){
 async function addComment(id){
   const body=$("d-comment").value.trim(); if(!body)return;
   const {error}=await sb.from("cr_comments").insert({request_id:id,author_id:SESSION.user.id,
-    author_name:ME.full_name||ME.email,author_role:ME.role,body});
+    author_name:ME.full_name||ME.username||ME.email,author_role:ME.role,body});
   if(error){toast(error.message,true);return;}
   openDetail(id);
-}
-async function addAtt(id){
-  const f=$("d-file").files[0]; if(!f){toast("Choose a file first.",true);return;}
-  await uploadAttachment(id,f); toast("Uploaded."); openDetail(id);
 }
 async function downloadAtt(path,name){
   const {data,error}=await sb.storage.from("cr-attachments").createSignedUrl(path,120);
@@ -536,62 +645,56 @@ async function downloadAtt(path,name){
   const a=document.createElement("a"); a.href=data.signedUrl; a.download=name; a.target="_blank"; a.click();
 }
 
+// ===================== NOTIFICATIONS =====================
+// Best-effort; activates once the send-notification edge function + Gmail secret are set up.
+async function notify(kind,requestId,newStatus){
+  try{ await sb.functions.invoke("send-notification",{body:{kind,request_id:requestId,new_status:newStatus||null}}); }catch(_){}
+}
+
+// ===================== EXPORTS =====================
 function exportRows(){ return ME.role==="admin"?filteredAdmin():CACHE; }
 function exportData(){
   return exportRows().map(r=>({
-    Ref:r.ref_no, Title:r.title, Client:r.client_name||"", Area:r.area||"", Type:r.type,
-    Priority:r.priority, Count:r.item_count||1, Status:r.status,
-    Description:r.description||"", Submitted:fmtDay(r.created_at), Updated:fmtDay(r.updated_at)
+    Ref:r.ref_no, Heading:r.title, Client:r.client_name||"", Priority:r.priority,
+    Status:r.status, Description:r.description||"", Submitted:fmtDay(r.created_at), Updated:fmtDay(r.updated_at)
   }));
 }
 function exportExcel(){
   const ws=XLSX.utils.json_to_sheet(exportData());
-  ws["!cols"]=[{wch:9},{wch:34},{wch:18},{wch:18},{wch:13},{wch:9},{wch:6},{wch:12},{wch:50},{wch:13},{wch:13}];
+  ws["!cols"]=[{wch:16},{wch:34},{wch:20},{wch:9},{wch:12},{wch:50},{wch:13},{wch:13}];
   const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,"Change Requests");
-  XLSX.writeFile(wb,`Change_Requests_${new Date().toISOString().slice(0,10)}.xlsx`);
-  toast("Excel exported.");
+  XLSX.writeFile(wb,`Change_Requests_${new Date().toISOString().slice(0,10)}.xlsx`); toast("Excel exported.");
 }
 function exportCSV(){
-  const rows=exportData(); const head=Object.keys(rows[0]||{Ref:"",Title:"",Client:"",Area:"",Type:"",Priority:"",Count:"",Status:"",Description:"",Submitted:"",Updated:""});
+  const rows=exportData(); const head=Object.keys(rows[0]||{Ref:"",Heading:"",Client:"",Priority:"",Status:"",Description:"",Submitted:"",Updated:""});
   const csv=[head.join(","),...rows.map(r=>head.map(h=>`"${String(r[h]).replace(/"/g,'""')}"`).join(","))].join("\n");
-  dl(new Blob([csv],{type:"text/csv"}),`Change_Requests_${new Date().toISOString().slice(0,10)}.csv`);
-  toast("CSV exported.");
+  dl(new Blob([csv],{type:"text/csv"}),`Change_Requests_${new Date().toISOString().slice(0,10)}.csv`); toast("CSV exported.");
 }
 function exportPDF(){
   const {jsPDF}=window.jspdf; const doc=new jsPDF({orientation:"landscape"});
   doc.setFontSize(16); doc.text("Software Change Requests — StudioAI Pro",14,16);
   doc.setFontSize(10); doc.setTextColor(120);
-  doc.text(`Citrine Global India · Generated ${fmtDay(new Date())} · ${exportRows().length} items`,14,23);
-  doc.autoTable({
-    startY:28, styles:{fontSize:8,cellPadding:2}, headStyles:{fillColor:[108,92,231]},
-    head:[["Ref","Title","Client","Area","Type","Pri.","Cnt","Status","Submitted"]],
-    body:exportRows().map(r=>[r.ref_no,r.title,r.client_name||"",r.area||"",r.type,r.priority,r.item_count||1,r.status,fmtDay(r.created_at)]),
-    columnStyles:{1:{cellWidth:50},8:{cellWidth:24}}
-  });
-  doc.save(`Change_Requests_${new Date().toISOString().slice(0,10)}.pdf`);
-  toast("PDF exported.");
+  doc.text(`Stepstones Global India · Generated ${fmtDay(new Date())} · ${exportRows().length} items`,14,23);
+  doc.autoTable({ startY:28, styles:{fontSize:8,cellPadding:2}, headStyles:{fillColor:[108,92,231]},
+    head:[["Ref","Heading","Client","Pri.","Status","Submitted"]],
+    body:exportRows().map(r=>[r.ref_no,r.title,r.client_name||"",r.priority,r.status,fmtDay(r.created_at)]),
+    columnStyles:{1:{cellWidth:70}} });
+  doc.save(`Change_Requests_${new Date().toISOString().slice(0,10)}.pdf`); toast("PDF exported.");
 }
 function exportWord(){
   const rows=exportRows();
-  const cells=rows.map(r=>`<tr>
-    <td>${esc(r.ref_no)}</td><td>${esc(r.title)}</td><td>${esc(r.client_name||"")}</td>
-    <td>${esc(r.area||"")}</td><td>${esc(r.type)}</td><td>${esc(r.priority)}</td>
-    <td>${esc(r.item_count||1)}</td><td>${esc(r.status)}</td><td>${fmtDay(r.created_at)}</td>
-    <td>${esc(r.description||"")}</td></tr>`).join("");
+  const cells=rows.map(r=>`<tr><td>${esc(r.ref_no)}</td><td>${esc(r.title)}</td><td>${esc(r.client_name||"")}</td>
+    <td>${esc(r.priority)}</td><td>${esc(r.status)}</td><td>${fmtDay(r.created_at)}</td><td>${esc(r.description||"")}</td></tr>`).join("");
   const html=`<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word'><head><meta charset='utf-8'>
   <style>body{font-family:Calibri,Arial} h1{color:#4b2bd6} table{border-collapse:collapse;width:100%;font-size:10pt}
   th,td{border:1px solid #999;padding:5px;vertical-align:top} th{background:#6c5ce7;color:#fff;text-align:left}</style></head>
   <body><h1>Software Change Requests — StudioAI Pro</h1>
-  <p><b>Citrine Global India</b> · Generated ${fmtDay(new Date())} · ${rows.length} change requests</p>
-  <table><thead><tr><th>Ref</th><th>Title</th><th>Client</th><th>Area</th><th>Type</th><th>Priority</th><th>Count</th><th>Status</th><th>Submitted</th><th>Description</th></tr></thead>
+  <p><b>Stepstones Global India</b> · Generated ${fmtDay(new Date())} · ${rows.length} change requests</p>
+  <table><thead><tr><th>Ref</th><th>Heading</th><th>Client</th><th>Priority</th><th>Status</th><th>Submitted</th><th>Description</th></tr></thead>
   <tbody>${cells}</tbody></table></body></html>`;
-  dl(new Blob(["﻿"+html],{type:"application/msword"}),`Change_Requests_${new Date().toISOString().slice(0,10)}.doc`);
-  toast("Word document exported.");
+  dl(new Blob(["﻿"+html],{type:"application/msword"}),`Change_Requests_${new Date().toISOString().slice(0,10)}.doc`); toast("Word exported.");
 }
-function dl(blob,name){
-  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=name; a.click();
-  setTimeout(()=>URL.revokeObjectURL(a.href),1500);
-}
+function dl(blob,name){ const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1500); }
 
 if(sb) sb.auth.onAuthStateChange((_e,s)=>{SESSION=s;});
 boot();

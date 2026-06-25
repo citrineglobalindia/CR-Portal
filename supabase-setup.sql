@@ -1,6 +1,6 @@
 -- =====================================================================
 --  CR Portal — Supabase setup script
---  StudioAI Pro · Citrine Global India
+--  StudioAI Pro · Stepstones Global India
 --  Run this ONCE in the Supabase SQL Editor (Dashboard → SQL Editor → New query).
 --  Safe to re-run: it is idempotent (drops/recreates policies, uses IF NOT EXISTS).
 -- =====================================================================
@@ -254,7 +254,7 @@ language plpgsql
 set search_path = ''
 as $$
 begin
-  if lower(new.email) = lower('citrineglobalindia@gmail.com') then
+  if lower(new.email) = lower('stepstonesdigital@gmail.com') then
     new.role := 'admin';
   end if;
   return new;
