@@ -1,4 +1,4 @@
-# CR Portal — StudioAI Pro
+# CR Portal — Stepstones
 
 A Change Request portal for **Stepstones Global India**. Admins provision client accounts;
 clients log in to raise change requests (heading, description, photos) and track their

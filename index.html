@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>CR Portal — StudioAI Pro | Stepstones Global India</title>
+<title>CR Portal — Stepstones | Stepstones Global India</title>
 <style>
   :root{
     --bg:#0f1220; --panel:#171a2b; --panel2:#1e2238; --line:#2a2f4a;
@@ -166,7 +166,7 @@
       <div class="mark">CR</div>
       <div>
         <h1>Change Request Portal</h1>
-        <small>StudioAI Pro · Stepstones Global India</small>
+        <small>Stepstones · Stepstones Global India</small>
       </div>
     </div>
 
@@ -203,7 +203,7 @@
   <header class="top">
     <div class="logo">
       <div class="mark">CR</div>
-      <div><h1 style="font-size:15px">Change Request Portal</h1><small>StudioAI Pro</small></div>
+      <div><h1 style="font-size:15px">Change Request Portal</h1><small>Stepstones</small></div>
     </div>
     <div class="who">
       <span id="who-name"></span>
@@ -380,10 +380,11 @@ function renderClient(){
   $("f-files").addEventListener("change",previewFiles);
   loadAndRenderClient();
 }
-function previewFiles(){
-  const files=$("f-files").files;
-  $("file-preview").innerHTML=[...files].map(f=>`<img src="${URL.createObjectURL(f)}" title="${esc(f.name)}"/>`).join("");
+function previewInto(inputId,containerId){
+  const c=$(containerId); if(!c) return;
+  c.innerHTML=[...$(inputId).files].map(f=>`<img src="${URL.createObjectURL(f)}" title="${esc(f.name)}"/>`).join("");
 }
+function previewFiles(){ previewInto("f-files","file-preview"); }
 async function loadAndRenderClient(){ await loadRequests(); renderClientStats(); renderClientTable(); }
 function renderClientStats(){
   const by=s=>CACHE.filter(r=>r.status===s).length;
@@ -456,12 +457,13 @@ function renderAdminDash(){
         <div><label>Type</label><select id="ac-type" class="inp">${TYPES.map(t=>`<option ${t==="Change"?"selected":""}>${t}</option>`).join("")}</select></div>
         <div><label>Area</label><select id="ac-area" class="inp">${AREAS.map(a=>`<option ${a==="Other"?"selected":""}>${a}</option>`).join("")}</select></div>
         <div><label>Needed by <span class="hint">(optional)</span></label><input id="ac-due" class="inp" type="date"/></div>
-        <div><label>Photo(s)</label><input id="ac-files" class="inp" type="file" accept="image/*" multiple/></div>
+        <div><label>Photo(s) <span class="hint">multiple</span></label><input id="ac-files" class="inp" type="file" accept="image/*" multiple onchange="previewInto('ac-files','ac-preview')"/></div>
       </div>
       <label style="margin-top:12px">Heading <span class="req">*</span></label>
       <input id="ac-title" class="inp" placeholder="Short summary of the change"/>
       <label style="margin-top:12px">Description <span class="req">*</span></label>
       <textarea id="ac-desc" class="inp" rows="3" placeholder="Explain what is expected…"></textarea>
+      <div id="ac-preview" class="photo-grid" style="margin-top:10px"></div>
       <button class="btn" style="max-width:260px" id="ac-btn" onclick="adminCreateCR()">Create change request</button>
     </div>
     <div class="stats" id="admin-stats"></div>
@@ -534,7 +536,7 @@ async function adminCreateCR(){
       area:$("ac-area").value, type:$("ac-type").value, priority:$("ac-priority").value, due_date:$("ac-due").value||null });
     for(const f of $("ac-files").files){ await uploadAttachment(res.id,f); }
     toast("Change request "+res.ref_no+" created.");
-    $("ac-title").value="";$("ac-desc").value="";$("ac-due").value="";$("ac-files").value="";
+    $("ac-title").value="";$("ac-desc").value="";$("ac-due").value="";$("ac-files").value="";$("ac-preview").innerHTML="";
     await loadAndRenderAdmin();
   }catch(e){ toast(e.message||"Could not create CR.",true); }
   finally{ btn.disabled=false; btn.textContent="Create change request"; }
@@ -922,7 +924,7 @@ function exportCSV(){
 }
 function exportPDF(){
   const {jsPDF}=window.jspdf; const doc=new jsPDF({orientation:"landscape"});
-  doc.setFontSize(16); doc.text("Software Change Requests — StudioAI Pro",14,16);
+  doc.setFontSize(16); doc.text("Software Change Requests — Stepstones",14,16);
   doc.setFontSize(10); doc.setTextColor(120);
   doc.text(`Stepstones Global India · Generated ${fmtDay(new Date())} · ${exportRows().length} items`,14,23);
   doc.autoTable({ startY:28, styles:{fontSize:8,cellPadding:2}, headStyles:{fillColor:[108,92,231]},
@@ -938,7 +940,7 @@ function exportWord(){
   const html=`<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word'><head><meta charset='utf-8'>
   <style>body{font-family:Calibri,Arial} h1{color:#4b2bd6} table{border-collapse:collapse;width:100%;font-size:10pt}
   th,td{border:1px solid #999;padding:5px;vertical-align:top} th{background:#6c5ce7;color:#fff;text-align:left}</style></head>
-  <body><h1>Software Change Requests — StudioAI Pro</h1>
+  <body><h1>Software Change Requests — Stepstones</h1>
   <p><b>Stepstones Global India</b> · Generated ${fmtDay(new Date())} · ${rows.length} change requests</p>
   <table><thead><tr><th>Ref</th><th>Heading</th><th>Client</th><th>Priority</th><th>Status</th><th>Submitted</th><th>Description</th></tr></thead>
   <tbody>${cells}</tbody></table></body></html>`;

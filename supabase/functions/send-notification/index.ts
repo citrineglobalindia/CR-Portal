@@ -47,7 +47,7 @@ function shell(title: string, rowsHtml: string, leadHtml: string, attHtml: strin
         ${attHtml}
         <div style='margin-top:24px;text-align:center'><a href='${APP_URL}' style='background:#6c5ce7;color:#ffffff;text-decoration:none;padding:12px 28px;border-radius:10px;font-weight:700;display:inline-block'>View in Portal</a></div>
       </div>
-      <div style='padding:16px 26px;background:#f7f8fc;border-top:1px solid #ebedf5;color:#9aa0bd;font-size:11px;text-align:center'>Automated message from ${BRAND} &middot; StudioAI Pro Change Request Portal</div>
+      <div style='padding:16px 26px;background:#f7f8fc;border-top:1px solid #ebedf5;color:#9aa0bd;font-size:11px;text-align:center'>Automated message from ${BRAND} &middot; Stepstones Change Request Portal</div>
     </div></div>`
 }
 async function buildAtt(admin: ReturnType<typeof createClient>, reqId: string) {
