@@ -18,7 +18,7 @@ statuses, comments, and exports reports. It's a single HTML file backed by Supab
 
 ## Tech
 
-- Frontend: a single `cr-portal.html` (vanilla JS, no framework)
+- Frontend: a single `index.html` (vanilla JS, no framework)
 - Backend: [Supabase](https://supabase.com) — Postgres, Auth, Storage
 - Libraries (via CDN): supabase-js, SheetJS (xlsx), jsPDF + autotable
 
@@ -33,7 +33,7 @@ the ref-number and `updated_at` triggers, Row Level Security policies, and the p
 
 ### 2. Configure the app
 
-Open `cr-portal.html` and set these two values near the top of the `<script>` block to
+Open `index.html` and set these two values near the top of the `<script>` block to
 your project's values (Supabase Dashboard → **Project Settings → API**):
 
 ```js
@@ -56,7 +56,7 @@ Reload the portal and you'll land on the admin dashboard.
 
 ## Running
 
-There's nothing to build or serve — just open `cr-portal.html` in a browser, or host it
+There's nothing to build or serve — just open `index.html` in a browser, or host it
 on any static host (GitHub Pages, Netlify, Vercel, etc.).
 
 ## Data model
