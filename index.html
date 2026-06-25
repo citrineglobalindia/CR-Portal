@@ -283,18 +283,67 @@
   .cs-row input[type=color]{width:30px;height:30px;border:1px solid var(--line);border-radius:8px;background:none;padding:0;cursor:pointer;flex:none}
   .cs-hex{width:92px;flex:none;padding:7px 8px;font-size:12px;font-family:ui-monospace,Menlo,Consolas,monospace}
   @media(max-width:560px){.cs-grid{grid-template-columns:1fr}}
+
+  /* white-backed logo */
+  .brand-logo{background:#fff;border-radius:12px;padding:6px 12px;display:flex;align-items:center;box-shadow:0 4px 14px rgba(0,0,0,.18)}
+  .brand-logo img{height:30px;width:auto;display:block}
+  .brand-logo-lg{padding:14px 22px;border-radius:18px;margin:0 auto 8px}
+  .brand-logo-lg img{height:54px}
+  .logo-login{justify-content:center}
+  /* advanced loader */
+  .app-loader{position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px;background:linear-gradient(135deg,#0b1020,#171a2b 45%,#241048);overflow:hidden;transition:opacity .6s ease,visibility .6s}
+  .app-loader.hide{opacity:0;visibility:hidden;pointer-events:none}
+  .app-loader .ldr-glow{position:absolute;width:520px;height:520px;border-radius:50%;background:radial-gradient(circle,rgba(108,92,231,.45),transparent 60%);filter:blur(40px);animation:ldr-pulse 3s ease-in-out infinite}
+  .ldr-inner{position:relative;display:flex;flex-direction:column;align-items:center;gap:22px;z-index:2}
+  .ldr-logo{background:#fff;border-radius:20px;padding:22px 30px;box-shadow:0 24px 70px rgba(40,20,90,.55);animation:ldr-pop .7s cubic-bezier(.22,1.2,.36,1) both}
+  .ldr-logo img{width:min(74vw,330px);height:auto;display:block}
+  .ldr-bar{width:min(74vw,260px);height:6px;border-radius:999px;background:rgba(255,255,255,.12);overflow:hidden;position:relative}
+  .ldr-bar>span{position:absolute;top:0;height:100%;width:40%;border-radius:999px;background:linear-gradient(90deg,#56c8fb,#6c5ce7,#a855f7);animation:ldr-slide 1.15s cubic-bezier(.65,0,.35,1) infinite}
+  .ldr-tag{color:#cfd3ee;font-size:13px;letter-spacing:6px;font-weight:700;animation:ldr-fade 2s ease-in-out infinite}
+  .ldr-pix{position:absolute;inset:0;z-index:1;pointer-events:none}
+  .ldr-pix i{position:absolute;width:16px;height:16px;border-radius:4px;background:linear-gradient(135deg,#6c5ce7,#56c8fb);opacity:0;animation:ldr-float 4s ease-in-out infinite;animation-delay:var(--d)}
+  .ldr-pix i:nth-child(1){left:18%;top:30%}.ldr-pix i:nth-child(2){left:78%;top:24%}.ldr-pix i:nth-child(3){left:26%;top:70%}
+  .ldr-pix i:nth-child(4){left:70%;top:68%}.ldr-pix i:nth-child(5){left:50%;top:15%}.ldr-pix i:nth-child(6){left:60%;top:82%}
+  @keyframes ldr-pop{from{opacity:0;transform:translateY(16px) scale(.92)}to{opacity:1;transform:none}}
+  @keyframes ldr-slide{0%{left:-42%}100%{left:104%}}
+  @keyframes ldr-pulse{0%,100%{transform:scale(.9);opacity:.6}50%{transform:scale(1.08);opacity:1}}
+  @keyframes ldr-fade{0%,100%{opacity:.45}50%{opacity:1}}
+  @keyframes ldr-float{0%,100%{opacity:0;transform:translateY(14px) rotate(0)}40%{opacity:.7}50%{transform:translateY(-14px) rotate(35deg)}}
+  /* client notes */
+  .nt-compose{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px}
+  .nt-compose textarea{margin-top:8px}
+  .nt-compose-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;flex-wrap:wrap}
+  .nt-swatches{display:flex;gap:7px}
+  .nt-sw{width:22px;height:22px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0}
+  .nt-sw.on{border-color:#fff;box-shadow:0 0 0 2px var(--brand)}
+  .nt-toolbar{margin:14px 0 10px}
+  .nt-card{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px;transition:transform .2s,box-shadow .2s}
+  .nt-card:hover{transform:translateY(-2px);box-shadow:0 10px 26px rgba(0,0,0,.28)}
+  .nt-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .nt-title{font-weight:700;font-size:14px}
+  .nt-acts{display:flex;gap:4px}
+  .nt-acts button{background:none;border:0;cursor:pointer;font-size:14px;opacity:.7;padding:2px 5px;border-radius:6px}
+  .nt-acts button:hover{opacity:1;background:var(--chip)}
+  .nt-body{font-size:13.5px;line-height:1.5;color:var(--txt);margin:7px 0;white-space:pre-wrap}
+  .nt-meta{font-size:11.5px;color:var(--muted)}
 </style>
 </head>
 <body>
 
+<div id="app-loader" class="app-loader">
+  <div class="ldr-glow"></div>
+  <div class="ldr-pix"><i style="--d:0s"></i><i style="--d:.15s"></i><i style="--d:.3s"></i><i style="--d:.45s"></i><i style="--d:.6s"></i><i style="--d:.75s"></i></div>
+  <div class="ldr-inner">
+    <div class="ldr-logo"><img src="assets/stepstones-logo.svg" alt="Stepstones"></div>
+    <div class="ldr-bar"><span></span></div>
+    <div class="ldr-tag">BUILD · INNOVATE · GROW</div>
+  </div>
+</div>
+
 <div id="auth-view" class="auth-wrap">
   <div class="auth-card">
-    <div class="logo">
-      <div class="mark" id="brand-mark-1">CR</div>
-      <div>
-        <h1 id="brand-name-1">Change Request Portal</h1>
-        <small id="brand-sub-1">Stepstones · Stepstones Global India</small>
-      </div>
+    <div class="logo logo-login">
+      <div class="brand-logo brand-logo-lg" id="brand-wrap-1"><img id="brand-img-1" src="assets/stepstones-logo.svg" alt="Stepstones"></div>
     </div>
 
     <div id="form-login">
@@ -329,8 +378,7 @@
 <div id="app-view" class="hidden">
   <header class="top">
     <div class="logo">
-      <div class="mark" id="brand-mark-2">CR</div>
-      <div><h1 id="brand-name-2" style="font-size:15px">Change Request Portal</h1><small id="brand-sub-2">Stepstones</small></div>
+      <div class="brand-logo" id="brand-wrap-2"><img id="brand-img-2" src="assets/stepstones-logo.svg" alt="Stepstones"></div>
     </div>
     <div class="who">
       <div class="theme-wrap">
@@ -549,6 +597,8 @@ function applyBranding(s){
   const name=(s&&s.brand_name)||"Change Request Portal";
   const sub=(s&&s.brand_sub)||"Stepstones · Stepstones Global India";
   const mark=((s&&s.brand_mark)||"CR");
+  const _logoSrc=(s&&s.logo_path)?logoUrl(s.logo_path):"assets/stepstones-logo.svg";
+  ["brand-img-1","brand-img-2"].forEach(id=>{const e=$(id); if(e)e.src=_logoSrc;});
   ["brand-name-1","brand-name-2"].forEach(id=>{const e=$(id); if(e)e.textContent=name;});
   ["brand-sub-1","brand-sub-2"].forEach(id=>{const e=$(id); if(e)e.textContent=sub;});
   ["brand-mark-1","brand-mark-2"].forEach(id=>{const e=$(id); if(!e)return; if(s&&s.logo_path){e.innerHTML=`<img src="${esc(logoUrl(s.logo_path))}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit">`;}else{e.textContent=mark;}});
@@ -1409,6 +1459,7 @@ function renderClientsList(){
           <button class="btn btn-sm btn-ghost" onclick="viewClientCRs('${esc(nm)}')">View CRs</button>
           <button class="btn btn-sm btn-ghost" onclick="openClientEdit('${c.id}')">Edit</button>
           <button class="btn btn-sm btn-ghost" onclick="openVault('${c.id}')">🔒 Vault</button>
+          <button class="btn btn-sm btn-ghost" onclick="openNotes('${c.id}')">📝 Notes</button>
         </div>
       </div>
     </div>`;}).join("")}</div>`:`<div class="empty">${term?"No clients match your search.":"No clients yet. Create your first one above."}</div>`;
@@ -1511,6 +1562,83 @@ async function createClient(){
 
 // ===================== PROJECT VAULT (admin only) =====================
 let VAULT_CLIENT=null;
+let NOTES_CLIENT=null, NOTES_CACHE=[], NEW_NOTE_COLOR="indigo";
+const NOTE_COLORS=[["indigo","#6c5ce7"],["blue","#2f7bf6"],["green","#22c55e"],["amber","#ffb020"],["rose","#f43f5e"],["slate","#64748b"]];
+function noteColor(c){ const f=NOTE_COLORS.find(x=>x[0]===c); return f?f[1]:"#6c5ce7"; }
+function relTime(d){ const s=(Date.now()-new Date(d).getTime())/1000; if(s<60)return"just now"; if(s<3600)return Math.floor(s/60)+"m ago"; if(s<86400)return Math.floor(s/3600)+"h ago"; if(s<604800)return Math.floor(s/86400)+"d ago"; return fmtDay(d); }
+async function fetchNotes(){ const {data}=await sb.from("cr_client_notes").select("*").eq("client_id",NOTES_CLIENT).order("pinned",{ascending:false}).order("updated_at",{ascending:false}); NOTES_CACHE=data||[]; }
+async function openNotes(clientId){
+  NOTES_CLIENT=clientId; NEW_NOTE_COLOR="indigo";
+  const c=CLIENTS.find(x=>x.id===clientId);
+  await fetchNotes();
+  $("modal-root").innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()">
+    <div class="modal" style="max-width:660px">
+      <div class="mh"><div><h2 style="margin:0">📝 Client notes</h2><div class="hint">${esc(c?(c.company||c.full_name||c.username):"")} — private admin notes (clients can't see these)</div></div><button class="x" onclick="closeModal()">×</button></div>
+      <div class="mb">
+        <div class="nt-compose">
+          <input id="nt-title" class="inp" placeholder="Note title (optional)"/>
+          <textarea id="nt-body" class="inp" rows="3" placeholder="Write a note about this client…"></textarea>
+          <div class="nt-compose-row">
+            <div class="nt-swatches" id="nt-swatches">${NOTE_COLORS.map((x,i)=>`<button class="nt-sw ${i===0?'on':''}" data-c="${x[0]}" style="background:${x[1]}" title="${x[0]}" onclick="pickNoteColor('${x[0]}')"></button>`).join("")}</div>
+            <button class="btn btn-sm btn-ok" id="nt-add" onclick="addNote()">＋ Add note</button>
+          </div>
+        </div>
+        <div class="nt-toolbar"><input id="nt-search" class="inp" placeholder="🔍 Search notes…" oninput="renderNotes()"/></div>
+        <div id="nt-list"></div>
+      </div>
+    </div></div>`;
+  renderNotes();
+}
+function pickNoteColor(c){ NEW_NOTE_COLOR=c; document.querySelectorAll('#nt-swatches .nt-sw').forEach(b=>b.classList.toggle('on',b.dataset.c===c)); }
+function renderNotes(){
+  const term=($("nt-search")?$("nt-search").value:"").trim().toLowerCase();
+  let list=NOTES_CACHE.slice();
+  if(term) list=list.filter(n=>((n.title||"")+" "+(n.body||"")).toLowerCase().includes(term));
+  const el=$("nt-list"); if(!el)return;
+  el.innerHTML=list.length?list.map(n=>`
+    <div class="nt-card" data-id="${n.id}" style="border-left:4px solid ${noteColor(n.color)}">
+      <div class="nt-head">
+        <div class="nt-title">${n.pinned?'📌 ':''}${esc(n.title||"Note")}</div>
+        <div class="nt-acts">
+          <button title="${n.pinned?'Unpin':'Pin'}" onclick="togglePin('${n.id}')">${n.pinned?'📍':'📌'}</button>
+          <button title="Edit" onclick="startEditNote('${n.id}')">✏️</button>
+          <button title="Delete" onclick="deleteNote('${n.id}')">🗑</button>
+        </div>
+      </div>
+      <div class="nt-body">${esc(n.body||"")}</div>
+      <div class="nt-meta">${esc(n.created_by_name||"Admin")} · ${esc(relTime(n.updated_at))}</div>
+    </div>`).join(""):`<div class="empty">${term?"No notes match your search.":"No notes yet — add the first one above."}</div>`;
+}
+async function addNote(){
+  const title=($("nt-title").value||"").trim(); const body=($("nt-body").value||"").trim();
+  if(!title&&!body){toast("Write something first.",true);return;}
+  const btn=$("nt-add"); if(btn){btn.disabled=true;btn.textContent="Adding…";}
+  const {error}=await sb.from("cr_client_notes").insert({client_id:NOTES_CLIENT,title:title||null,body,color:NEW_NOTE_COLOR,created_by:(SESSION&&SESSION.user)?SESSION.user.id:null,created_by_name:ME.full_name||ME.username||"Admin"});
+  if(btn){btn.disabled=false;btn.textContent="＋ Add note";}
+  if(error){toast(error.message,true);return;}
+  $("nt-title").value="";$("nt-body").value="";
+  toast("Note added."); await fetchNotes(); renderNotes();
+}
+async function togglePin(id){ const n=NOTES_CACHE.find(x=>x.id===id); if(!n)return; const {error}=await sb.from("cr_client_notes").update({pinned:!n.pinned,updated_at:new Date().toISOString()}).eq("id",id); if(error){toast(error.message,true);return;} await fetchNotes(); renderNotes(); }
+async function deleteNote(id){ const {error}=await sb.from("cr_client_notes").delete().eq("id",id); if(error){toast(error.message,true);return;} toast("Note deleted."); await fetchNotes(); renderNotes(); }
+function startEditNote(id){
+  const n=NOTES_CACHE.find(x=>x.id===id); if(!n)return;
+  renderNotes();
+  const el=$("nt-list"); if(!el)return;
+  const target=el.querySelector('.nt-card[data-id="'+id+'"]'); if(!target)return;
+  target.innerHTML=`<input class="inp" id="nte-title-${id}" value="${esc(n.title||"")}" placeholder="Title"/>
+    <textarea class="inp" id="nte-body-${id}" rows="3" style="margin-top:8px">${esc(n.body||"")}</textarea>
+    <div class="nt-swatches" id="nte-sw-${id}" style="margin:8px 0">${NOTE_COLORS.map(x=>`<button class="nt-sw ${x[0]===n.color?'on':''}" data-c="${x[0]}" style="background:${x[1]}" onclick="this.parentNode.querySelectorAll('.nt-sw').forEach(b=>b.classList.remove('on'));this.classList.add('on')"></button>`).join("")}</div>
+    <div class="row"><button class="btn btn-sm btn-ok" onclick="saveNote('${id}')">Save</button><button class="btn btn-sm btn-ghost" onclick="renderNotes()">Cancel</button></div>`;
+}
+async function saveNote(id){
+  const title=($("nte-title-"+id).value||"").trim();
+  const body=($("nte-body-"+id).value||"").trim();
+  const sw=$("nte-sw-"+id)?$("nte-sw-"+id).querySelector(".nt-sw.on"):null; const color=sw?sw.dataset.c:"indigo";
+  const {error}=await sb.from("cr_client_notes").update({title:title||null,body,color,updated_at:new Date().toISOString()}).eq("id",id);
+  if(error){toast(error.message,true);return;}
+  toast("Note updated."); await fetchNotes(); renderNotes();
+}
 async function openVault(clientId){
   VAULT_CLIENT=clientId;
   const c=CLIENTS.find(x=>x.id===clientId);
@@ -1788,8 +1916,8 @@ function exportWord(){
 function dl(blob,name){ const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1500); }
 
 if(sb) sb.auth.onAuthStateChange((_e,s)=>{SESSION=s;});
-initTheme();
-boot();
+function hideLoader(){ const l=$("app-loader"); if(l){ l.classList.add("hide"); setTimeout(()=>{try{l.remove();}catch(_){}} ,700); } }
+(async()=>{ const t0=Date.now(); try{ await initTheme(); }catch(_){} try{ await boot(); }catch(_){} setTimeout(hideLoader, Math.max(0,900-(Date.now()-t0))); })();
 </script>
 </body>
 </html>
