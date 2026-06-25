@@ -247,6 +247,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script>
 // ===================== CONFIG =====================
 const SUPABASE_URL = "https://kjegcgnraahyubfnvqte.supabase.co";
@@ -541,9 +542,10 @@ function renderAdmin(){
     <div class="navtabs">
       <button id="nt-dash" class="${ADMIN_TAB==='dashboard'?'active':''}" onclick="setAdminTab('dashboard')">Change Requests</button>
       <button id="nt-clients" class="${ADMIN_TAB==='clients'?'active':''}" onclick="setAdminTab('clients')">Clients</button>
+      <button id="nt-reports" class="${ADMIN_TAB==='reports'?'active':''}" onclick="setAdminTab('reports')">Reports</button>
     </div>
     <div id="admin-pane"></div>`;
-  if(ADMIN_TAB==="clients") renderAdminClients(); else renderAdminDash();
+  if(ADMIN_TAB==="clients") renderAdminClients(); else if(ADMIN_TAB==="reports") renderAdminReports(); else renderAdminDash();
 }
 function setAdminTab(t){ ADMIN_TAB=t; renderAdmin(); }
 
@@ -661,6 +663,63 @@ async function quickStatus(id,newStatus){
   notify("status",id,newStatus).catch(()=>{});
   r.status=newStatus; r.updated_at=new Date().toISOString();
   toast(`${r.ref_no} → ${newStatus}`); renderAdminTable();
+}
+
+// ----- Admin: Reports -----
+let CHARTS={};
+async function renderAdminReports(){
+  $("admin-pane").innerHTML=`
+    <div class="stats" id="rep-stats"></div>
+    <div class="grid2">
+      <div class="card"><h2>Requests by status</h2><canvas id="ch-status" height="230"></canvas></div>
+      <div class="card"><h2>Requests by priority</h2><canvas id="ch-priority" height="230"></canvas></div>
+      <div class="card"><h2>Top clients</h2><canvas id="ch-clients" height="230"></canvas></div>
+      <div class="card"><h2>Requests over time</h2><canvas id="ch-time" height="230"></canvas></div>
+    </div>`;
+  await loadRequests(); await loadClients();
+  buildReports();
+}
+function buildReports(){
+  const done=CACHE.filter(r=>r.status==="Done");
+  const avgDays=done.length ? (done.reduce((s,r)=>s+(new Date(r.updated_at)-new Date(r.created_at)),0)/done.length/86400000) : 0;
+  const compRate=CACHE.length ? Math.round(done.length/CACHE.length*100) : 0;
+  const open=CACHE.filter(r=>r.status!=="Done"&&r.status!=="Rejected").length;
+  $("rep-stats").innerHTML=`
+    <div class="stat"><div class="n">${CACHE.length}</div><div class="l">Total CRs</div></div>
+    <div class="stat"><div class="n" style="color:var(--warn)">${open}</div><div class="l">Open</div></div>
+    <div class="stat"><div class="n" style="color:var(--ok)">${done.length}</div><div class="l">Completed</div></div>
+    <div class="stat"><div class="n" style="color:var(--accent)">${compRate}%</div><div class="l">Completion rate</div></div>
+    <div class="stat"><div class="n" style="color:var(--brand2)">${avgDays?avgDays.toFixed(1):"—"}</div><div class="l">Avg days to complete</div></div>`;
+  if(typeof Chart==="undefined"){ return; }
+  Object.values(CHARTS).forEach(c=>{try{c.destroy()}catch(_){}}); CHARTS={};
+  Chart.defaults.color="#9aa0bd"; Chart.defaults.borderColor="rgba(255,255,255,.06)";
+  const by=(arr,key)=>{const m={};arr.forEach(r=>{const k=r[key]||"—";m[k]=(m[k]||0)+1});return m;};
+  const st=by(CACHE,"status");
+  CHARTS.status=new Chart($("ch-status"),{type:"doughnut",data:{labels:Object.keys(st),datasets:[{data:Object.values(st),backgroundColor:["#9aa0bd","#ffb020","#8e7cff","#00d2a8","#22c55e","#ff6b6b"]}]},options:{plugins:{legend:{position:"bottom"}}}});
+  const pr=by(CACHE,"priority");
+  CHARTS.priority=new Chart($("ch-priority"),{type:"bar",data:{labels:Object.keys(pr),datasets:[{label:"CRs",data:Object.values(pr),backgroundColor:"#8e7cff"}]},options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0}}}}});
+  const cl=by(CACHE,"client_name"); const top=Object.entries(cl).sort((a,b)=>b[1]-a[1]).slice(0,7);
+  CHARTS.clients=new Chart($("ch-clients"),{type:"bar",data:{labels:top.map(e=>e[0]),datasets:[{label:"CRs",data:top.map(e=>e[1]),backgroundColor:"#00d2a8"}]},options:{indexAxis:"y",plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,ticks:{precision:0}}}}});
+  const mo={}; CACHE.forEach(r=>{const d=new Date(r.created_at); const k=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0"); mo[k]=(mo[k]||0)+1;});
+  const mk=Object.keys(mo).sort();
+  CHARTS.time=new Chart($("ch-time"),{type:"line",data:{labels:mk.map(k=>{const a=k.split("-");return new Date(a[0],a[1]-1).toLocaleDateString(undefined,{month:"short",year:"numeric"})}),datasets:[{label:"CRs raised",data:mk.map(k=>mo[k]),borderColor:"#6c5ce7",backgroundColor:"rgba(108,92,231,.2)",fill:true,tension:.3}]},options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0}}}}});
+}
+async function exportCRPdf(id){
+  const r=CACHE.find(x=>x.id===id); if(!r)return;
+  const {data:hist}=await sb.from("cr_status_history").select("*").eq("request_id",id).order("created_at");
+  const {jsPDF}=window.jspdf; const doc=new jsPDF();
+  doc.setFillColor(108,92,231); doc.rect(0,0,210,24,"F");
+  doc.setTextColor(255,255,255); doc.setFontSize(15); doc.text("Stepstones — Change Request",14,15);
+  doc.setTextColor(20,20,20); doc.setFontSize(14); doc.text(`${r.ref_no}   [${r.status}]`,14,36);
+  doc.setFontSize(11); let y=46;
+  const line=(k,v)=>{doc.setTextColor(120,120,120);doc.text(k,14,y);doc.setTextColor(20,20,20);doc.text(String(v==null?"-":v),58,y);y+=8;};
+  line("Title",r.title); line("Client",r.client_name); line("Type",r.type); line("Priority",r.priority);
+  line("Raised",fmtDate(r.created_at)); if(r.due_date) line("Needed by",fmtDay(r.due_date)); line("Last update",fmtDate(r.updated_at));
+  y+=3; doc.setTextColor(120,120,120); doc.text("Description",14,y); y+=7; doc.setTextColor(20,20,20);
+  const desc=doc.splitTextToSize(r.description||"-",182); doc.text(desc,14,y); y+=desc.length*6+6;
+  doc.setTextColor(120,120,120); doc.text("Status history",14,y); y+=7; doc.setTextColor(20,20,20);
+  (hist||[]).forEach(h=>{ const t=(h.old_status?h.old_status+" -> ":"")+h.new_status+"  ("+fmtDate(h.created_at)+")"+(h.note?" - "+h.note:""); const ls=doc.splitTextToSize(t,182); if(y+ls.length*6>285){doc.addPage();y=20;} doc.text(ls,14,y); y+=ls.length*6+2; });
+  doc.save(r.ref_no+".pdf");
 }
 
 // ----- Admin: Clients -----
@@ -884,7 +943,8 @@ async function openDetail(id){
         <div><div class="k" style="color:var(--muted);font-size:13px;margin-bottom:4px">Description</div>
           <div style="white-space:pre-wrap;font-size:14px;line-height:1.5">${esc(r.description||"")}</div></div>
         ${imgs.length?`<div class="section-title">Photos (${imgs.length})</div><div class="photo-grid" id="photo-grid"></div>`:""}
-        ${isAdmin?`<div class="section-title">Update status</div>
+        ${isAdmin?`<button class="btn btn-sm btn-ghost" style="margin-top:6px" onclick="exportCRPdf('${r.id}')">⬇ Export this CR (PDF)</button>
+        <div class="section-title">Update status</div>
         ${r.status!=="Done"?`<button class="btn btn-sm btn-ok" style="margin-bottom:10px" onclick="completeCR('${r.id}')">✓ Mark as Completed</button>`:""}
         <div class="row">
           <select id="d-status" class="inp" style="max-width:200px">${STATUSES.map(s=>`<option ${s===r.status?"selected":""}>${s}</option>`).join("")}</select>
