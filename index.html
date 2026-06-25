@@ -94,6 +94,12 @@
   th,td{text-align:left;padding:11px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
   th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em}
   tr:hover td{background:rgba(255,255,255,.02)}
+  #a-table table{font-size:15.5px}
+  #a-table th,#a-table td{padding:15px 12px}
+  #a-table th{font-size:13px}
+  #a-table td .ref{font-size:15.5px}
+  #a-table select.inp{font-size:14px!important;padding:8px 10px!important}
+  #a-table .btn-sm,#a-table .link-btn{font-size:14px;padding:8px 12px}
   .table-wrap{overflow-x:auto}
   .badge{padding:3px 9px;border-radius:999px;font-size:11.5px;font-weight:700;white-space:nowrap;display:inline-block}
   .b-New{background:rgba(154,160,189,.2);color:#c7cbe6}
@@ -605,6 +611,25 @@ async function uploadAttachment(reqId,file){
   if(error){toast("Upload failed: "+error.message,true);return;}
   await sb.from("cr_attachments").insert({request_id:reqId,file_name:file.name,file_path:path,
     file_size:file.size,mime_type:file.type,uploaded_by:SESSION.user.id});
+}
+async function uploadConfirmation(reqId,file){
+  const path=`${reqId}/confirm_${Date.now()}_${file.name.replace(/[^\w.\-]/g,"_")}`;
+  const {error}=await sb.storage.from("cr-attachments").upload(path,file);
+  if(error){toast("Upload failed: "+error.message,true);return false;}
+  const {error:e2}=await sb.from("cr_attachments").insert({request_id:reqId,file_name:file.name,file_path:path,
+    file_size:file.size,mime_type:file.type,uploaded_by:SESSION.user.id,kind:"confirmation"});
+  if(e2){toast(e2.message,true);return false;}
+  return true;
+}
+async function submitConfirmation(id){
+  const inp=$("d-confirm-file"); const f=inp&&inp.files&&inp.files[0];
+  if(!f){toast("Choose a file to upload first.",true);return;}
+  const btn=$("d-confirm-btn"); if(btn){btn.disabled=true;btn.textContent="Uploading…";}
+  const ok=await uploadConfirmation(id,f);
+  if(!ok){ if(btn){btn.disabled=false;btn.textContent="⬆ Upload confirmation";} return; }
+  notify("confirmation",id).catch(()=>{});
+  toast("Confirmation uploaded — the client has been notified.");
+  openDetail(id);
 }
 
 // ===================== ADMIN VIEW =====================
@@ -1143,9 +1168,11 @@ async function openDetail(id){
     sb.from("cr_attachments").select("*").eq("request_id",id).order("created_at")
   ]);
   const isAdmin=ME.role==="admin";
-  const imgs=(atts||[]).filter(a=>(a.mime_type||"").startsWith("image/"));
-  const audios=(atts||[]).filter(a=>(a.mime_type||"").startsWith("audio/"));
-  const files=(atts||[]).filter(a=>{const m=a.mime_type||"";return !m.startsWith("image/")&&!m.startsWith("audio/");});
+  const confirms=(atts||[]).filter(a=>a.kind==="confirmation");
+  const normal=(atts||[]).filter(a=>a.kind!=="confirmation");
+  const imgs=normal.filter(a=>(a.mime_type||"").startsWith("image/"));
+  const audios=normal.filter(a=>(a.mime_type||"").startsWith("audio/"));
+  const files=normal.filter(a=>{const m=a.mime_type||"";return !m.startsWith("image/")&&!m.startsWith("audio/");});
   $("modal-root").innerHTML=`
   <div class="overlay" onclick="if(event.target===this)closeModal()">
     <div class="modal">
@@ -1192,6 +1219,9 @@ async function openDetail(id){
         ${files.length?`<div class="section-title">Attachments (${files.length})</div>
         <div>${files.map(a=>`<div class="att"><span>📎</span><span class="name">${esc(a.file_name)}</span>
           <button class="btn btn-sm btn-ghost" onclick="downloadAtt('${esc(a.file_path)}','${esc(a.file_name)}')">Download</button></div>`).join("")}</div>`:""}
+        <div class="section-title">Change-made confirmation${confirms.length?` (${confirms.length})`:""}</div>
+        ${confirms.length?`<div>${confirms.map(a=>`<div class="att"><span>✅</span><span class="name">${esc(a.file_name)}</span><span class="hint">${fmtDay(a.created_at)}</span> <button class="btn btn-sm btn-ghost" onclick="downloadAtt('${esc(a.file_path)}','${esc(a.file_name)}')">Download</button></div>`).join("")}</div>`:`<div class="hint">${isAdmin?"No confirmation uploaded yet.":"The change confirmation will appear here once added."}</div>`}
+        ${isAdmin?`<div class="row" style="margin-top:8px"><input id="d-confirm-file" class="inp" type="file" style="flex:1"/><button class="btn btn-sm btn-ok" id="d-confirm-btn" onclick="submitConfirmation('${r.id}')">⬆ Upload confirmation</button></div><div class="hint">Attach a file confirming the change was made — the client is notified and can download it.</div>`:""}
         <div class="section-title">Status history</div>
         <div>${(hist||[]).map(h=>`<div class="hist">${h.old_status?esc(h.old_status)+" → ":""}<strong>${esc(h.new_status)}</strong> · ${esc(h.changed_by_name||"")} · ${fmtDate(h.created_at)}${h.note?`<br><em>${esc(h.note)}</em>`:""}</div>`).join("")||'<div class="hint">No history.</div>'}</div>
         <div class="section-title">Comments (${(comments||[]).length})</div>
