@@ -72,6 +72,15 @@
     overflow:hidden;display:grid;place-items:center;font-weight:800;color:#fff;font-size:34px;
     background:linear-gradient(135deg,var(--brand),var(--accent))}
   .profile-av img{width:100%;height:100%;object-fit:cover}
+  .board{display:flex;gap:14px;overflow-x:auto;padding-bottom:10px}
+  .bcol{min-width:240px;flex:1;background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:12px}
+  .bcol.over{border-color:var(--brand);background:rgba(108,92,231,.08)}
+  .bcol-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;font-size:13px}
+  .bcard{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:11px;margin-bottom:9px;cursor:grab}
+  .bcard:hover{border-color:var(--brand)}
+  .bcard:active{cursor:grabbing}
+  .bcard .bc-title{font-weight:600;font-size:13px;margin:4px 0}
+  .bcard .bc-meta{color:var(--muted);font-size:11.5px;margin-top:2px}
   .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px;margin-bottom:18px;box-shadow:var(--shadow)}
   .card h2{margin:0 0 4px;font-size:17px}
   .card .sub{color:var(--muted);font-size:13px;margin-bottom:16px}
@@ -118,6 +127,8 @@
   .photo-grid{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px}
   .photo-grid a{display:block}
   .photo-grid img{width:120px;height:90px;object-fit:cover;border-radius:10px;border:1px solid var(--line)}
+  .btn-ghost.rec{background:rgba(255,107,107,.2);border-color:var(--danger);color:#ffb4b4}
+  audio{filter:drop-shadow(0 1px 2px rgba(0,0,0,.3))}
   .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--panel2);
     border:1px solid var(--line);padding:12px 18px;border-radius:11px;box-shadow:var(--shadow);z-index:100;
     font-size:14px;opacity:0;transition:.25s;pointer-events:none;max-width:90vw}
@@ -292,6 +303,43 @@ function authMsg(msg,type){ const m=$("auth-msg"); m.textContent=msg; m.classNam
 function statCard(icon,color,num,label){
   return `<div class="stat"><div class="ic" style="background:${color}1f;color:${color}">${icon}</div><div class="n" style="color:${color}">${num}</div><div class="l">${esc(label)}</div></div>`;
 }
+const parseTags = s => { const a=String(s||"").split(",").map(t=>t.trim()).filter(Boolean); return a.length?a:null; };
+// ----- Voice recording (MediaRecorder) -----
+let MEDIA_REC=null, AUDIO_CHUNKS=[], RECORDED={};
+async function toggleRecord(key,btnId,playerId){
+  const btn=$(btnId);
+  if(MEDIA_REC && MEDIA_REC.state==="recording"){ MEDIA_REC.stop(); return; }
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+    AUDIO_CHUNKS=[]; MEDIA_REC=new MediaRecorder(stream);
+    MEDIA_REC.ondataavailable=e=>{ if(e.data&&e.data.size) AUDIO_CHUNKS.push(e.data); };
+    MEDIA_REC.onstop=()=>{
+      const blob=new Blob(AUDIO_CHUNKS,{type:"audio/webm"}); RECORDED[key]=blob;
+      const p=$(playerId); if(p){ p.src=URL.createObjectURL(blob); p.classList.remove("hidden"); }
+      const cl=$(playerId+"-clear"); if(cl) cl.classList.remove("hidden");
+      stream.getTracks().forEach(t=>t.stop());
+      if(btn){ btn.textContent="● Record voice note"; btn.classList.remove("rec"); }
+    };
+    MEDIA_REC.start(); if(btn){ btn.textContent="■ Stop recording"; btn.classList.add("rec"); }
+  }catch(e){ toast("Microphone not available or permission denied.",true); }
+}
+function clearRecord(key,playerId){ delete RECORDED[key]; const p=$(playerId); if(p){p.src="";p.classList.add("hidden");} const cl=$(playerId+"-clear"); if(cl) cl.classList.add("hidden"); }
+function recorderUI(key,btnId,playerId){
+  return `<label style="margin-top:12px">Voice note <span class="hint">(optional — record & attach)</span></label>
+    <div class="row" style="align-items:center">
+      <button type="button" class="btn btn-sm btn-ghost" id="${btnId}" onclick="toggleRecord('${key}','${btnId}','${playerId}')">● Record voice note</button>
+      <button type="button" class="btn btn-sm btn-ghost hidden" id="${playerId}-clear" onclick="clearRecord('${key}','${playerId}')">Remove</button>
+    </div>
+    <audio id="${playerId}" class="hidden" controls style="margin-top:8px;width:100%"></audio>`;
+}
+async function uploadRecording(key,reqId){
+  if(!RECORDED[key]) return;
+  const f=new File([RECORDED[key]],"voice-note-"+Date.now()+".webm",{type:"audio/webm"});
+  await uploadAttachment(reqId,f); delete RECORDED[key];
+}
+function tagChips(tags){ return (tags&&tags.length)?`<div style="margin:6px 0 2px">${tags.map(t=>`<span class="filechip">#${esc(t)}</span>`).join("")}</div>`:""; }
+let ADMINS=[];
+async function loadAdmins(){ const {data}=await sb.from("cr_profiles").select("id,full_name,username,email").eq("role","admin"); ADMINS=data||[]; return ADMINS; }
 
 async function callFn(name,body){
   const {data,error}=await sb.functions.invoke(name,{body});
@@ -481,8 +529,11 @@ function renderClient(){
         <div><label>Needed by <span class="hint">(optional)</span></label><input id="f-due" class="inp" type="date"/></div>
         <div><label>Photo(s)</label><input id="f-files" class="inp" type="file" accept="image/*" multiple/></div>
       </div>
+      <label style="margin-top:12px">Tags <span class="hint">comma-separated (optional)</span></label>
+      <input id="f-tags" class="inp" placeholder="e.g. urgent, billing, mobile"/>
       <label style="margin-top:12px">Description <span class="req">*</span></label>
       <textarea id="f-desc" class="inp" rows="4" placeholder="Explain what is expected, affected screens, expected behaviour…"></textarea>
+      ${recorderUI("client","rec-btn","rec-player")}
       <div id="file-preview" class="photo-grid" style="margin-top:10px"></div>
       <button class="btn" style="max-width:240px" id="submit-cr" onclick="submitCR()">Submit Change Request</button>
     </div>
@@ -533,16 +584,17 @@ async function submitCR(){
   if(!title||!desc){toast("Heading and description are required.",true);return;}
   const btn=$("submit-cr"); btn.disabled=true; btn.textContent="Submitting…";
   const payload={ title, area:$("f-area").value, type:$("f-type").value, priority:$("f-priority").value,
-    item_count:1, description:desc, due_date:$("f-due").value||null, created_by:SESSION.user.id,
-    client_name:ME.company||ME.full_name||ME.username, status:"New" };
+    item_count:1, description:desc, due_date:$("f-due").value||null, tags:parseTags($("f-tags").value),
+    created_by:SESSION.user.id, client_name:ME.company||ME.full_name||ME.username, status:"New" };
   const {data,error}=await sb.from("cr_requests").insert(payload).select().single();
   if(error){btn.disabled=false;btn.textContent="Submit Change Request";toast(error.message,true);return;}
   for(const f of $("f-files").files){ await uploadAttachment(data.id,f); }
+  await uploadRecording("client",data.id);
   await sb.from("cr_status_history").insert({request_id:data.id,old_status:null,new_status:"New",
     changed_by:SESSION.user.id,changed_by_name:ME.full_name||ME.username,note:"Request submitted"});
   notify("new_cr",data.id).catch(()=>{});
   btn.disabled=false; btn.textContent="Submit Change Request";
-  $("f-title").value="";$("f-desc").value="";$("f-files").value="";$("file-preview").innerHTML="";$("f-due").value="";
+  $("f-title").value="";$("f-desc").value="";$("f-files").value="";$("file-preview").innerHTML="";$("f-due").value="";$("f-tags").value="";
   toast("Change request "+data.ref_no+" submitted.");
   loadAndRenderClient();
 }
@@ -560,10 +612,11 @@ function renderAdmin(){
     <div class="navtabs">
       <button id="nt-dash" class="${ADMIN_TAB==='dashboard'?'active':''}" onclick="setAdminTab('dashboard')">Change Requests</button>
       <button id="nt-clients" class="${ADMIN_TAB==='clients'?'active':''}" onclick="setAdminTab('clients')">Clients</button>
+      <button id="nt-board" class="${ADMIN_TAB==='board'?'active':''}" onclick="setAdminTab('board')">Board</button>
       <button id="nt-reports" class="${ADMIN_TAB==='reports'?'active':''}" onclick="setAdminTab('reports')">Reports</button>
     </div>
     <div id="admin-pane"></div>`;
-  if(ADMIN_TAB==="clients") renderAdminClients(); else if(ADMIN_TAB==="reports") renderAdminReports(); else renderAdminDash();
+  if(ADMIN_TAB==="clients") renderAdminClients(); else if(ADMIN_TAB==="reports") renderAdminReports(); else if(ADMIN_TAB==="board") renderAdminBoard(); else renderAdminDash();
 }
 function setAdminTab(t){ ADMIN_TAB=t; renderAdmin(); }
 
@@ -598,8 +651,16 @@ function renderAdminDash(){
     </div>`;
   loadAndRenderAdmin();
 }
+async function assignCR(id,adminId){
+  const a=ADMINS.find(x=>x.id===adminId);
+  const name=a?(a.full_name||a.username||a.email):null;
+  const {error}=await sb.from("cr_requests").update({assigned_to:adminId||null,assigned_name:name}).eq("id",id);
+  if(error){toast(error.message,true);return;}
+  const r=CACHE.find(x=>x.id===id); if(r){r.assigned_to=adminId||null;r.assigned_name=name;}
+  toast(name?("Assigned to "+name):"Unassigned"); if($("a-table")) renderAdminTable();
+}
 async function loadAndRenderAdmin(){
-  await loadRequests(); await loadClients();
+  await loadRequests(); await loadClients(); await loadAdmins();
   const clients=[...new Set(CACHE.map(r=>r.client_name).filter(Boolean))].sort();
   const sel=$("a-client"); const cur=sel.value;
   sel.innerHTML=`<option value="">All clients</option>`+clients.map(c=>`<option ${c===cur?"selected":""}>${esc(c)}</option>`).join("");
@@ -624,11 +685,12 @@ function renderAdminTable(){
     statCard("👥","#6c5ce7",CLIENTS.length,"Clients");
   $("export-note").textContent=`${rows.length} of ${CACHE.length} shown — export uses current filters`;
   $("a-table").innerHTML=rows.length?`<table>
-    <thead><tr><th>Ref</th><th>Heading</th><th>Client</th><th>Pri.</th><th>Status</th><th>Updated</th><th></th></tr></thead>
+    <thead><tr><th>Ref</th><th>Heading</th><th>Client</th><th>Owner</th><th>Pri.</th><th>Status</th><th>Updated</th><th></th></tr></thead>
     <tbody>${rows.map(r=>`<tr>
       <td><span class="ref">${esc(r.ref_no)}</span></td>
-      <td>${esc(r.title)}</td>
+      <td>${esc(r.title)}${(r.tags&&r.tags.length)?` <span style="color:var(--muted);font-size:11px">#${esc(r.tags[0])}${r.tags.length>1?"+"+(r.tags.length-1):""}</span>`:""}</td>
       <td>${esc(r.client_name||"—")}</td>
+      <td>${esc(r.assigned_name||"—")}</td>
       <td class="pr-${r.priority}">${esc(r.priority)}</td>
       <td><select class="inp" style="padding:5px 6px;font-size:12px" onchange="quickStatus('${r.id}',this.value)">
           ${STATUSES.map(s=>`<option ${s===r.status?"selected":""}>${s}</option>`).join("")}</select></td>
@@ -652,8 +714,11 @@ function openAdminCRForm(){
         </div>
         <label style="margin-top:12px">Heading <span class="req">*</span></label>
         <input id="ac-title" class="inp" placeholder="Short summary of the change"/>
+        <label style="margin-top:12px">Tags <span class="hint">comma-separated (optional)</span></label>
+        <input id="ac-tags" class="inp" placeholder="e.g. urgent, billing"/>
         <label style="margin-top:12px">Description <span class="req">*</span></label>
         <textarea id="ac-desc" class="inp" rows="3" placeholder="Explain what is expected…"></textarea>
+        ${recorderUI("admin","arec-btn","arec-player")}
         <div id="ac-preview" class="photo-grid" style="margin-top:10px"></div>
         <button class="btn" style="max-width:260px" id="ac-btn" onclick="adminCreateCR()">Create change request</button>
       </div>
@@ -667,8 +732,9 @@ async function adminCreateCR(){
   const btn=$("ac-btn"); btn.disabled=true; btn.textContent="Creating…";
   try{
     const res=await callFn("admin-create-cr",{ client_id, title, description:desc,
-      area:$("ac-area").value, type:$("ac-type").value, priority:$("ac-priority").value, due_date:$("ac-due").value||null });
+      area:$("ac-area").value, type:$("ac-type").value, priority:$("ac-priority").value, due_date:$("ac-due").value||null, tags:parseTags($("ac-tags").value) });
     for(const f of $("ac-files").files){ await uploadAttachment(res.id,f); }
+    await uploadRecording("admin",res.id);
     toast("Change request "+res.ref_no+" created.");
     closeModal(); await loadAndRenderAdmin();
   }catch(e){ toast(e.message||"Could not create CR.",true); if($("ac-btn")){btn.disabled=false; btn.textContent="Create change request";} }
@@ -714,7 +780,37 @@ async function quickStatus(id,newStatus){
     changed_by:SESSION.user.id,changed_by_name:ME.full_name,note:"Status changed via dashboard"});
   notify("status",id,newStatus).catch(()=>{});
   r.status=newStatus; r.updated_at=new Date().toISOString();
-  toast(`${r.ref_no} → ${newStatus}`); renderAdminTable();
+  toast(`${r.ref_no} → ${newStatus}`); if($("a-table")) renderAdminTable();
+}
+
+// ----- Admin: Board (Kanban) -----
+async function renderAdminBoard(){
+  $("admin-pane").innerHTML=`<div class="sub" style="margin-bottom:12px">Drag a card between columns to change its status (the client is notified automatically).</div><div class="board" id="board"></div>`;
+  await loadRequests(); buildBoard();
+}
+let DRAG_ID=null;
+function buildBoard(){
+  $("board").innerHTML=STATUSES.map(s=>{
+    const items=CACHE.filter(r=>r.status===s);
+    return `<div class="bcol" ondragover="event.preventDefault();this.classList.add('over')" ondragleave="this.classList.remove('over')" ondrop="dropCard(event,'${s}')">
+      <div class="bcol-h"><span class="badge ${badgeClass(s)}">${s}</span><span style="color:var(--muted)">${items.length}</span></div>
+      <div>${items.map(r=>`<div class="bcard" draggable="true" ondragstart="dragCard(event,'${r.id}')" onclick="openDetail('${r.id}')">
+        <div class="ref">${esc(r.ref_no)}</div>
+        <div class="bc-title">${esc(r.title)}</div>
+        <div class="bc-meta">${esc(r.client_name||"")} · <span class="pr-${r.priority}">${esc(r.priority)}</span></div>
+        ${r.assigned_name?`<div class="bc-meta">👤 ${esc(r.assigned_name)}</div>`:""}
+        ${(r.tags&&r.tags.length)?`<div class="bc-meta">${r.tags.map(t=>"#"+esc(t)).join(" ")}</div>`:""}
+      </div>`).join("")||`<div class="hint" style="padding:6px">—</div>`}</div>
+    </div>`;
+  }).join("");
+}
+function dragCard(e,id){ DRAG_ID=id; e.dataTransfer.effectAllowed="move"; }
+async function dropCard(e,status){
+  e.preventDefault(); e.currentTarget.classList.remove("over");
+  const id=DRAG_ID; DRAG_ID=null; if(!id) return;
+  const r=CACHE.find(x=>x.id===id); if(!r||r.status===status) return;
+  await quickStatus(id,status);
+  buildBoard();
 }
 
 // ----- Admin: Reports -----
@@ -863,7 +959,7 @@ function renderClientsList(){
           ${esc(c.phone||"")} ${c.website?`· <a href="${esc(c.website)}" target="_blank" rel="noopener">site</a>`:""}<br>
           ${n} change request${n===1?"":"s"}
         </div>
-        <div class="cc-actions"><button class="btn btn-sm btn-ghost" onclick="openClientEdit('${c.id}')">Edit / change logo</button></div>
+        <div class="cc-actions"><button class="btn btn-sm btn-ghost" onclick="openClientEdit('${c.id}')">Edit</button> <button class="btn btn-sm btn-ghost" onclick="openVault('${c.id}')">🔒 Vault</button></div>
       </div>
     </div>`;}).join("")}</div>`:`<div class="empty">No clients yet. Create your first one above.</div>`;
 }
@@ -963,6 +1059,62 @@ async function createClient(){
   finally{ btn.disabled=false; btn.textContent="Create client account"; }
 }
 
+// ===================== PROJECT VAULT (admin only) =====================
+let VAULT_CLIENT=null;
+async function openVault(clientId){
+  VAULT_CLIENT=clientId;
+  const c=CLIENTS.find(x=>x.id===clientId);
+  const {data:items}=await sb.from("cr_project_vault").select("*").eq("client_id",clientId).order("created_at");
+  const cats=["Password","Database","API Key","Server","Note"];
+  $("modal-root").innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()">
+    <div class="modal" style="max-width:640px">
+      <div class="mh"><div><h2 style="margin:0">🔒 Project vault</h2><div class="hint">${esc(c?(c.company||c.full_name||c.username):"")} — admin-only secure store</div></div><button class="x" onclick="closeModal()">×</button></div>
+      <div class="mb">
+        <div id="vault-list">${(items||[]).map(v=>vaultRow(v)).join("")||`<div class="empty">No saved credentials yet.</div>`}</div>
+        <div class="section-title">Add an entry</div>
+        <div class="grid2">
+          <div><label>Label <span class="req">*</span></label><input id="v-label" class="inp" placeholder="e.g. Production database"/></div>
+          <div><label>Category</label><select id="v-cat" class="inp">${cats.map(x=>`<option>${x}</option>`).join("")}</select></div>
+          <div><label>Username / host</label><input id="v-user" class="inp" placeholder="user or host"/></div>
+          <div><label>Secret / password</label><input id="v-secret" class="inp" placeholder="value"/></div>
+          <div><label>URL</label><input id="v-url" class="inp" placeholder="https://…"/></div>
+        </div>
+        <label style="margin-top:10px">Notes</label>
+        <textarea id="v-notes" class="inp" rows="2" placeholder="Any extra detail"></textarea>
+        <button class="btn btn-sm" id="v-btn" style="margin-top:12px" onclick="addVaultEntry()">Add to vault</button>
+      </div>
+    </div></div>`;
+}
+function vaultRow(v){
+  return `<div class="att" style="display:block">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+      <div><b>${esc(v.label)}</b> <span class="pill" style="font-size:10px">${esc(v.category||"")}</span></div>
+      <button class="btn btn-sm btn-danger" onclick="deleteVaultEntry('${v.id}')">Delete</button>
+    </div>
+    <div class="cc-meta" style="margin-top:6px;line-height:1.7">
+      ${v.username?`User/Host: <b style="color:var(--txt)">${esc(v.username)}</b><br>`:""}
+      ${v.secret?`Secret: <span id="sv-${v.id}" data-s="${esc(v.secret)}">••••••••</span> <button class="link-btn" onclick="revealVault('${v.id}')">show/hide</button><br>`:""}
+      ${v.url?`URL: <a href="${esc(v.url)}" target="_blank" rel="noopener">${esc(v.url)}</a><br>`:""}
+      ${v.notes?`Notes: ${esc(v.notes)}`:""}
+    </div>
+  </div>`;
+}
+function revealVault(id){ const el=$("sv-"+id); if(!el)return; el.textContent = el.textContent==="••••••••" ? el.getAttribute("data-s") : "••••••••"; }
+async function addVaultEntry(){
+  const label=$("v-label").value.trim(); if(!label){toast("Label is required.",true);return;}
+  const btn=$("v-btn"); btn.disabled=true; btn.textContent="Saving…";
+  const {error}=await sb.from("cr_project_vault").insert({client_id:VAULT_CLIENT,label,category:$("v-cat").value,
+    username:$("v-user").value.trim()||null,secret:$("v-secret").value||null,url:$("v-url").value.trim()||null,notes:$("v-notes").value.trim()||null});
+  btn.disabled=false; btn.textContent="Add to vault";
+  if(error){toast(error.message,true);return;}
+  toast("Saved to vault."); openVault(VAULT_CLIENT);
+}
+async function deleteVaultEntry(id){
+  const {error}=await sb.from("cr_project_vault").delete().eq("id",id);
+  if(error){toast(error.message,true);return;}
+  toast("Entry deleted."); openVault(VAULT_CLIENT);
+}
+
 // ===================== DETAIL MODAL =====================
 async function openDetail(id){
   const r=CACHE.find(x=>x.id===id); if(!r)return;
@@ -973,7 +1125,8 @@ async function openDetail(id){
   ]);
   const isAdmin=ME.role==="admin";
   const imgs=(atts||[]).filter(a=>(a.mime_type||"").startsWith("image/"));
-  const files=(atts||[]).filter(a=>!(a.mime_type||"").startsWith("image/"));
+  const audios=(atts||[]).filter(a=>(a.mime_type||"").startsWith("audio/"));
+  const files=(atts||[]).filter(a=>{const m=a.mime_type||"";return !m.startsWith("image/")&&!m.startsWith("audio/");});
   $("modal-root").innerHTML=`
   <div class="overlay" onclick="if(event.target===this)closeModal()">
     <div class="modal">
@@ -991,10 +1144,18 @@ async function openDetail(id){
           <div class="k">Status</div><div><span class="badge ${badgeClass(r.status)}">${esc(r.status)}</span></div>
           <div class="k">Submitted</div><div>${fmtDate(r.created_at)}</div>
           <div class="k">Needed by</div><div>${r.due_date?fmtDay(r.due_date):"—"}</div>
+          <div class="k">Assigned to</div><div>${esc(r.assigned_name||"Unassigned")}</div>
         </div>
         <div><div class="k" style="color:var(--muted);font-size:13px;margin-bottom:4px">Description</div>
           <div style="white-space:pre-wrap;font-size:14px;line-height:1.5">${esc(r.description||"")}</div></div>
+        ${tagChips(r.tags)}
+        ${isAdmin?`<div class="section-title">Assign to</div>
+        <select class="inp" style="max-width:280px" onchange="assignCR('${r.id}',this.value)">
+          <option value="">Unassigned</option>
+          ${ADMINS.map(a=>`<option value="${a.id}" ${r.assigned_to===a.id?"selected":""}>${esc(a.full_name||a.username||a.email)}</option>`).join("")}
+        </select>`:""}
         ${imgs.length?`<div class="section-title">Photos (${imgs.length})</div><div class="photo-grid" id="photo-grid"></div>`:""}
+        ${audios.length?`<div class="section-title">Voice notes (${audios.length})</div><div id="audio-list"></div>`:""}
         ${isAdmin?`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">
           <button class="btn btn-sm btn-ghost" onclick="exportCRPdf('${r.id}')">⬇ Export this CR (PDF)</button>
           <button class="btn btn-sm btn-danger" onclick="deleteCR('${r.id}')">🗑 Delete CR</button>
@@ -1029,6 +1190,13 @@ async function openDetail(id){
       const {data}=await sb.storage.from("cr-attachments").createSignedUrl(a.file_path,600);
       if(data&&data.signedUrl){ const wrap=document.createElement("a"); wrap.href=data.signedUrl; wrap.target="_blank"; wrap.rel="noopener";
         const im=document.createElement("img"); im.src=data.signedUrl; im.alt=a.file_name; wrap.appendChild(im); g.appendChild(wrap); }
+    }
+  }
+  if(audios.length){
+    const g=$("audio-list");
+    for(const a of audios){
+      const {data}=await sb.storage.from("cr-attachments").createSignedUrl(a.file_path,600);
+      if(data&&data.signedUrl){ const au=document.createElement("audio"); au.controls=true; au.src=data.signedUrl; au.style.width="100%"; au.style.marginBottom="8px"; g.appendChild(au); }
     }
   }
 }
