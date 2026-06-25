@@ -117,6 +117,17 @@
   .pw-wrap .inp{padding-right:46px}
   .pw-eye{position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:0;
     font-size:17px;line-height:1;color:var(--muted);padding:6px;cursor:pointer}
+  .bell{position:relative;background:var(--chip);border:1px solid var(--line);color:var(--txt);
+    width:40px;height:34px;border-radius:9px;font-size:16px}
+  .bell-badge{position:absolute;top:-7px;right:-7px;background:var(--danger);color:#fff;font-size:10px;
+    font-weight:800;min-width:18px;height:18px;border-radius:999px;display:flex;align-items:center;justify-content:center;padding:0 4px}
+  .notif{display:flex;gap:10px;padding:12px;border:1px solid var(--line);border-radius:11px;margin-bottom:8px;background:var(--panel2);cursor:pointer}
+  .notif.unread{border-color:var(--brand);background:rgba(108,92,231,.08)}
+  .notif .dot{width:9px;height:9px;border-radius:50%;background:var(--brand);margin-top:5px;flex:0 0 auto}
+  .notif.read .dot{background:transparent}
+  .notif .nt{font-weight:700;font-size:13.5px}
+  .notif .nb{color:var(--muted);font-size:13px;margin-top:2px}
+  .notif .nm{color:var(--muted);font-size:11px;margin-top:4px}
   .hero{display:flex;align-items:center;gap:16px;background:var(--panel);border:1px solid var(--line);
     border-radius:16px;padding:18px 20px;margin-bottom:18px;box-shadow:var(--shadow)}
   .hero .lg{width:60px;height:60px;border-radius:14px;object-fit:cover;border:1px solid var(--line);background:var(--panel2)}
@@ -197,6 +208,7 @@
     <div class="who">
       <span id="who-name"></span>
       <span id="who-role" class="pill"></span>
+      <button class="bell" id="bell" onclick="openNotifs()" title="Notifications">🔔<span id="bell-badge" class="bell-badge hidden">0</span></button>
       <button class="btn btn-sm btn-ghost" onclick="doLogout()">Log out</button>
     </div>
   </header>
@@ -304,6 +316,7 @@ async function boot(){
   $("who-role").textContent=ME.role==="admin"?"ADMIN":"CLIENT";
   $("who-role").className="pill"+(ME.role==="admin"?" admin":"");
   if(ME.role==="admin") renderAdmin(); else renderClient();
+  startNotifPolling();
 }
 
 function showConfigWarning(){
@@ -781,10 +794,59 @@ async function downloadAtt(path,name){
   const a=document.createElement("a"); a.href=data.signedUrl; a.download=name; a.target="_blank"; a.click();
 }
 
-// ===================== NOTIFICATIONS =====================
+// ===================== EMAIL NOTIFICATIONS =====================
 // Best-effort; activates once the send-notification edge function + Gmail secret are set up.
 async function notify(kind,requestId,newStatus){
   try{ await sb.functions.invoke("send-notification",{body:{kind,request_id:requestId,new_status:newStatus||null}}); }catch(_){}
+}
+
+// ===================== IN-PORTAL NOTIFICATIONS =====================
+let NOTIFS=[], NOTIF_TIMER=null;
+function unreadCount(){ return NOTIFS.filter(n=>!n.is_read).length; }
+function updateBadge(){
+  const b=$("bell-badge"); if(!b) return;
+  const n=unreadCount(); b.textContent=n>99?"99+":String(n); b.classList.toggle("hidden",n===0);
+}
+async function loadNotifs(){
+  const {data}=await sb.from("cr_notifications").select("*").order("created_at",{ascending:false}).limit(40);
+  NOTIFS=data||[]; updateBadge(); return NOTIFS;
+}
+function startNotifPolling(){
+  if(NOTIF_TIMER) clearInterval(NOTIF_TIMER);
+  loadNotifs();
+  NOTIF_TIMER=setInterval(async ()=>{
+    const before=unreadCount(); await loadNotifs(); const after=unreadCount();
+    if(after>before){ const latest=NOTIFS.find(n=>!n.is_read); toast("🔔 "+(latest?latest.title:"New notification")); }
+  },30000);
+}
+async function openNotifs(){
+  await loadNotifs();
+  $("modal-root").innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()">
+    <div class="modal" style="max-width:520px">
+      <div class="mh"><div><h2 style="margin:0">Notifications</h2><div class="hint">${unreadCount()} unread</div></div>
+        <div style="display:flex;gap:8px;align-items:flex-start">
+          ${NOTIFS.some(n=>!n.is_read)?`<button class="btn btn-sm btn-ghost" onclick="markAllRead()">Mark all read</button>`:""}
+          <button class="x" onclick="closeModal()">×</button></div></div>
+      <div class="mb">${NOTIFS.length?NOTIFS.map(n=>`
+        <div class="notif ${n.is_read?'read':'unread'}" onclick="openNotif('${n.id}','${n.request_id||''}')">
+          <div class="dot"></div>
+          <div><div class="nt">${esc(n.title||'')}</div><div class="nb">${esc(n.body||'')}</div>
+          <div class="nm">${fmtDate(n.created_at)}</div></div>
+        </div>`).join(""):`<div class="empty">No notifications yet.</div>`}</div>
+    </div></div>`;
+}
+async function markRead(id){
+  await sb.from("cr_notifications").update({is_read:true}).eq("id",id);
+  const n=NOTIFS.find(x=>x.id===id); if(n) n.is_read=true; updateBadge();
+}
+async function markAllRead(){
+  await sb.from("cr_notifications").update({is_read:true}).eq("is_read",false);
+  NOTIFS.forEach(n=>n.is_read=true); updateBadge(); openNotifs();
+}
+async function openNotif(id,reqId){
+  await markRead(id);
+  if(reqId){ if(!CACHE.length) await loadRequests(); closeModal(); openDetail(reqId); }
+  else openNotifs();
 }
 
 // ===================== EXPORTS =====================
