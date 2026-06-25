@@ -338,6 +338,25 @@
   .nt-acts button:hover{opacity:1;background:var(--chip)}
   .nt-body{font-size:13.5px;line-height:1.5;color:var(--txt);margin:7px 0;white-space:pre-wrap}
   .nt-meta{font-size:11.5px;color:var(--muted)}
+
+  /* rich text editor */
+  .rich{border:1px solid var(--line);border-radius:10px;background:var(--panel2);overflow:hidden;transition:border-color .2s,box-shadow .2s}
+  .rich:focus-within{border-color:var(--brand);box-shadow:0 0 0 3px rgba(108,92,231,.18)}
+  .rich-tb{display:flex;flex-wrap:wrap;gap:3px;padding:6px;border-bottom:1px solid var(--line);background:var(--panel)}
+  .rich-tb button{background:none;border:1px solid transparent;color:var(--txt);min-width:30px;height:28px;border-radius:7px;font-size:13px;cursor:pointer;padding:0 8px;line-height:1}
+  .rich-tb button:hover{background:var(--chip);border-color:var(--line)}
+  .rich-sep{width:1px;background:var(--line);margin:3px 4px}
+  .rich-area{min-height:110px;max-height:300px;overflow:auto;padding:11px 13px;outline:none;font-size:14px;line-height:1.55;color:var(--txt)}
+  .rich-area:empty:before{content:attr(data-ph);color:var(--muted)}
+  .rich-area ul,.rich-area ol{margin:6px 0 6px 22px}
+  .rich-area li{margin:2px 0}
+  .rich-area h3{font-size:15px;margin:8px 0 4px}
+  .rich-area blockquote{border-left:3px solid var(--brand);margin:8px 0;padding:2px 0 2px 12px;color:var(--muted)}
+  .rich-view ul,.rich-view ol{margin:6px 0 6px 22px}
+  .rich-view li{margin:3px 0}
+  .rich-view a{color:var(--brand2)}
+  .rich-view h3{font-size:15px;margin:8px 0 4px}
+  .rich-view blockquote{border-left:3px solid var(--brand);margin:8px 0;padding:2px 0 2px 12px;color:var(--muted)}
 </style>
 </head>
 <body>
@@ -455,6 +474,66 @@ const badgeClass = s => "b-"+String(s||"").replace(/\s/g,"");
 const fmtDate = d => d?new Date(d).toLocaleString(undefined,{year:"numeric",month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"}):"—";
 const fmtDay  = d => d?new Date(d).toLocaleDateString(undefined,{year:"numeric",month:"short",day:"numeric"}):"—";
 const fmtTime = d => d?new Date(d).toLocaleTimeString(undefined,{hour:"2-digit",minute:"2-digit",second:"2-digit"}):"";
+
+// ---------- Rich text editor ----------
+const RICH_TAGS={B:1,STRONG:1,I:1,EM:1,U:1,UL:1,OL:1,LI:1,BR:1,P:1,DIV:1,SPAN:1,A:1,H3:1,BLOCKQUOTE:1};
+function looksHTML(x){ return /<[a-z][\s\S]*>/i.test(String(x||"")); }
+function richEditor(id,placeholder){
+  return `<div class="rich">
+    <div class="rich-tb">
+      <button type="button" title="Bold" onmousedown="richCmd(event,'bold')"><b>B</b></button>
+      <button type="button" title="Italic" onmousedown="richCmd(event,'italic')"><i>I</i></button>
+      <button type="button" title="Underline" onmousedown="richCmd(event,'underline')"><u>U</u></button>
+      <span class="rich-sep"></span>
+      <button type="button" title="Bullet list" onmousedown="richCmd(event,'insertUnorderedList')">• List</button>
+      <button type="button" title="Numbered list" onmousedown="richCmd(event,'insertOrderedList')">1. List</button>
+      <span class="rich-sep"></span>
+      <button type="button" title="Heading" onmousedown="richBlock(event,'H3')">H</button>
+      <button type="button" title="Quote" onmousedown="richBlock(event,'BLOCKQUOTE')">&#10078;</button>
+      <button type="button" title="Add link" onmousedown="richLink(event)">&#128279;</button>
+      <span class="rich-sep"></span>
+      <button type="button" title="Clear formatting" onmousedown="richCmd(event,'removeFormat')">&#10005;</button>
+    </div>
+    <div id="${id}" class="rich-area" contenteditable="true" data-ph="${esc(placeholder||'')}"></div>
+  </div>`;
+}
+function _richFocus(e){ const r=e.currentTarget.closest('.rich'); const a=r?r.querySelector('.rich-area'):null; if(a)a.focus(); }
+function richCmd(e,cmd){ e.preventDefault(); _richFocus(e); try{document.execCommand(cmd,false,null);}catch(_){ } }
+function richBlock(e,tag){ e.preventDefault(); _richFocus(e); try{document.execCommand('formatBlock',false,tag);}catch(_){ } }
+function richLink(e){ e.preventDefault(); _richFocus(e); const url=prompt('Link URL (https://…):'); if(url){ try{document.execCommand('createLink',false,url);}catch(_){ } } }
+function richText(id){ const el=$(id); return el?(el.innerText||el.textContent||"").trim():""; }
+function richHTML(id){ const el=$(id); if(!el)return""; return richText(id)?sanitizeHTML(el.innerHTML):""; }
+function richClear(id){ const el=$(id); if(el) el.innerHTML=""; }
+function richSet(id,html){ const el=$(id); if(!el)return; el.innerHTML=looksHTML(html)?sanitizeHTML(html):esc(html||"").replace(/\n/g,"<br>"); }
+function sanitizeHTML(html){
+  const tmp=document.createElement('div'); tmp.innerHTML=String(html||"");
+  function walk(node){
+    Array.prototype.slice.call(node.childNodes).forEach(function(ch){
+      if(ch.nodeType===1){
+        const tag=ch.tagName;
+        if(!RICH_TAGS[tag]){ while(ch.firstChild) node.insertBefore(ch.firstChild,ch); node.removeChild(ch); return; }
+        Array.prototype.slice.call(ch.attributes).forEach(function(a){
+          if(tag==='A'&&a.name.toLowerCase()==='href'){ if(/^\s*javascript:/i.test(a.value)) ch.removeAttribute('href'); }
+          else ch.removeAttribute(a.name);
+        });
+        if(tag==='A'){ ch.setAttribute('target','_blank'); ch.setAttribute('rel','noopener noreferrer'); }
+        walk(ch);
+      } else if(ch.nodeType===8){ node.removeChild(ch); }
+    });
+  }
+  walk(tmp); walk(tmp);
+  return tmp.innerHTML;
+}
+function htmlToText(html){
+  if(!looksHTML(html)) return String(html||"");
+  const tmp=document.createElement('div'); tmp.innerHTML=sanitizeHTML(html);
+  tmp.querySelectorAll('li').forEach(function(li){ li.insertAdjacentText('afterbegin','• '); });
+  tmp.querySelectorAll('br').forEach(function(br){ br.replaceWith('\n'); });
+  tmp.querySelectorAll('p,div,li,h3,blockquote').forEach(function(b){ b.insertAdjacentText('beforeend','\n'); });
+  return (tmp.innerText||tmp.textContent||"").replace(/\n{3,}/g,'\n\n').trim();
+}
+function renderDesc(d){ return looksHTML(d)?`<div class="rich-view">${sanitizeHTML(d)}</div>`:`<div class="rich-view" style="white-space:pre-wrap">${esc(d||"")}</div>`; }
+
 const slugify = s => String(s||"").toLowerCase().replace(/[^a-z0-9._-]/g,"");
 const codeify = s => String(s||"").replace(/[^A-Za-z0-9]/g,"");
 const logoUrl = p => p ? sb.storage.from("cr-logos").getPublicUrl(p).data.publicUrl : "";
@@ -833,7 +912,7 @@ function renderClient(){
       <label style="margin-top:12px">Tags <span class="hint">comma-separated (optional)</span></label>
       <input id="f-tags" class="inp" placeholder="e.g. urgent, billing, mobile"/>
       <label style="margin-top:12px">Description <span class="req">*</span></label>
-      <textarea id="f-desc" class="inp" rows="4" placeholder="Explain what is expected, affected screens, expected behaviour…"></textarea>
+      ${richEditor("f-desc","Explain what is expected, affected screens, expected behaviour…  Use the toolbar for bold, lists, etc.")}
       ${recorderUI("client","rec-btn","rec-player")}
       <div id="file-preview" class="photo-grid" style="margin-top:10px"></div>
       <button class="btn" style="max-width:240px" id="submit-cr" onclick="submitCR()">Submit Change Request</button>
@@ -868,7 +947,7 @@ function renderClientStats(){
 }
 function renderClientTable(){
   const term=($("c-search").value||"").toLowerCase(), st=$("c-status").value;
-  const rows=CACHE.filter(r=>(!st||r.status===st)&&(!term||((r.title||"")+(r.ref_no||"")+(r.description||"")).toLowerCase().includes(term)));
+  const rows=CACHE.filter(r=>(!st||r.status===st)&&(!term||((r.title||"")+(r.ref_no||"")+htmlToText(r.description)).toLowerCase().includes(term)));
   $("c-table").innerHTML=rows.length?`<table>
     <thead><tr><th>Ref</th><th>Heading</th><th>Priority</th><th>Status</th><th>Submitted</th><th></th></tr></thead>
     <tbody>${rows.map(r=>`<tr>
@@ -881,8 +960,8 @@ function renderClientTable(){
     </tr>`).join("")}</tbody></table>`:`<div class="empty">No change requests yet. Submit your first one above.</div>`;
 }
 async function submitCR(){
-  const title=$("f-title").value.trim(), desc=$("f-desc").value.trim();
-  if(!title||!desc){toast("Heading and description are required.",true);return;}
+  const title=$("f-title").value.trim(), desc=richHTML("f-desc"), descText=richText("f-desc");
+  if(!title||!descText){toast("Heading and description are required.",true);return;}
   const btn=$("submit-cr"); btn.disabled=true; btn.textContent="Submitting…";
   const payload={ title, area:$("f-area").value, type:$("f-type").value, priority:$("f-priority").value,
     item_count:1, description:desc, due_date:$("f-due").value||null, tags:parseTags($("f-tags").value),
@@ -895,7 +974,7 @@ async function submitCR(){
     changed_by:SESSION.user.id,changed_by_name:ME.full_name||ME.username,note:"Request submitted"});
   notify("new_cr",data.id).catch(()=>{});
   btn.disabled=false; btn.textContent="Submit Change Request";
-  $("f-title").value="";$("f-desc").value="";$("f-files").value="";$("file-preview").innerHTML="";$("f-due").value="";$("f-tags").value="";
+  $("f-title").value="";richClear("f-desc");$("f-files").value="";$("file-preview").innerHTML="";$("f-due").value="";$("f-tags").value="";
   toast("Change request "+data.ref_no+" submitted.");
   loadAndRenderClient();
 }
@@ -1033,7 +1112,7 @@ function clearAdvSearch(){
   ["a-status","a-priority","a-client","a-scope","a-assignee"].forEach(id=>{const e=$(id); if(e)e.selectedIndex=0;});
   renderAdminTable();
 }
-function crText(r){ return [r.ref_no,r.title,r.description,r.client_name,r.type,r.area,r.priority,r.status,r.assigned_name,(r.tags||[]).join(" "),r.page].filter(Boolean).join(" ").toLowerCase(); }
+function crText(r){ return [r.ref_no,r.title,htmlToText(r.description),r.client_name,r.type,r.area,r.priority,r.status,r.assigned_name,(r.tags||[]).join(" "),r.page].filter(Boolean).join(" ").toLowerCase(); }
 function filteredAdmin(){
   const term=($("a-search").value||"").trim().toLowerCase();
   const st=$("a-status").value,pr=$("a-priority").value,cl=$("a-client").value;
@@ -1054,7 +1133,7 @@ function filteredAdmin(){
       const content=CONTENT_BY_REQ[r.id]||"";
       let hay;
       if(scope==="heading") hay=(r.title||"").toLowerCase();
-      else if(scope==="desc") hay=(r.description||"").toLowerCase();
+      else if(scope==="desc") hay=htmlToText(r.description).toLowerCase();
       else if(scope==="comments") hay=content;
       else if(scope==="tags") hay=(r.tags||[]).join(" ").toLowerCase();
       else if(scope==="ref") hay=(r.ref_no||"").toLowerCase();
@@ -1107,7 +1186,7 @@ function openAdminCRForm(){
         <label style="margin-top:12px">Tags <span class="hint">comma-separated (optional)</span></label>
         <input id="ac-tags" class="inp" placeholder="e.g. urgent, billing"/>
         <label style="margin-top:12px">Description <span class="req">*</span></label>
-        <textarea id="ac-desc" class="inp" rows="3" placeholder="Explain what is expected…"></textarea>
+        ${richEditor("ac-desc","Explain what is expected…  Use the toolbar for bold, lists, etc.")}
         ${recorderUI("admin","arec-btn","arec-player")}
         <div id="ac-preview" class="photo-grid" style="margin-top:10px"></div>
         <button class="btn" style="max-width:260px" id="ac-btn" onclick="adminCreateCR()">Create change request</button>
@@ -1116,9 +1195,9 @@ function openAdminCRForm(){
   $("ac-client").innerHTML = CLIENTS.length ? CLIENTS.map(c=>`<option value="${c.id}">${esc(c.company||c.full_name||c.username)}</option>`).join("") : `<option value="">No clients yet — create one first</option>`;
 }
 async function adminCreateCR(){
-  const client_id=$("ac-client").value, title=$("ac-title").value.trim(), desc=$("ac-desc").value.trim();
+  const client_id=$("ac-client").value, title=$("ac-title").value.trim(), desc=richHTML("ac-desc"), descText=richText("ac-desc");
   if(!client_id){ toast("Create a client first, then raise a CR.",true); return; }
-  if(!title||!desc){ toast("Heading and description are required.",true); return; }
+  if(!title||!descText){ toast("Heading and description are required.",true); return; }
   const btn=$("ac-btn"); btn.disabled=true; btn.textContent="Creating…";
   try{
     const res=await callFn("admin-create-cr",{ client_id, title, description:desc,
@@ -1339,7 +1418,7 @@ async function exportCRPdf(id){
   line("Title",r.title); line("Client",r.client_name); line("Type",r.type); line("Priority",r.priority);
   line("Raised",fmtDate(r.created_at)); if(r.due_date) line("Needed by",fmtDay(r.due_date)); line("Last update",fmtDate(r.updated_at));
   y+=3; doc.setTextColor(120,120,120); doc.text("Description",14,y); y+=7; doc.setTextColor(20,20,20);
-  const desc=doc.splitTextToSize(r.description||"-",182); doc.text(desc,14,y); y+=desc.length*6+6;
+  const desc=doc.splitTextToSize(htmlToText(r.description)||"-",182); doc.text(desc,14,y); y+=desc.length*6+6;
   doc.setTextColor(120,120,120); doc.text("Status history",14,y); y+=7; doc.setTextColor(20,20,20);
   (hist||[]).forEach(h=>{ const t=(h.old_status?h.old_status+" -> ":"")+h.new_status+"  ("+fmtDate(h.created_at)+")"+(h.note?" - "+h.note:""); const ls=doc.splitTextToSize(t,182); if(y+ls.length*6>285){doc.addPage();y=20;} doc.text(ls,14,y); y+=ls.length*6+2; });
   doc.save(r.ref_no+".pdf");
@@ -1741,7 +1820,7 @@ async function openDetail(id){
           <div class="k">Assigned to</div><div>${esc(r.assigned_name||"Unassigned")}</div>
         </div>
         <div><div class="k" style="color:var(--muted);font-size:13px;margin-bottom:4px">Description</div>
-          <div style="white-space:pre-wrap;font-size:14px;line-height:1.5">${esc(r.description||"")}</div></div>
+          <div style="font-size:14px;line-height:1.55">${renderDesc(r.description)}</div></div>
         ${tagChips(r.tags)}
         ${isAdmin?`<div class="section-title">Assign to</div>
         <select class="inp" style="max-width:280px" onchange="assignCR('${r.id}',this.value)">
@@ -1889,7 +1968,7 @@ function exportRows(){ return ME.role==="admin"?filteredAdmin():CACHE; }
 function exportData(){
   return exportRows().map(r=>({
     Ref:r.ref_no, Heading:r.title, Client:r.client_name||"", Priority:r.priority,
-    Status:r.status, Description:r.description||"", Submitted:fmtDay(r.created_at), Updated:fmtDay(r.updated_at)
+    Status:r.status, Description:htmlToText(r.description), Submitted:fmtDay(r.created_at), Updated:fmtDay(r.updated_at)
   }));
 }
 function exportExcel(){
@@ -1917,7 +1996,7 @@ function exportPDF(){
 function exportWord(){
   const rows=exportRows();
   const cells=rows.map(r=>`<tr><td>${esc(r.ref_no)}</td><td>${esc(r.title)}</td><td>${esc(r.client_name||"")}</td>
-    <td>${esc(r.priority)}</td><td>${esc(r.status)}</td><td>${fmtDay(r.created_at)}</td><td>${esc(r.description||"")}</td></tr>`).join("");
+    <td>${esc(r.priority)}</td><td>${esc(r.status)}</td><td>${fmtDay(r.created_at)}</td><td>${esc(htmlToText(r.description)).replace(/\n/g,"<br>")}</td></tr>`).join("");
   const html=`<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word'><head><meta charset='utf-8'>
   <style>body{font-family:Calibri,Arial} h1{color:#4b2bd6} table{border-collapse:collapse;width:100%;font-size:10pt}
   th,td{border:1px solid #999;padding:5px;vertical-align:top} th{background:#6c5ce7;color:#fff;text-align:left}</style></head>
