@@ -14,6 +14,7 @@ alter table public.cr_profiles
   add column if not exists gst_no       text,
   add column if not exists website      text,
   add column if not exists client_code  text,
+  add column if not exists cr_prefix    text,   -- admin-defined, e.g. 'CR-BHO' -> CR-BHO-1, CR-BHO-2
   add column if not exists logo_path    text;
 
 create unique index if not exists uq_cr_profiles_username    on public.cr_profiles (lower(username))    where username    is not null;
@@ -35,16 +36,17 @@ language plpgsql
 security definer
 set search_path = ''
 as $$
-declare code text; n int;
+declare code text; pfx text; n int;
 begin
   if new.ref_no is not null then return new; end if;
-  select client_code into code from public.cr_profiles where id = new.created_by;
+  select client_code, cr_prefix into code, pfx from public.cr_profiles where id = new.created_by;
   if code is null or code = '' then code := 'CLIENT'; end if;
+  if pfx is null or pfx = '' then pfx := 'CR-' || code; end if;
   insert into public.cr_client_seq (client_code, last_no) values (code, 1)
     on conflict (client_code) do update set last_no = public.cr_client_seq.last_no + 1
     returning last_no into n;
   new.client_code := code;
-  new.ref_no := 'CR-' || code || '-' || n;
+  new.ref_no := pfx || '-' || n;   -- e.g. CR-BHO-1, CR-BHO-2 (per-client, starts at 1)
   return new;
 end;
 $$;
@@ -79,7 +81,8 @@ create policy p_logos_update on storage.objects
 -- =====================================================================
 -- EDGE FUNCTIONS (deploy separately; see supabase/functions/ in repo)
 --   bootstrap-admin      — creates the first admin (only while none exists)
---   admin-create-client  — admin provisions a client (username + password + details + logo)
+--   admin-create-client  — admin provisions a client (username + password + details + logo + CR prefix)
+--   admin-update-client  — admin edits client details/logo/CR prefix and resets the client password
 --   send-notification    — emails admin on new CR / client on status change (Gmail SMTP)
 --
 -- Required Edge Function secrets (Dashboard → Edge Functions → Manage secrets):

@@ -127,6 +127,16 @@
   .client-card .cc-name{font-weight:700}
   .client-card .cc-meta{color:var(--muted);font-size:12px;margin-top:2px;line-height:1.5;word-break:break-word}
   .logo-preview{width:64px;height:64px;border-radius:12px;object-fit:cover;border:1px solid var(--line);margin-top:6px}
+  .drop{border:1.5px dashed var(--line);border-radius:12px;padding:20px;text-align:center;color:var(--muted);
+    cursor:pointer;transition:.15s;background:var(--panel2)}
+  .drop:hover,.drop.drag{border-color:var(--brand);color:var(--txt);background:rgba(108,92,231,.08)}
+  .drop input{display:none}
+  .drop .big{font-size:15px}
+  .logo-row{display:flex;align-items:center;gap:14px;margin-top:10px}
+  .logo-row img{width:72px;height:72px;border-radius:12px;object-fit:cover;border:1px solid var(--line);background:var(--panel)}
+  .prefix-preview{margin-top:8px;font-size:13px;color:var(--muted)}
+  .prefix-preview .ref{font-size:14px}
+  .cc-actions{margin-top:8px}
   .config-warn{max-width:680px;margin:60px auto;background:var(--panel);border:1px solid var(--danger);
     border-radius:16px;padding:26px;box-shadow:var(--shadow)}
   .config-warn h2{margin:0 0 10px;color:#ffb4b4}
@@ -487,7 +497,8 @@ async function renderAdminClients(){
       <div class="grid3">
         <div><label>Full name <span class="req">*</span></label><input id="cl-name" class="inp" placeholder="Contact person"/></div>
         <div><label>Company / Studio <span class="req">*</span></label><input id="cl-company" class="inp" placeholder="Business name" oninput="autoCode()"/></div>
-        <div><label>Client code <span class="req">*</span><span class="hint"> used in CR-CODE-1</span></label><input id="cl-code" class="inp" placeholder="e.g. BharatOne" oninput="this.dataset.touched=1"/></div>
+        <div><label>Client code <span class="req">*</span><span class="hint"> short id</span></label><input id="cl-code" class="inp" placeholder="e.g. BHO" oninput="onCodeInput()"/></div>
+        <div><label>CR number prefix <span class="req">*</span><span class="hint"> you decide</span></label><input id="cl-prefix" class="inp" placeholder="e.g. CR-BHO" oninput="this.dataset.touched=1;updatePrefixPreview()"/></div>
         <div><label>Username <span class="req">*</span></label><input id="cl-username" class="inp" placeholder="login username"/></div>
         <div><label>Password <span class="req">*</span><span class="hint"> min 6</span></label><input id="cl-pass" class="inp" type="text" placeholder="set a password"/></div>
         <div><label>Notification email <span class="req">*</span></label><input id="cl-email" class="inp" type="email" placeholder="client@company.com"/></div>
@@ -495,11 +506,19 @@ async function renderAdminClients(){
         <div><label>GST / Tax ID</label><input id="cl-gst" class="inp" placeholder="GSTIN / Tax no."/></div>
         <div><label>Website</label><input id="cl-web" class="inp" placeholder="https://…"/></div>
       </div>
+      <div class="prefix-preview" id="cl-prefix-prev"></div>
       <label style="margin-top:12px">Address</label>
       <textarea id="cl-address" class="inp" rows="2" placeholder="Business address"></textarea>
       <label style="margin-top:12px">Logo</label>
-      <input id="cl-logo" class="inp" type="file" accept="image/*" onchange="previewLogo()"/>
-      <div><img id="cl-logo-prev" class="logo-preview hidden" alt="logo preview"/></div>
+      <div class="drop" id="cl-drop">
+        <div class="big">📤 Drag &amp; drop a logo here, or <span style="color:var(--brand2)">browse</span></div>
+        <div class="hint">PNG, JPG or SVG — shown on the client's dashboard and cards</div>
+        <input id="cl-logo" type="file" accept="image/*"/>
+      </div>
+      <div class="logo-row hidden" id="cl-logo-row">
+        <img id="cl-logo-prev" alt="logo preview"/>
+        <button class="btn btn-sm btn-ghost" type="button" onclick="clearLogo()">Remove logo</button>
+      </div>
       <button class="btn" style="max-width:240px" id="cl-btn" onclick="createClient()">Create client account</button>
     </div>
     <div class="card">
@@ -509,47 +528,150 @@ async function renderAdminClients(){
     </div>`;
   await loadRequests(); await loadClients();
   renderClientsList();
+  initDrop("cl-drop","cl-logo","cl-logo-row","cl-logo-prev",f=>{LOGO_FILE=f;});
+  updatePrefixPreview();
 }
-function autoCode(){ const c=$("cl-code"); if(!c.dataset.touched){ c.value=codeify($("cl-company").value); } }
-function previewLogo(){
-  const f=$("cl-logo").files[0]; const img=$("cl-logo-prev");
-  if(f){ img.src=URL.createObjectURL(f); img.classList.remove("hidden"); } else img.classList.add("hidden");
+let LOGO_FILE=null, EDIT_LOGO_FILE=null;
+function onCodeInput(){
+  const c=$("cl-code"); c.dataset.touched=1;
+  const p=$("cl-prefix"); if(p && !p.dataset.touched){ p.value="CR-"+codeify(c.value); }
+  updatePrefixPreview();
 }
+function autoCode(){
+  const c=$("cl-code"); if(!c.dataset.touched){ c.value=codeify($("cl-company").value); }
+  const p=$("cl-prefix"); if(p && !p.dataset.touched){ p.value="CR-"+codeify(c.value); }
+  updatePrefixPreview();
+}
+function updatePrefixPreview(){
+  const el=$("cl-prefix-prev"); if(!el) return;
+  const pfx=($("cl-prefix").value.trim()) || ("CR-"+(codeify($("cl-code").value)||"CODE"));
+  el.innerHTML=`Each request will be numbered <span class="ref">${esc(pfx)}-1</span>, <span class="ref">${esc(pfx)}-2</span>, … (starts at 1).`;
+}
+function readAsBase64(f){
+  return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(",")[1]);r.onerror=rej;r.readAsDataURL(f);});
+}
+// Reusable drag-and-drop image picker.
+function initDrop(dropId,inputId,rowId,imgId,onPick){
+  const d=$(dropId), inp=$(inputId); if(!d||!inp) return;
+  const pick=f=>{ if(!f) return; if(!f.type.startsWith("image/")){toast("Please choose an image file.",true);return;}
+    onPick(f); const img=$(imgId); if(img){img.src=URL.createObjectURL(f);img.classList.remove("hidden");} const row=$(rowId); if(row) row.classList.remove("hidden"); };
+  d.onclick=()=>inp.click();
+  d.ondragover=e=>{e.preventDefault();d.classList.add("drag");};
+  d.ondragleave=()=>d.classList.remove("drag");
+  d.ondrop=e=>{e.preventDefault();d.classList.remove("drag");pick(e.dataTransfer.files[0]);};
+  inp.onchange=()=>pick(inp.files[0]);
+}
+function clearLogo(){ LOGO_FILE=null; $("cl-logo").value=""; $("cl-logo-row").classList.add("hidden"); }
 function renderClientsList(){
   $("clients-list").innerHTML=CLIENTS.length?`<div class="clients-grid">${CLIENTS.map(c=>{
     const lg=logoUrl(c.logo_path);
     const n=CACHE.filter(r=>r.created_by===c.id).length;
     return `<div class="client-card">
       ${lg?`<img class="lg" src="${esc(lg)}"/>`:`<div class="lg ph">${esc(initials(c.company||c.full_name||c.username))}</div>`}
-      <div>
+      <div style="flex:1">
         <div class="cc-name">${esc(c.company||c.full_name||c.username)}</div>
         <div class="cc-meta">
-          Code <span class="ref">${esc(c.client_code||"—")}</span><br>
+          CR ref <span class="ref">${esc(c.cr_prefix||("CR-"+(c.client_code||"")))}-1</span><br>
           User: ${esc(c.username||"—")}<br>
           ${esc(c.notify_email||"—")}<br>
           ${esc(c.phone||"")} ${c.website?`· <a href="${esc(c.website)}" target="_blank" rel="noopener">site</a>`:""}<br>
           ${n} change request${n===1?"":"s"}
         </div>
+        <div class="cc-actions"><button class="btn btn-sm btn-ghost" onclick="openClientEdit('${c.id}')">Edit / change logo</button></div>
       </div>
     </div>`;}).join("")}</div>`:`<div class="empty">No clients yet. Create your first one above.</div>`;
 }
+function openClientEdit(id){
+  const c=CLIENTS.find(x=>x.id===id); if(!c)return;
+  EDIT_LOGO_FILE=null;
+  const lg=logoUrl(c.logo_path);
+  $("modal-root").innerHTML=`
+  <div class="overlay" onclick="if(event.target===this)closeModal()">
+    <div class="modal">
+      <div class="mh">
+        <div><h2 style="margin:0">Edit client</h2><div class="hint">${esc(c.username||"")}</div></div>
+        <button class="x" onclick="closeModal()">×</button>
+      </div>
+      <div class="mb">
+        <div class="grid2">
+          <div><label>Company</label><input id="e-company" class="inp" value="${esc(c.company||"")}"/></div>
+          <div><label>Full name</label><input id="e-name" class="inp" value="${esc(c.full_name||"")}"/></div>
+          <div><label>Notification email</label><input id="e-email" class="inp" value="${esc(c.notify_email||"")}"/></div>
+          <div><label>Phone</label><input id="e-phone" class="inp" value="${esc(c.phone||"")}"/></div>
+          <div><label>GST / Tax ID</label><input id="e-gst" class="inp" value="${esc(c.gst_no||"")}"/></div>
+          <div><label>Website</label><input id="e-web" class="inp" value="${esc(c.website||"")}"/></div>
+          <div><label>CR number prefix</label><input id="e-prefix" class="inp" value="${esc(c.cr_prefix||("CR-"+(c.client_code||"")))}" oninput="updateEditPreview()"/></div>
+        </div>
+        <label style="margin-top:12px">Address</label>
+        <textarea id="e-address" class="inp" rows="2">${esc(c.address||"")}</textarea>
+        <div class="prefix-preview" id="e-prefix-prev"></div>
+        <label style="margin-top:12px">Logo</label>
+        <div class="logo-row" style="margin-bottom:10px">
+          ${lg?`<img id="e-logo-prev" src="${esc(lg)}"/>`:`<img id="e-logo-prev" class="hidden"/>`}
+          <span class="hint">Current logo — drop a new image below to replace it.</span>
+        </div>
+        <div class="drop" id="e-drop">
+          <div class="big">📤 Drag &amp; drop a new logo, or <span style="color:var(--brand2)">browse</span></div>
+          <input id="e-logo" type="file" accept="image/*"/>
+        </div>
+        <div class="section-title">Reset password</div>
+        <div class="row">
+          <input id="e-pass" class="inp" type="text" placeholder="New password (min 6 characters)" style="flex:1"/>
+          <button class="btn btn-sm btn-ghost" onclick="resetClientPw('${c.id}')">Set new password</button>
+        </div>
+        <div class="hint">The client logs in with their username and this new password.</div>
+        <div class="row" style="margin-top:16px">
+          <button class="btn btn-sm" id="e-save" onclick="saveClientEdit('${c.id}')">Save changes</button>
+          <button class="btn btn-sm btn-ghost" onclick="closeModal()">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+  initDrop("e-drop","e-logo","e-logo-row-na","e-logo-prev",f=>{EDIT_LOGO_FILE=f;$("e-logo-prev").classList.remove("hidden");});
+  updateEditPreview();
+}
+function updateEditPreview(){
+  const el=$("e-prefix-prev"); if(!el) return;
+  const pfx=$("e-prefix").value.trim()||"CR-CODE";
+  el.innerHTML=`Future requests: <span class="ref">${esc(pfx)}-N</span> (existing references are unchanged).`;
+}
+async function resetClientPw(id){
+  const pw=$("e-pass").value;
+  if(pw.length<6){ toast("Password must be at least 6 characters.",true); return; }
+  try{ await callFn("admin-update-client",{client_id:id,new_password:pw}); toast("Password reset for this client."); $("e-pass").value=""; }
+  catch(e){ toast(e.message||"Could not reset password.",true); }
+}
+async function saveClientEdit(id){
+  const btn=$("e-save"); btn.disabled=true; btn.textContent="Saving…";
+  try{
+    const body={ client_id:id,
+      company:$("e-company").value.trim(), full_name:$("e-name").value.trim(), email:$("e-email").value.trim(),
+      notify_email:$("e-email").value.trim(), phone:$("e-phone").value.trim(), gst_no:$("e-gst").value.trim(),
+      website:$("e-web").value.trim(), address:$("e-address").value.trim(), cr_prefix:$("e-prefix").value.trim() };
+    delete body.email;
+    if(EDIT_LOGO_FILE){ body.logo_base64=await readAsBase64(EDIT_LOGO_FILE); body.logo_name=EDIT_LOGO_FILE.name; body.logo_type=EDIT_LOGO_FILE.type||"image/png"; }
+    await callFn("admin-update-client",body);
+    toast("Client updated.");
+    closeModal(); await loadClients(); renderClientsList();
+  }catch(e){ toast(e.message||"Could not update client.",true); }
+  finally{ if($("e-save")){btn.disabled=false; btn.textContent="Save changes";} }
+}
 async function createClient(){
   const name=$("cl-name").value.trim(), company=$("cl-company").value.trim(), code=$("cl-code").value.trim();
+  const prefix=$("cl-prefix").value.trim()||("CR-"+codeify(code));
   const username=$("cl-username").value.trim(), pass=$("cl-pass").value, email=$("cl-email").value.trim();
   if(!name||!company||!code||!username||pass.length<6||!email){ toast("Fill name, company, code, username, 6+ char password and email.",true); return; }
   const btn=$("cl-btn"); btn.disabled=true; btn.textContent="Creating…";
   try{
-    let logo_path=null;
-    const f=$("cl-logo").files[0];
-    if(f){ logo_path=`${slugify(code)||"client"}/${Date.now()}_${f.name.replace(/[^\w.\-]/g,"_")}`;
-      const {error}=await sb.storage.from("cr-logos").upload(logo_path,f,{upsert:true});
-      if(error) throw error; }
+    let logo_base64=null, logo_name=null, logo_type=null;
+    if(LOGO_FILE){ logo_base64=await readAsBase64(LOGO_FILE); logo_name=LOGO_FILE.name; logo_type=LOGO_FILE.type||"image/png"; }
     await callFn("admin-create-client",{ username, password:pass, email, full_name:name,
       company, phone:$("cl-phone").value.trim(), address:$("cl-address").value.trim(),
-      gst_no:$("cl-gst").value.trim(), website:$("cl-web").value.trim(), client_code:code, logo_path });
+      gst_no:$("cl-gst").value.trim(), website:$("cl-web").value.trim(), client_code:code, cr_prefix:prefix,
+      logo_base64, logo_name, logo_type });
     toast(`Client "${company}" created. Login: ${username}`);
-    ["cl-name","cl-company","cl-code","cl-username","cl-pass","cl-email","cl-phone","cl-gst","cl-web","cl-address"].forEach(i=>$(i).value="");
-    $("cl-code").dataset.touched=""; $("cl-logo").value=""; $("cl-logo-prev").classList.add("hidden");
+    ["cl-name","cl-company","cl-code","cl-prefix","cl-username","cl-pass","cl-email","cl-phone","cl-gst","cl-web","cl-address"].forEach(i=>$(i).value="");
+    $("cl-code").dataset.touched=""; $("cl-prefix").dataset.touched=""; clearLogo(); updatePrefixPreview();
     await loadClients(); renderClientsList();
   }catch(e){ toast(e.message||"Could not create client.",true); }
   finally{ btn.disabled=false; btn.textContent="Create client account"; }
