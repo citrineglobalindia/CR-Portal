@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CR Portal — StudioAI Pro | Citrine Global India</title>
+<style>
+  :root{
+    --bg:#0f1220; --panel:#171a2b; --panel2:#1e2238; --line:#2a2f4a;
+    --txt:#e7e9f3; --muted:#9aa0bd; --brand:#6c5ce7; --brand2:#8e7cff;
+    --accent:#00d2a8; --danger:#ff6b6b; --warn:#ffb020; --ok:#22c55e;
+    --chip:#252a45; --shadow:0 10px 30px rgba(0,0,0,.35);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Segoe UI',system-ui,-apple-system,Roboto,Arial,sans-serif;background:
+    radial-gradient(1200px 600px at 80% -10%,rgba(108,92,231,.18),transparent),
+    radial-gradient(900px 500px at -10% 110%,rgba(0,210,168,.12),transparent),var(--bg);
+    color:var(--txt);min-height:100vh}
+  a{color:var(--brand2)}
+  .hidden{display:none!important}
+  button{cursor:pointer;font-family:inherit}
+  input,select,textarea{font-family:inherit}
+  .auth-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+  .auth-card{width:100%;max-width:420px;background:var(--panel);border:1px solid var(--line);
+    border-radius:18px;padding:30px;box-shadow:var(--shadow)}
+  .logo{display:flex;align-items:center;gap:12px;margin-bottom:6px}
+  .logo .mark{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,var(--brand),var(--accent));
+    display:grid;place-items:center;font-weight:800;color:#fff;font-size:18px}
+  .logo h1{font-size:18px;margin:0}
+  .logo small{color:var(--muted)}
+  .tabs{display:flex;background:var(--panel2);border-radius:12px;padding:4px;margin:20px 0}
+  .tabs button{flex:1;border:0;background:transparent;color:var(--muted);padding:10px;border-radius:9px;font-weight:600}
+  .tabs button.active{background:var(--brand);color:#fff}
+  label{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
+  .inp{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--txt);
+    padding:11px 12px;border-radius:10px;font-size:14px;outline:none}
+  .inp:focus{border-color:var(--brand)}
+  .btn{width:100%;border:0;background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;
+    padding:12px;border-radius:11px;font-weight:700;font-size:15px;margin-top:18px}
+  .btn:disabled{opacity:.6}
+  .btn-sm{width:auto;padding:8px 14px;font-size:13px;margin:0;border-radius:9px}
+  .btn-ghost{background:var(--chip);color:var(--txt);border:1px solid var(--line)}
+  .btn-danger{background:linear-gradient(135deg,#ff5f6d,#ff8a5b)}
+  .btn-ok{background:linear-gradient(135deg,#16a34a,#22c55e)}
+  .msg{margin-top:14px;font-size:13px;padding:10px;border-radius:9px;display:none}
+  .msg.show{display:block}
+  .msg.err{background:rgba(255,107,107,.12);color:#ffb4b4;border:1px solid rgba(255,107,107,.3)}
+  .msg.ok{background:rgba(34,197,94,.12);color:#9af5c0;border:1px solid rgba(34,197,94,.3)}
+  .linkrow{margin-top:12px;text-align:center;font-size:13px}
+  .linkrow button{background:none;border:0;color:var(--brand2);font-weight:600}
+  header.top{display:flex;align-items:center;justify-content:space-between;padding:14px 22px;
+    background:rgba(23,26,43,.8);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);
+    position:sticky;top:0;z-index:30}
+  header.top .who{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted)}
+  .pill{background:var(--chip);border:1px solid var(--line);padding:4px 10px;border-radius:999px;font-size:12px}
+  .pill.admin{background:rgba(108,92,231,.2);border-color:var(--brand);color:#cfc6ff}
+  .wrap{max-width:1180px;margin:0 auto;padding:22px}
+  .row{display:flex;gap:16px;flex-wrap:wrap}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:20px}
+  .stat{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px}
+  .stat .n{font-size:26px;font-weight:800}
+  .stat .l{color:var(--muted);font-size:12px;margin-top:2px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px;margin-bottom:18px;box-shadow:var(--shadow)}
+  .card h2{margin:0 0 4px;font-size:17px}
+  .card .sub{color:var(--muted);font-size:13px;margin-bottom:16px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  @media(max-width:680px){.grid2,.grid3{grid-template-columns:1fr}}
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+  .toolbar .inp{width:auto}
+  .spacer{flex:1}
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th,td{text-align:left;padding:11px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+  th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+  tr:hover td{background:rgba(255,255,255,.02)}
+  .table-wrap{overflow-x:auto}
+  .badge{padding:3px 9px;border-radius:999px;font-size:11.5px;font-weight:700;white-space:nowrap;display:inline-block}
+  .b-New{background:rgba(154,160,189,.2);color:#c7cbe6}
+  .b-InReview{background:rgba(255,176,32,.18);color:#ffd58a}
+  .b-Approved{background:rgba(108,92,231,.22);color:#cfc6ff}
+  .b-InProgress{background:rgba(0,210,168,.18);color:#86f5db}
+  .b-Done{background:rgba(34,197,94,.18);color:#9af5c0}
+  .b-Rejected{background:rgba(255,107,107,.18);color:#ffb4b4}
+  .pr-High,.pr-Critical{color:#ff9b9b;font-weight:700}
+  .pr-Medium{color:#ffd58a}
+  .pr-Low{color:#9aa0bd}
+  .ref{font-family:ui-monospace,Menlo,Consolas,monospace;color:var(--accent);font-weight:700}
+  .link-btn{background:none;border:0;color:var(--brand2);font-weight:600;padding:0}
+  .empty{padding:40px;text-align:center;color:var(--muted)}
+  .overlay{position:fixed;inset:0;background:rgba(5,6,15,.7);backdrop-filter:blur(3px);
+    display:flex;align-items:flex-start;justify-content:center;padding:30px 16px;z-index:50;overflow:auto}
+  .modal{width:100%;max-width:760px;background:var(--panel);border:1px solid var(--line);
+    border-radius:18px;box-shadow:var(--shadow)}
+  .modal .mh{display:flex;justify-content:space-between;align-items:flex-start;padding:20px 22px;border-bottom:1px solid var(--line)}
+  .modal .mb{padding:22px}
+  .modal .x{background:var(--chip);border:1px solid var(--line);color:var(--txt);width:34px;height:34px;border-radius:9px;font-size:18px}
+  .kv{display:grid;grid-template-columns:130px 1fr;gap:8px 14px;font-size:13.5px;margin-bottom:16px}
+  .kv .k{color:var(--muted)}
+  .section-title{font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:18px 0 10px;border-top:1px solid var(--line);padding-top:16px}
+  .comment{background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:12px;margin-bottom:10px}
+  .comment .meta{font-size:12px;color:var(--muted);margin-bottom:5px}
+  .hist{font-size:13px;color:var(--muted);border-left:2px solid var(--brand);padding:4px 0 4px 12px;margin-bottom:8px}
+  .att{display:flex;align-items:center;gap:8px;background:var(--panel2);border:1px solid var(--line);
+    border-radius:9px;padding:8px 12px;margin-bottom:8px;font-size:13px}
+  .att .name{flex:1}
+  .filechip{display:inline-flex;align-items:center;gap:6px;background:var(--chip);border:1px solid var(--line);
+    border-radius:8px;padding:5px 9px;font-size:12px;margin:4px 6px 0 0}
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--panel2);
+    border:1px solid var(--line);padding:12px 18px;border-radius:11px;box-shadow:var(--shadow);z-index:100;
+    font-size:14px;opacity:0;transition:.25s;pointer-events:none}
+  .toast.show{opacity:1;bottom:30px}
+  .toast.err{border-color:var(--danger)}
+  .req{color:var(--danger)}
+  .hint{font-size:12px;color:var(--muted);margin-top:4px}
+  .config-warn{max-width:680px;margin:60px auto;background:var(--panel);border:1px solid var(--danger);
+    border-radius:16px;padding:26px;box-shadow:var(--shadow)}
+  .config-warn h2{margin:0 0 10px;color:#ffb4b4}
+  .config-warn code{background:var(--panel2);padding:2px 6px;border-radius:6px;font-size:13px}
+</style>
+</head>
+<body>
+
+<div id="auth-view" class="auth-wrap">
+  <div class="auth-card">
+    <div class="logo">
+      <div class="mark">CR</div>
+      <div>
+        <h1>Change Request Portal</h1>
+        <small>StudioAI Pro · Citrine Global India</small>
+      </div>
+    </div>
+    <div class="tabs">
+      <button id="tab-login" class="active" onclick="switchTab('login')">Log in</button>
+      <button id="tab-signup" onclick="switchTab('signup')">Sign up</button>
+    </div>
+    <div id="form-login">
+      <label>Email</label>
+      <input id="li-email" class="inp" type="email" placeholder="you@company.com" autocomplete="username" />
+      <label>Password</label>
+      <input id="li-pass" class="inp" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()" />
+      <button class="btn" id="li-btn" onclick="doLogin()">Log in</button>
+      <div class="linkrow"><button onclick="doReset()">Forgot password?</button></div>
+    </div>
+    <div id="form-signup" class="hidden">
+      <label>Full name</label>
+      <input id="su-name" class="inp" placeholder="Your name" />
+      <label>Company / Studio</label>
+      <input id="su-company" class="inp" placeholder="Company name" />
+      <label>Email</label>
+      <input id="su-email" class="inp" type="email" placeholder="you@company.com" />
+      <label>Password <span class="hint">(min 6 characters)</span></label>
+      <input id="su-pass" class="inp" type="password" placeholder="••••••••" />
+      <button class="btn" id="su-btn" onclick="doSignup()">Create client account</button>
+    </div>
+    <div id="auth-msg" class="msg"></div>
+  </div>
+</div>
+
+<div id="app-view" class="hidden">
+  <header class="top">
+    <div class="logo">
+      <div class="mark">CR</div>
+      <div><h1 style="font-size:15px">Change Request Portal</h1><small>StudioAI Pro</small></div>
+    </div>
+    <div class="who">
+      <span id="who-name"></span>
+      <span id="who-role" class="pill"></span>
+      <button class="btn btn-sm btn-ghost" onclick="doLogout()">Log out</button>
+    </div>
+  </header>
+  <div class="wrap" id="app-body"></div>
+</div>
+
+<div id="modal-root"></div>
+<div id="toast" class="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script>
+// =====================================================================
+//  CONFIG — point this at your Supabase project.
+//  Dashboard → Project Settings → API → "Project URL" and the
+//  "anon"/"publishable" key (safe to expose in client-side code).
+// =====================================================================
+const SUPABASE_URL = "https://kjegcgnraahyubfnvqte.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtqZWdjZ25yYWFoeXViZm52cXRlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIzNzA1MzksImV4cCI6MjA5Nzk0NjUzOX0.EbuOY5ZW9Xyl6DbKUzwVxxwZqX012Pk2DP4gMp2WVc0";
+
+const CONFIGURED = SUPABASE_URL.startsWith("https://") && !SUPABASE_KEY.startsWith("REPLACE_");
+let sb = null;
+if (CONFIGURED) sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const AREAS = ["Equipment Tracking","Payments","Billing","Reporting","Dashboard","Settings","Venue","Services","Billing / Documents","Leads","Requirements","Other"];
+const TYPES = ["New Feature","Enhancement","Bug Fix","Removal","Change"];
+const PRIORITIES = ["Low","Medium","High","Critical"];
+const STATUSES = ["New","In Review","Approved","In Progress","Done","Rejected"];
+
+let ME = null, SESSION = null, CACHE = [];
+
+const $ = id => document.getElementById(id);
+const esc = s => (s==null?"":String(s)).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const badgeClass = s => "b-"+String(s||"").replace(/\s/g,"");
+const fmtDate = d => d?new Date(d).toLocaleString(undefined,{year:"numeric",month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"}):"—";
+const fmtDay = d => d?new Date(d).toLocaleDateString(undefined,{year:"numeric",month:"short",day:"numeric"}):"—";
+
+function toast(msg, isErr){
+  const t=$("toast"); t.textContent=msg; t.className="toast show"+(isErr?" err":"");
+  setTimeout(()=>t.className="toast",2600);
+}
+function authMsg(msg,type){ const m=$("auth-msg"); m.textContent=msg; m.className="msg show "+(type||"err"); }
+function switchTab(t){
+  $("tab-login").classList.toggle("active",t==="login");
+  $("tab-signup").classList.toggle("active",t==="signup");
+  $("form-login").classList.toggle("hidden",t!=="login");
+  $("form-signup").classList.toggle("hidden",t!=="signup");
+  $("auth-msg").className="msg";
+}
+
+async function doSignup(){
+  const name=$("su-name").value.trim(), company=$("su-company").value.trim();
+  const email=$("su-email").value.trim(), pass=$("su-pass").value;
+  if(!name||!email||pass.length<6){authMsg("Enter name, email and a 6+ char password.");return;}
+  $("su-btn").disabled=true; $("su-btn").textContent="Creating…";
+  const {data,error}=await sb.auth.signUp({email,password:pass,options:{data:{full_name:name,company}}});
+  $("su-btn").disabled=false; $("su-btn").textContent="Create client account";
+  if(error){authMsg(error.message);return;}
+  if(data.user){
+    if(data.session){
+      await sb.from("cr_profiles").upsert({id:data.user.id,email,full_name:name,company,role:"client"});
+      await boot();
+    }else{
+      authMsg("Account created. Please check your email to confirm, then log in.","ok");
+      switchTab("login");
+    }
+  }
+}
+async function doLogin(){
+  const email=$("li-email").value.trim(), pass=$("li-pass").value;
+  if(!email||!pass){authMsg("Enter email and password.");return;}
+  $("li-btn").disabled=true; $("li-btn").textContent="Logging in…";
+  const {data,error}=await sb.auth.signInWithPassword({email,password:pass});
+  $("li-btn").disabled=false; $("li-btn").textContent="Log in";
+  if(error){authMsg(error.message);return;}
+  await boot();
+}
+async function doReset(){
+  const email=$("li-email").value.trim();
+  if(!email){authMsg("Enter your email above, then click 'Forgot password?'.");return;}
+  const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.href});
+  if(error){authMsg(error.message);return;}
+  authMsg("Password reset link sent. Check your email.","ok");
+}
+async function doLogout(){ await sb.auth.signOut(); location.reload(); }
+
+async function ensureProfile(){
+  const u=SESSION.user;
+  let {data:prof}=await sb.from("cr_profiles").select("*").eq("id",u.id).maybeSingle();
+  if(!prof){
+    const md=u.user_metadata||{};
+    await sb.from("cr_profiles").upsert({id:u.id,email:u.email,full_name:md.full_name||u.email,company:md.company||"",role:"client"});
+    ({data:prof}=await sb.from("cr_profiles").select("*").eq("id",u.id).maybeSingle());
+  }
+  ME=prof;
+}
+
+async function boot(){
+  if(!CONFIGURED){ showConfigWarning(); return; }
+  const {data:{session}}=await sb.auth.getSession();
+  if(!session){ $("auth-view").classList.remove("hidden"); $("app-view").classList.add("hidden"); return; }
+  SESSION=session;
+  await ensureProfile();
+  $("auth-view").classList.add("hidden");
+  $("app-view").classList.remove("hidden");
+  $("who-name").textContent=ME.full_name||ME.email;
+  $("who-role").textContent=ME.role==="admin"?"ADMIN":"CLIENT";
+  $("who-role").className="pill"+(ME.role==="admin"?" admin":"");
+  if(ME.role==="admin") renderAdmin(); else renderClient();
+}
+
+function showConfigWarning(){
+  $("auth-view").classList.add("hidden");
+  document.body.insertAdjacentHTML("beforeend",`
+    <div class="config-warn">
+      <h2>⚠ Supabase not configured</h2>
+      <p>Edit <code>cr-portal.html</code> and set <code>SUPABASE_URL</code> and
+      <code>SUPABASE_KEY</code> near the top of the &lt;script&gt; block to your project's
+      values (Dashboard → Project Settings → API), then reload.</p>
+    </div>`);
+}
+
+async function loadRequests(){
+  const {data,error}=await sb.from("cr_requests").select("*").order("created_at",{ascending:false});
+  if(error){toast(error.message,true);return [];}
+  CACHE=data||[]; return CACHE;
+}
+
+function renderClient(){
+  $("app-body").innerHTML=`
+    <div class="card">
+      <h2>Raise a Change Request</h2>
+      <div class="sub">Describe the change you need for StudioAI Pro. Fields marked <span class="req">*</span> are required.</div>
+      <div class="grid3">
+        <div><label>Title <span class="req">*</span></label><input id="f-title" class="inp" placeholder="Short summary of the change"/></div>
+        <div><label>Area</label><select id="f-area" class="inp">${AREAS.map(a=>`<option>${a}</option>`).join("")}</select></div>
+        <div><label>Type <span class="req">*</span></label><select id="f-type" class="inp">${TYPES.map(t=>`<option>${t}</option>`).join("")}</select></div>
+        <div><label>Priority <span class="req">*</span></label><select id="f-priority" class="inp">${PRIORITIES.map(p=>`<option ${p==="Medium"?"selected":""}>${p}</option>`).join("")}</select></div>
+        <div><label>Count / Quantity</label><input id="f-count" class="inp" type="number" min="1" value="1"/></div>
+        <div><label>Attachments</label><input id="f-files" class="inp" type="file" multiple/></div>
+      </div>
+      <label>Description <span class="req">*</span></label>
+      <textarea id="f-desc" class="inp" rows="4" placeholder="Explain what is expected, affected screens, expected behaviour…"></textarea>
+      <div id="file-preview"></div>
+      <button class="btn" style="max-width:240px" id="submit-cr" onclick="submitCR()">Submit Change Request</button>
+    </div>
+    <div class="card">
+      <h2>My Change Requests</h2>
+      <div class="sub">Track the status of everything you've submitted.</div>
+      <div class="toolbar">
+        <input id="c-search" class="inp" placeholder="Search…" oninput="renderClientTable()"/>
+        <select id="c-status" class="inp" onchange="renderClientTable()"><option value="">All statuses</option>${STATUSES.map(s=>`<option>${s}</option>`).join("")}</select>
+        <div class="spacer"></div>
+        <button class="btn btn-sm btn-ghost" onclick="loadAndRenderClient()">↻ Refresh</button>
+      </div>
+      <div class="table-wrap"><div id="c-table"></div></div>
+    </div>`;
+  $("f-files").addEventListener("change",previewFiles);
+  loadAndRenderClient();
+}
+function previewFiles(){
+  const files=$("f-files").files;
+  $("file-preview").innerHTML=[...files].map(f=>`<span class="filechip">📎 ${esc(f.name)}</span>`).join("");
+}
+async function loadAndRenderClient(){ await loadRequests(); renderClientTable(); }
+function renderClientTable(){
+  const term=($("c-search").value||"").toLowerCase();
+  const st=$("c-status").value;
+  const rows=CACHE.filter(r=>(!st||r.status===st) && (!term||(r.title+r.ref_no+r.area+r.type+(r.description||"")).toLowerCase().includes(term)));
+  $("c-table").innerHTML=rows.length?`<table>
+    <thead><tr><th>Ref</th><th>Title</th><th>Type</th><th>Priority</th><th>Status</th><th>Submitted</th><th></th></tr></thead>
+    <tbody>${rows.map(r=>`<tr>
+      <td><span class="ref">${esc(r.ref_no)}</span></td>
+      <td>${esc(r.title)}</td>
+      <td>${esc(r.type)}</td>
+      <td class="pr-${r.priority}">${esc(r.priority)}</td>
+      <td><span class="badge ${badgeClass(r.status)}">${esc(r.status)}</span></td>
+      <td>${fmtDay(r.created_at)}</td>
+      <td><button class="link-btn" onclick="openDetail('${r.id}')">View</button></td>
+    </tr>`).join("")}</tbody></table>`:`<div class="empty">No change requests yet. Submit your first one above.</div>`;
+}
+async function submitCR(){
+  const title=$("f-title").value.trim(), desc=$("f-desc").value.trim();
+  if(!title||!desc){toast("Title and description are required.",true);return;}
+  const btn=$("submit-cr"); btn.disabled=true; btn.textContent="Submitting…";
+  const payload={ title, area:$("f-area").value, type:$("f-type").value, priority:$("f-priority").value,
+    item_count:parseInt($("f-count").value||"1"), description:desc,
+    created_by:SESSION.user.id, client_name:ME.full_name||ME.email, status:"New" };
+  const {data,error}=await sb.from("cr_requests").insert(payload).select().single();
+  if(error){btn.disabled=false;btn.textContent="Submit Change Request";toast(error.message,true);return;}
+  const files=$("f-files").files;
+  for(const f of files){ await uploadAttachment(data.id,f); }
+  await sb.from("cr_status_history").insert({request_id:data.id,old_status:null,new_status:"New",
+    changed_by:SESSION.user.id,changed_by_name:ME.full_name||ME.email,note:"Request submitted"});
+  btn.disabled=false; btn.textContent="Submit Change Request";
+  $("f-title").value="";$("f-desc").value="";$("f-count").value="1";$("f-files").value="";$("file-preview").innerHTML="";
+  toast("Change request "+data.ref_no+" submitted.");
+  loadAndRenderClient();
+}
+async function uploadAttachment(reqId,file){
+  const path=`${reqId}/${Date.now()}_${file.name.replace(/[^\w.\-]/g,"_")}`;
+  const {error}=await sb.storage.from("cr-attachments").upload(path,file);
+  if(error){toast("Upload failed: "+error.message,true);return;}
+  await sb.from("cr_attachments").insert({request_id:reqId,file_name:file.name,file_path:path,
+    file_size:file.size,mime_type:file.type,uploaded_by:SESSION.user.id});
+}
+
+function renderAdmin(){
+  $("app-body").innerHTML=`
+    <div class="stats" id="admin-stats"></div>
+    <div class="card">
+      <div class="toolbar">
+        <input id="a-search" class="inp" placeholder="🔍 Search ref, title, client…" oninput="renderAdminTable()" style="min-width:220px"/>
+        <select id="a-status" class="inp" onchange="renderAdminTable()"><option value="">All statuses</option>${STATUSES.map(s=>`<option>${s}</option>`).join("")}</select>
+        <select id="a-type" class="inp" onchange="renderAdminTable()"><option value="">All types</option>${TYPES.map(t=>`<option>${t}</option>`).join("")}</select>
+        <select id="a-priority" class="inp" onchange="renderAdminTable()"><option value="">All priorities</option>${PRIORITIES.map(p=>`<option>${p}</option>`).join("")}</select>
+        <select id="a-client" class="inp" onchange="renderAdminTable()"><option value="">All clients</option></select>
+        <div class="spacer"></div>
+        <button class="btn btn-sm btn-ghost" onclick="loadAndRenderAdmin()">↻ Refresh</button>
+      </div>
+      <div class="toolbar">
+        <strong style="font-size:14px">Export:</strong>
+        <button class="btn btn-sm btn-ok" onclick="exportExcel()">⬇ Excel (.xlsx)</button>
+        <button class="btn btn-sm" onclick="exportPDF()">⬇ PDF report</button>
+        <button class="btn btn-sm btn-ghost" onclick="exportWord()">⬇ Word (.doc)</button>
+        <button class="btn btn-sm btn-ghost" onclick="exportCSV()">⬇ CSV</button>
+        <span class="hint" id="export-note"></span>
+      </div>
+      <div class="table-wrap"><div id="a-table"></div></div>
+    </div>`;
+  loadAndRenderAdmin();
+}
+async function loadAndRenderAdmin(){
+  await loadRequests();
+  const clients=[...new Set(CACHE.map(r=>r.client_name).filter(Boolean))].sort();
+  const sel=$("a-client"); const cur=sel.value;
+  sel.innerHTML=`<option value="">All clients</option>`+clients.map(c=>`<option ${c===cur?"selected":""}>${esc(c)}</option>`).join("");
+  renderAdminTable();
+}
+function filteredAdmin(){
+  const term=($("a-search").value||"").toLowerCase();
+  const st=$("a-status").value,ty=$("a-type").value,pr=$("a-priority").value,cl=$("a-client").value;
+  return CACHE.filter(r=>(!st||r.status===st)&&(!ty||r.type===ty)&&(!pr||r.priority===pr)&&(!cl||r.client_name===cl)&&
+    (!term||(r.ref_no+r.title+(r.client_name||"")+r.area+r.type+(r.description||"")).toLowerCase().includes(term)));
+}
+function renderAdminTable(){
+  const rows=filteredAdmin();
+  const by=s=>CACHE.filter(r=>r.status===s).length;
+  $("admin-stats").innerHTML=`
+    <div class="stat"><div class="n">${CACHE.length}</div><div class="l">Total CRs</div></div>
+    <div class="stat"><div class="n" style="color:var(--muted)">${by("New")+by("In Review")}</div><div class="l">New / In Review</div></div>
+    <div class="stat"><div class="n" style="color:var(--accent)">${by("Approved")+by("In Progress")}</div><div class="l">Approved / In Progress</div></div>
+    <div class="stat"><div class="n" style="color:var(--ok)">${by("Done")}</div><div class="l">Done</div></div>
+    <div class="stat"><div class="n" style="color:var(--danger)">${CACHE.filter(r=>r.priority==="High"||r.priority==="Critical").length}</div><div class="l">High / Critical</div></div>`;
+  $("export-note").textContent=`${rows.length} of ${CACHE.length} shown — export uses current filters`;
+  $("a-table").innerHTML=rows.length?`<table>
+    <thead><tr><th>Ref</th><th>Title</th><th>Client</th><th>Area</th><th>Type</th><th>Pri.</th><th>Status</th><th>Updated</th><th></th></tr></thead>
+    <tbody>${rows.map(r=>`<tr>
+      <td><span class="ref">${esc(r.ref_no)}</span></td>
+      <td>${esc(r.title)}</td>
+      <td>${esc(r.client_name||"—")}</td>
+      <td>${esc(r.area||"—")}</td>
+      <td>${esc(r.type)}</td>
+      <td class="pr-${r.priority}">${esc(r.priority)}</td>
+      <td><select class="inp" style="padding:5px 6px;font-size:12px" onchange="quickStatus('${r.id}',this.value)">
+          ${STATUSES.map(s=>`<option ${s===r.status?"selected":""}>${s}</option>`).join("")}</select></td>
+      <td>${fmtDay(r.updated_at)}</td>
+      <td><button class="link-btn" onclick="openDetail('${r.id}')">Open</button></td>
+    </tr>`).join("")}</tbody></table>`:`<div class="empty">No change requests match the current filters.</div>`;
+}
+async function quickStatus(id,newStatus){
+  const r=CACHE.find(x=>x.id===id); if(!r||r.status===newStatus)return;
+  const old=r.status;
+  const {error}=await sb.from("cr_requests").update({status:newStatus}).eq("id",id);
+  if(error){toast(error.message,true);return;}
+  await sb.from("cr_status_history").insert({request_id:id,old_status:old,new_status:newStatus,
+    changed_by:SESSION.user.id,changed_by_name:ME.full_name,note:"Status changed via dashboard"});
+  r.status=newStatus; r.updated_at=new Date().toISOString();
+  toast(`${r.ref_no} → ${newStatus}`); renderAdminTable();
+}
+
+async function openDetail(id){
+  const r=CACHE.find(x=>x.id===id); if(!r)return;
+  const [{data:comments},{data:hist},{data:atts}]=await Promise.all([
+    sb.from("cr_comments").select("*").eq("request_id",id).order("created_at"),
+    sb.from("cr_status_history").select("*").eq("request_id",id).order("created_at"),
+    sb.from("cr_attachments").select("*").eq("request_id",id).order("created_at")
+  ]);
+  const isAdmin=ME.role==="admin";
+  $("modal-root").innerHTML=`
+  <div class="overlay" onclick="if(event.target===this)closeModal()">
+    <div class="modal">
+      <div class="mh">
+        <div><div class="ref" style="font-size:15px">${esc(r.ref_no)}</div>
+          <h2 style="margin:4px 0 0">${esc(r.title)}</h2></div>
+        <button class="x" onclick="closeModal()">×</button>
+      </div>
+      <div class="mb">
+        <div class="kv">
+          <div class="k">Client</div><div>${esc(r.client_name||"—")}</div>
+          <div class="k">Area</div><div>${esc(r.area||"—")}</div>
+          <div class="k">Type</div><div>${esc(r.type)}</div>
+          <div class="k">Priority</div><div class="pr-${r.priority}">${esc(r.priority)}</div>
+          <div class="k">Count</div><div>${esc(r.item_count||1)}</div>
+          <div class="k">Status</div><div><span class="badge ${badgeClass(r.status)}">${esc(r.status)}</span></div>
+          <div class="k">Submitted</div><div>${fmtDate(r.created_at)}</div>
+        </div>
+        <div><div class="k" style="color:var(--muted);font-size:13px;margin-bottom:4px">Description</div>
+          <div style="white-space:pre-wrap;font-size:14px;line-height:1.5">${esc(r.description||"")}</div></div>
+        ${isAdmin?`<div class="section-title">Update status</div>
+        <div class="row">
+          <select id="d-status" class="inp" style="max-width:200px">${STATUSES.map(s=>`<option ${s===r.status?"selected":""}>${s}</option>`).join("")}</select>
+          <input id="d-status-note" class="inp" placeholder="Optional note…" style="flex:1"/>
+          <button class="btn btn-sm" onclick="saveStatus('${r.id}')">Save</button>
+        </div>`:""}
+        <div class="section-title">Attachments (${(atts||[]).length})</div>
+        <div id="att-list">${(atts||[]).map(a=>`<div class="att"><span>📎</span><span class="name">${esc(a.file_name)}</span>
+          <button class="btn btn-sm btn-ghost" onclick="downloadAtt('${esc(a.file_path)}','${esc(a.file_name)}')">Download</button></div>`).join("")||'<div class="hint">No attachments.</div>'}</div>
+        <div class="row" style="margin-top:8px">
+          <input id="d-file" class="inp" type="file" style="flex:1"/>
+          <button class="btn btn-sm btn-ghost" onclick="addAtt('${r.id}')">Upload</button>
+        </div>
+        <div class="section-title">Status history</div>
+        <div>${(hist||[]).map(h=>`<div class="hist">${h.old_status?esc(h.old_status)+" → ":""}<strong>${esc(h.new_status)}</strong> · ${esc(h.changed_by_name||"")} · ${fmtDate(h.created_at)}${h.note?`<br><em>${esc(h.note)}</em>`:""}</div>`).join("")||'<div class="hint">No history.</div>'}</div>
+        <div class="section-title">Comments (${(comments||[]).length})</div>
+        <div id="cmt-list">${(comments||[]).map(c=>`<div class="comment"><div class="meta"><strong>${esc(c.author_name||"")}</strong> <span class="pill" style="font-size:10px">${esc((c.author_role||"").toUpperCase())}</span> · ${fmtDate(c.created_at)}</div>${esc(c.body)}</div>`).join("")||'<div class="hint">No comments yet.</div>'}</div>
+        <div class="row" style="margin-top:10px">
+          <input id="d-comment" class="inp" placeholder="Add a comment…" style="flex:1" onkeydown="if(event.key==='Enter')addComment('${r.id}')"/>
+          <button class="btn btn-sm" onclick="addComment('${r.id}')">Post</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+function closeModal(){ $("modal-root").innerHTML=""; }
+async function saveStatus(id){
+  const r=CACHE.find(x=>x.id===id);
+  const ns=$("d-status").value, note=$("d-status-note").value.trim();
+  if(ns!==r.status){
+    const old=r.status;
+    const {error}=await sb.from("cr_requests").update({status:ns}).eq("id",id);
+    if(error){toast(error.message,true);return;}
+    await sb.from("cr_status_history").insert({request_id:id,old_status:old,new_status:ns,
+      changed_by:SESSION.user.id,changed_by_name:ME.full_name,note:note||"Status updated"});
+    r.status=ns; r.updated_at=new Date().toISOString();
+  }else if(note){
+    await sb.from("cr_status_history").insert({request_id:id,old_status:r.status,new_status:r.status,
+      changed_by:SESSION.user.id,changed_by_name:ME.full_name,note});
+  }
+  toast("Saved."); openDetail(id);
+  ME.role==="admin"?renderAdminTable():renderClientTable();
+}
+async function addComment(id){
+  const body=$("d-comment").value.trim(); if(!body)return;
+  const {error}=await sb.from("cr_comments").insert({request_id:id,author_id:SESSION.user.id,
+    author_name:ME.full_name||ME.email,author_role:ME.role,body});
+  if(error){toast(error.message,true);return;}
+  openDetail(id);
+}
+async function addAtt(id){
+  const f=$("d-file").files[0]; if(!f){toast("Choose a file first.",true);return;}
+  await uploadAttachment(id,f); toast("Uploaded."); openDetail(id);
+}
+async function downloadAtt(path,name){
+  const {data,error}=await sb.storage.from("cr-attachments").createSignedUrl(path,120);
+  if(error){toast(error.message,true);return;}
+  const a=document.createElement("a"); a.href=data.signedUrl; a.download=name; a.target="_blank"; a.click();
+}
+
+function exportRows(){ return ME.role==="admin"?filteredAdmin():CACHE; }
+function exportData(){
+  return exportRows().map(r=>({
+    Ref:r.ref_no, Title:r.title, Client:r.client_name||"", Area:r.area||"", Type:r.type,
+    Priority:r.priority, Count:r.item_count||1, Status:r.status,
+    Description:r.description||"", Submitted:fmtDay(r.created_at), Updated:fmtDay(r.updated_at)
+  }));
+}
+function exportExcel(){
+  const ws=XLSX.utils.json_to_sheet(exportData());
+  ws["!cols"]=[{wch:9},{wch:34},{wch:18},{wch:18},{wch:13},{wch:9},{wch:6},{wch:12},{wch:50},{wch:13},{wch:13}];
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,"Change Requests");
+  XLSX.writeFile(wb,`Change_Requests_${new Date().toISOString().slice(0,10)}.xlsx`);
+  toast("Excel exported.");
+}
+function exportCSV(){
+  const rows=exportData(); const head=Object.keys(rows[0]||{Ref:"",Title:"",Client:"",Area:"",Type:"",Priority:"",Count:"",Status:"",Description:"",Submitted:"",Updated:""});
+  const csv=[head.join(","),...rows.map(r=>head.map(h=>`"${String(r[h]).replace(/"/g,'""')}"`).join(","))].join("\n");
+  dl(new Blob([csv],{type:"text/csv"}),`Change_Requests_${new Date().toISOString().slice(0,10)}.csv`);
+  toast("CSV exported.");
+}
+function exportPDF(){
+  const {jsPDF}=window.jspdf; const doc=new jsPDF({orientation:"landscape"});
+  doc.setFontSize(16); doc.text("Software Change Requests — StudioAI Pro",14,16);
+  doc.setFontSize(10); doc.setTextColor(120);
+  doc.text(`Citrine Global India · Generated ${fmtDay(new Date())} · ${exportRows().length} items`,14,23);
+  doc.autoTable({
+    startY:28, styles:{fontSize:8,cellPadding:2}, headStyles:{fillColor:[108,92,231]},
+    head:[["Ref","Title","Client","Area","Type","Pri.","Cnt","Status","Submitted"]],
+    body:exportRows().map(r=>[r.ref_no,r.title,r.client_name||"",r.area||"",r.type,r.priority,r.item_count||1,r.status,fmtDay(r.created_at)]),
+    columnStyles:{1:{cellWidth:50},8:{cellWidth:24}}
+  });
+  doc.save(`Change_Requests_${new Date().toISOString().slice(0,10)}.pdf`);
+  toast("PDF exported.");
+}
+function exportWord(){
+  const rows=exportRows();
+  const cells=rows.map(r=>`<tr>
+    <td>${esc(r.ref_no)}</td><td>${esc(r.title)}</td><td>${esc(r.client_name||"")}</td>
+    <td>${esc(r.area||"")}</td><td>${esc(r.type)}</td><td>${esc(r.priority)}</td>
+    <td>${esc(r.item_count||1)}</td><td>${esc(r.status)}</td><td>${fmtDay(r.created_at)}</td>
+    <td>${esc(r.description||"")}</td></tr>`).join("");
+  const html=`<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word'><head><meta charset='utf-8'>
+  <style>body{font-family:Calibri,Arial} h1{color:#4b2bd6} table{border-collapse:collapse;width:100%;font-size:10pt}
+  th,td{border:1px solid #999;padding:5px;vertical-align:top} th{background:#6c5ce7;color:#fff;text-align:left}</style></head>
+  <body><h1>Software Change Requests — StudioAI Pro</h1>
+  <p><b>Citrine Global India</b> · Generated ${fmtDay(new Date())} · ${rows.length} change requests</p>
+  <table><thead><tr><th>Ref</th><th>Title</th><th>Client</th><th>Area</th><th>Type</th><th>Priority</th><th>Count</th><th>Status</th><th>Submitted</th><th>Description</th></tr></thead>
+  <tbody>${cells}</tbody></table></body></html>`;
+  dl(new Blob(["﻿"+html],{type:"application/msword"}),`Change_Requests_${new Date().toISOString().slice(0,10)}.doc`);
+  toast("Word document exported.");
+}
+function dl(blob,name){
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=name; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1500);
+}
+
+if(sb) sb.auth.onAuthStateChange((_e,s)=>{SESSION=s;});
+boot();
+</script>
+</body>
+</html>
