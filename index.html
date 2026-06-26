@@ -1348,62 +1348,62 @@ function buildReports(){
   const compRate=data.length?Math.round(done.length/data.length*100):0;
   const open=data.filter(r=>r.status!=="Done"&&r.status!=="Rejected").length;
   const last7=data.filter(r=>new Date(r.created_at).getTime()>=Date.now()-7*86400000).length;
-  $("rep-stats").innerHTML=
+  if($("rep-stats")) $("rep-stats").innerHTML=
     repStat("📋","#8e7cff",data.length,"Total CRs")+
     repStat("🆕","#00b8d4",last7,"New (7 days)")+
     repStat("🕒","#ffb020",open,"Open")+
     repStat("✅","#22c55e",done.length,"Completed")+
     repStat("📈","#00d2a8",compRate+"%","Completion rate")+
     repStat("⏱️","#6c5ce7",avgDays?avgDays.toFixed(1):"—","Avg days to close");
+  const by=(arr,key)=>{const m={};arr.forEach(r=>{const k=r[key]||"—";m[k]=(m[k]||0)+1});return m;};
+  const cl=by(data,"client_name");
+  const top=Object.entries(cl).sort((a,b)=>b[1]-a[1]).slice(0,8); const topNames=top.map(e=>e[0]);
+  // ----- Client performance table (renders independently of charts) -----
+  try{
+    const names=Object.keys(cl).sort((a,b)=>cl[b]-cl[a]); const maxTot=Math.max(1,...names.map(n=>cl[n]));
+    const rows=names.map(n=>{
+      const rr=data.filter(r=>r.client_name===n); const tot=rr.length;
+      const dn=rr.filter(r=>r.status==="Done"); const op=rr.filter(r=>r.status!=="Done"&&r.status!=="Rejected").length;
+      const ip=rr.filter(r=>r.status==="In Progress").length;
+      const cr=tot?Math.round(dn.length/tot*100):0;
+      const ad=dn.length?(dn.reduce((s,r)=>s+(new Date(r.updated_at)-new Date(r.created_at)),0)/dn.length/86400000):null;
+      const la=rr.reduce((m,r)=>Math.max(m,new Date(r.updated_at).getTime()),0);
+      return `<tr><td><b>${esc(n)}</b><div class="an-bar"><span style="width:${Math.round(tot/maxTot*100)}%"></span></div></td>
+        <td class="num">${tot}</td><td class="num">${op}</td><td class="num">${ip}</td><td class="num">${dn.length}</td>
+        <td class="num" style="color:${cr>=70?'#22c55e':cr>=40?'#ffb020':'#ff6b6b'};font-weight:700">${cr}%</td>
+        <td class="num">${ad==null?'—':ad.toFixed(1)}</td><td>${la?fmtDay(new Date(la)):'—'}</td></tr>`;
+    }).join("");
+    if($("an-table")) $("an-table").innerHTML=`<table class="an-table"><thead><tr><th>Client</th><th class="num">Total</th><th class="num">Open</th><th class="num">In&nbsp;Prog</th><th class="num">Done</th><th class="num">Compl.</th><th class="num">Avg&nbsp;days</th><th>Last activity</th></tr></thead><tbody>${rows||'<tr><td colspan="8" style="color:var(--muted)">No data in range.</td></tr>'}</tbody></table>`;
+  }catch(e){ console.warn("report table failed",e); }
+  // ----- Charts (each isolated so one failure can't blank the rest) -----
   if(typeof Chart==="undefined"){ return; }
   Object.values(CHARTS).forEach(c=>{try{c.destroy()}catch(_){}}); CHARTS={};
   Chart.defaults.color="#9aa0bd"; Chart.defaults.borderColor="rgba(255,255,255,.06)";
   Chart.defaults.font.size=12; Chart.defaults.maintainAspectRatio=false; Chart.defaults.responsive=true;
   const noLeg={plugins:{legend:{display:false}}};
-  const by=(arr,key)=>{const m={};arr.forEach(r=>{const k=r[key]||"—";m[k]=(m[k]||0)+1});return m;};
-  // Daily raised
-  const days=REP_RANGE||30; const today=new Date(); today.setHours(0,0,0,0);
-  const dlabels=[],dcounts=[]; const dmap={}; data.forEach(r=>{const k=dkey(new Date(r.created_at));dmap[k]=(dmap[k]||0)+1;});
-  for(let n=days-1;n>=0;n--){ const d=new Date(today.getTime()-n*86400000); const k=dkey(d); dlabels.push(d.toLocaleDateString(undefined,{month:"short",day:"numeric"})); dcounts.push(dmap[k]||0); }
-  CHARTS.daily=new Chart($("ch-daily"),{type:"bar",data:{labels:dlabels,datasets:[{label:"Raised",data:dcounts,backgroundColor:"#8e7cff",borderRadius:5,maxBarThickness:22}]},options:Object.assign({},noLeg,{scales:{y:{beginAtZero:true,ticks:{precision:0}},x:{grid:{display:false},ticks:{maxRotation:0,autoSkip:true,maxTicksLimit:12}}}})});
-  // Status
-  const st=by(data,"status");
-  CHARTS.status=new Chart($("ch-status"),{type:"doughnut",data:{labels:Object.keys(st),datasets:[{data:Object.values(st),backgroundColor:Object.keys(st).map(k=>REP_SC[k]||"#9aa0bd"),borderWidth:0}]},options:{cutout:"60%",plugins:{legend:{position:"bottom",labels:{boxWidth:10,boxHeight:10,padding:10}}}}});
-  // Priority
-  const pr=by(data,"priority");
-  CHARTS.priority=new Chart($("ch-priority"),{type:"bar",data:{labels:Object.keys(pr),datasets:[{data:Object.values(pr),backgroundColor:"#8e7cff",borderRadius:6,maxBarThickness:40}]},options:Object.assign({},noLeg,{scales:{y:{beginAtZero:true,ticks:{precision:0}},x:{grid:{display:false}}}})});
-  // Day of week
-  const dow=[0,0,0,0,0,0,0]; data.forEach(r=>{dow[new Date(r.created_at).getDay()]++;}); const dowL=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
-  CHARTS.dow=new Chart($("ch-dow"),{type:"bar",data:{labels:dowL,datasets:[{data:dow,backgroundColor:"#00d2a8",borderRadius:6,maxBarThickness:34}]},options:Object.assign({},noLeg,{scales:{y:{beginAtZero:true,ticks:{precision:0}},x:{grid:{display:false}}}})});
-  // Top clients
-  const cl=by(data,"client_name"); const top=Object.entries(cl).sort((a,b)=>b[1]-a[1]).slice(0,8); const topNames=top.map(e=>e[0]);
-  CHARTS.clients=new Chart($("ch-clients"),{type:"bar",data:{labels:topNames,datasets:[{data:top.map(e=>e[1]),backgroundColor:"#00d2a8",borderRadius:6,maxBarThickness:20}]},options:Object.assign({},noLeg,{indexAxis:"y",scales:{x:{beginAtZero:true,ticks:{precision:0}},y:{grid:{display:false}}}})});
-  // Status mix per client (stacked)
-  const sstatuses=["New","In Review","Approved","In Progress","Done","Rejected"];
-  const dsets=sstatuses.map(stt=>({label:stt,data:topNames.map(n=>data.filter(r=>r.client_name===n&&r.status===stt).length),backgroundColor:REP_SC[stt]}));
-  CHARTS.cstatus=new Chart($("ch-clientstatus"),{type:"bar",data:{labels:topNames,datasets:dsets},options:{indexAxis:"y",plugins:{legend:{position:"bottom",labels:{boxWidth:10,boxHeight:10,padding:10}}},scales:{x:{stacked:true,beginAtZero:true,ticks:{precision:0}},y:{stacked:true,grid:{display:false}}}}});
-  // Avg resolution by client
-  const resol=topNames.map(n=>{const dd=data.filter(r=>r.client_name===n&&r.status==="Done");return dd.length?(dd.reduce((s,r)=>s+(new Date(r.updated_at)-new Date(r.created_at)),0)/dd.length/86400000):0;});
-  CHARTS.resolution=new Chart($("ch-resolution"),{type:"bar",data:{labels:topNames,datasets:[{data:resol.map(x=>+x.toFixed(1)),backgroundColor:"#ffb020",borderRadius:6,maxBarThickness:20}]},options:Object.assign({},noLeg,{indexAxis:"y",scales:{x:{beginAtZero:true,title:{display:true,text:"days"}},y:{grid:{display:false}}}})});
-  // Cumulative over time (by month)
-  const mo={}; data.forEach(r=>{const d=new Date(r.created_at);const k=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");mo[k]=(mo[k]||0)+1;});
-  const mk=Object.keys(mo).sort(); let run=0; const cum=mk.map(k=>run+=mo[k]);
-  CHARTS.cum=new Chart($("ch-cum"),{type:"line",data:{labels:mk.map(k=>{const a=k.split("-");return new Date(a[0],a[1]-1).toLocaleDateString(undefined,{month:"short",year:"2-digit"})}),datasets:[{label:"Total",data:cum,borderColor:"#6c5ce7",backgroundColor:"rgba(108,92,231,.18)",fill:true,tension:.35,pointRadius:3}]},options:Object.assign({},noLeg,{scales:{y:{beginAtZero:true,ticks:{precision:0}},x:{grid:{display:false}}}})});
-  // Client performance table
-  const names=Object.keys(cl).sort((a,b)=>cl[b]-cl[a]); const maxTot=Math.max(1,...names.map(n=>cl[n]));
-  const rows=names.map(n=>{
-    const rr=data.filter(r=>r.client_name===n); const tot=rr.length;
-    const dn=rr.filter(r=>r.status==="Done"); const op=rr.filter(r=>r.status!=="Done"&&r.status!=="Rejected").length;
-    const ip=rr.filter(r=>r.status==="In Progress").length;
-    const cr=tot?Math.round(dn.length/tot*100):0;
-    const ad=dn.length?(dn.reduce((s,r)=>s+(new Date(r.updated_at)-new Date(r.created_at)),0)/dn.length/86400000):null;
-    const la=rr.reduce((m,r)=>Math.max(m,new Date(r.updated_at).getTime()),0);
-    return `<tr><td><b>${esc(n)}</b><div class="an-bar"><span style="width:${Math.round(tot/maxTot*100)}%"></span></div></td>
-      <td class="num">${tot}</td><td class="num">${op}</td><td class="num">${ip}</td><td class="num">${dn.length}</td>
-      <td class="num" style="color:${cr>=70?'#22c55e':cr>=40?'#ffb020':'#ff6b6b'};font-weight:700">${cr}%</td>
-      <td class="num">${ad==null?'—':ad.toFixed(1)}</td><td>${la?fmtDay(new Date(la)):'—'}</td></tr>`;
-  }).join("");
-  $("an-table").innerHTML=`<table class="an-table"><thead><tr><th>Client</th><th class="num">Total</th><th class="num">Open</th><th class="num">In&nbsp;Prog</th><th class="num">Done</th><th class="num">Compl.</th><th class="num">Avg&nbsp;days</th><th>Last activity</th></tr></thead><tbody>${rows||'<tr><td colspan="8" style="color:var(--muted)">No data in range.</td></tr>'}</tbody></table>`;
+  const mk=(id,cfg)=>{ const el=$("ch-"+id); if(!el)return; try{ CHARTS[id]=new Chart(el,cfg); }catch(e){ console.warn("chart "+id+" failed",e); } };
+  requestAnimationFrame(()=>{
+    // Daily raised
+    const days=REP_RANGE||30; const today=new Date(); today.setHours(0,0,0,0);
+    const dlabels=[],dcounts=[]; const dmap={}; data.forEach(r=>{const k=dkey(new Date(r.created_at));dmap[k]=(dmap[k]||0)+1;});
+    for(let n=days-1;n>=0;n--){ const d=new Date(today.getTime()-n*86400000); const k=dkey(d); dlabels.push(d.toLocaleDateString(undefined,{month:"short",day:"numeric"})); dcounts.push(dmap[k]||0); }
+    mk("daily",{type:"bar",data:{labels:dlabels,datasets:[{label:"Raised",data:dcounts,backgroundColor:"#8e7cff",borderRadius:5,maxBarThickness:22}]},options:Object.assign({},noLeg,{scales:{y:{beginAtZero:true,ticks:{precision:0}},x:{grid:{display:false},ticks:{maxRotation:0,autoSkip:true,maxTicksLimit:12}}}})});
+    const st=by(data,"status");
+    mk("status",{type:"doughnut",data:{labels:Object.keys(st),datasets:[{data:Object.values(st),backgroundColor:Object.keys(st).map(k=>REP_SC[k]||"#9aa0bd"),borderWidth:0}]},options:{cutout:"60%",plugins:{legend:{position:"bottom",labels:{boxWidth:10,boxHeight:10,padding:10}}}}});
+    const pr=by(data,"priority");
+    mk("priority",{type:"bar",data:{labels:Object.keys(pr),datasets:[{data:Object.values(pr),backgroundColor:"#8e7cff",borderRadius:6,maxBarThickness:40}]},options:Object.assign({},noLeg,{scales:{y:{beginAtZero:true,ticks:{precision:0}},x:{grid:{display:false}}}})});
+    const dow=[0,0,0,0,0,0,0]; data.forEach(r=>{dow[new Date(r.created_at).getDay()]++;}); const dowL=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+    mk("dow",{type:"bar",data:{labels:dowL,datasets:[{data:dow,backgroundColor:"#00d2a8",borderRadius:6,maxBarThickness:34}]},options:Object.assign({},noLeg,{scales:{y:{beginAtZero:true,ticks:{precision:0}},x:{grid:{display:false}}}})});
+    mk("clients",{type:"bar",data:{labels:topNames,datasets:[{data:top.map(e=>e[1]),backgroundColor:"#00d2a8",borderRadius:6,maxBarThickness:20}]},options:Object.assign({},noLeg,{indexAxis:"y",scales:{x:{beginAtZero:true,ticks:{precision:0}},y:{grid:{display:false}}}})});
+    const sstatuses=["New","In Review","Approved","In Progress","Done","Rejected"];
+    const dsets=sstatuses.map(stt=>({label:stt,data:topNames.map(n=>data.filter(r=>r.client_name===n&&r.status===stt).length),backgroundColor:REP_SC[stt]}));
+    mk("clientstatus",{type:"bar",data:{labels:topNames,datasets:dsets},options:{indexAxis:"y",plugins:{legend:{position:"bottom",labels:{boxWidth:10,boxHeight:10,padding:10}}},scales:{x:{stacked:true,beginAtZero:true,ticks:{precision:0}},y:{stacked:true,grid:{display:false}}}}});
+    const resol=topNames.map(n=>{const dd=data.filter(r=>r.client_name===n&&r.status==="Done");return dd.length?(dd.reduce((s,r)=>s+(new Date(r.updated_at)-new Date(r.created_at)),0)/dd.length/86400000):0;});
+    mk("resolution",{type:"bar",data:{labels:topNames,datasets:[{data:resol.map(x=>+x.toFixed(1)),backgroundColor:"#ffb020",borderRadius:6,maxBarThickness:20}]},options:Object.assign({},noLeg,{indexAxis:"y",scales:{x:{beginAtZero:true,title:{display:true,text:"days"}},y:{grid:{display:false}}}})});
+    const mo={}; data.forEach(r=>{const d=new Date(r.created_at);const k=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");mo[k]=(mo[k]||0)+1;});
+    const mkeys=Object.keys(mo).sort(); let run=0; const cum=mkeys.map(k=>run+=mo[k]);
+    mk("cum",{type:"line",data:{labels:mkeys.map(k=>{const a=k.split("-");return new Date(a[0],a[1]-1).toLocaleDateString(undefined,{month:"short",year:"2-digit"})}),datasets:[{label:"Total",data:cum,borderColor:"#6c5ce7",backgroundColor:"rgba(108,92,231,.18)",fill:true,tension:.35,pointRadius:3}]},options:Object.assign({},noLeg,{scales:{y:{beginAtZero:true,ticks:{precision:0}},x:{grid:{display:false}}}})});
+  });
 }
 
 async function exportCRPdf(id){
