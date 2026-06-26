@@ -1111,11 +1111,15 @@ async function assignCR(id,adminId){
   toast(name?("Assigned to "+name):"Unassigned"); if($("a-table")) renderAdminTable();
 }
 let COMMIT_COUNTS={};
+let COMPLETED_AT={};
+async function loadCompletedTimes(){
+  try{ const {data}=await sb.from("cr_status_history").select("request_id,created_at,new_status").eq("new_status","Done").order("created_at"); const m={}; (data||[]).forEach(h=>{ m[h.request_id]=h.created_at; }); COMPLETED_AT=m; }catch(_){ COMPLETED_AT={}; }
+}
 async function loadCommitCounts(){
   try{ const {data}=await sb.from("cr_commits").select("request_id"); const m={}; (data||[]).forEach(x=>{m[x.request_id]=(m[x.request_id]||0)+1;}); COMMIT_COUNTS=m; }catch(_){ COMMIT_COUNTS={}; }
 }
 async function loadAndRenderAdmin(){
-  await loadRequests(); await loadClients(); await loadAdmins(); await loadCommitCounts();
+  await loadRequests(); await loadClients(); await loadAdmins(); await loadCommitCounts(); await loadCompletedTimes();
   await loadSearchContent();
   const asel=$("a-assignee");
   if(asel){const acur=asel.value; asel.innerHTML=`<option value="">Any assignee</option><option value="__unassigned__">Unassigned</option>`+ADMINS.map(a=>`<option value="${a.id}" ${a.id===acur?"selected":""}>${esc(a.full_name||a.username||a.email)}</option>`).join("");}
@@ -1192,7 +1196,7 @@ function renderAdminTable(){
     statCard("👥","#6c5ce7",CLIENTS.length,"Clients");
   $("export-note").textContent=`${rows.length} of ${CACHE.length} shown — export uses current filters`;
   $("a-table").innerHTML=rows.length?`<table>
-    <thead><tr><th>Ref</th><th>Heading</th><th>Client</th><th>Owner</th><th>Pri.</th><th>Status</th><th>Updated</th><th></th></tr></thead>
+    <thead><tr><th>Ref</th><th>Heading</th><th>Client</th><th>Owner</th><th>Pri.</th><th>Status</th><th>Updated</th><th>Completed</th><th></th></tr></thead>
     <tbody>${rows.map(r=>`<tr>
       <td><span class="ref">${esc(r.ref_no)}</span></td>
       <td>${esc(r.title)}${(r.tags&&r.tags.length)?` <span style="color:var(--muted);font-size:11px">#${esc(r.tags[0])}${r.tags.length>1?"+"+(r.tags.length-1):""}</span>`:""}${COMMIT_COUNTS[r.id]?` <span class="cm-badge" title="${COMMIT_COUNTS[r.id]} commit(s) linked">🔗 ${COMMIT_COUNTS[r.id]}</span>`:""}</td>
@@ -1202,6 +1206,7 @@ function renderAdminTable(){
       <td><select class="inp" style="padding:5px 6px;font-size:12px" onchange="quickStatus('${r.id}',this.value)">
           ${STATUSES.map(s=>`<option ${s===r.status?"selected":""}>${s}</option>`).join("")}</select></td>
       <td style="white-space:nowrap"><div>${fmtDay(r.updated_at)}</div><div style="color:var(--muted);font-size:11px">${fmtTime(r.updated_at)}</div></td>
+      <td style="white-space:nowrap">${(r.status==="Done"&&COMPLETED_AT[r.id])?`<div style="color:#22c55e;font-weight:600">${fmtDay(COMPLETED_AT[r.id])}</div><div style="color:var(--muted);font-size:11px">${fmtTime(COMPLETED_AT[r.id])}</div>`:`<span style="color:var(--muted)">—</span>`}</td>
       <td style="white-space:nowrap">${r.status!=="Done"?`<button class="btn btn-sm btn-ok" onclick="quickStatus('${r.id}','Done')">✓ Complete</button> `:""}<button class="link-btn" onclick="openDetail('${r.id}')">Open</button> <button class="link-btn" style="color:#ff7b7b" title="Delete change request" onclick="deleteCR('${r.id}')">🗑</button></td>
     </tr>`).join("")}</tbody></table>`:`<div class="empty">No change requests match the current filters.</div>`;
 }
