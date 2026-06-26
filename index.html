@@ -357,6 +357,10 @@
   .rich-view a{color:var(--brand2)}
   .rich-view h3{font-size:15px;margin:8px 0 4px}
   .rich-view blockquote{border-left:3px solid var(--brand);margin:8px 0;padding:2px 0 2px 12px;color:var(--muted)}
+
+  .gp-loading{display:flex;align-items:center;gap:11px;color:var(--muted);padding:24px 0;font-size:14px}
+  .gp-spin{width:18px;height:18px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--brand);animation:gpspin .8s linear infinite}
+  @keyframes gpspin{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
@@ -1561,6 +1565,7 @@ function openClientEdit(id){
   const c=CLIENTS.find(x=>x.id===id); if(!c)return;
   EDIT_LOGO_FILE=null;
   const lg=logoUrl(c.logo_path);
+  const pp=(c.project_profile||{});
   $("modal-root").innerHTML=`
   <div class="overlay" onclick="if(event.target===this)closeModal()">
     <div class="modal">
@@ -1590,6 +1595,17 @@ function openClientEdit(id){
           <div class="big">📤 Drag &amp; drop a new logo, or <span style="color:var(--brand2)">browse</span></div>
           <input id="e-logo" type="file" accept="image/*"/>
         </div>
+        <div class="section-title">Project profile <span class="hint">(grounds the AI implementation prompts)</span></div>
+        <div class="grid2">
+          <div><label>Tech stack</label><input id="e-pp-stack" class="inp" value="${esc(pp.stack||"")}" placeholder="e.g. React, Node, Postgres"/></div>
+          <div><label>Framework</label><input id="e-pp-framework" class="inp" value="${esc(pp.framework||"")}" placeholder="e.g. Next.js 14, Laravel"/></div>
+          <div><label>Repository URL</label><input id="e-pp-repo" class="inp" value="${esc(pp.repo||"")}" placeholder="github.com/org/repo"/></div>
+          <div><label>Live site URL</label><input id="e-pp-site" class="inp" value="${esc(pp.site||"")}" placeholder="https://…"/></div>
+        </div>
+        <label style="margin-top:12px">Coding conventions <span class="hint">(optional)</span></label>
+        <textarea id="e-pp-conv" class="inp" rows="2" placeholder="Style guide, naming, patterns the implementer should follow…">${esc(pp.conventions||"")}</textarea>
+        <label style="margin-top:12px">Project notes <span class="hint">(optional)</span></label>
+        <textarea id="e-pp-notes" class="inp" rows="2" placeholder="Anything an implementer should know about this project…">${esc(pp.notes||"")}</textarea>
         <div class="section-title">Reset password</div>
         <div class="row">
           <input id="e-pass" class="inp" type="text" placeholder="New password (min 6 characters)" style="flex:1"/>
@@ -1623,7 +1639,8 @@ async function saveClientEdit(id){
     const body={ client_id:id,
       company:$("e-company").value.trim(), full_name:$("e-name").value.trim(), email:$("e-email").value.trim(),
       notify_email:$("e-email").value.trim(), phone:$("e-phone").value.trim(), gst_no:$("e-gst").value.trim(),
-      website:$("e-web").value.trim(), address:$("e-address").value.trim(), cr_prefix:$("e-prefix").value.trim() };
+      website:$("e-web").value.trim(), address:$("e-address").value.trim(), cr_prefix:$("e-prefix").value.trim(),
+      project_profile:{ stack:($("e-pp-stack")?$("e-pp-stack").value.trim():""), framework:($("e-pp-framework")?$("e-pp-framework").value.trim():""), repo:($("e-pp-repo")?$("e-pp-repo").value.trim():""), site:($("e-pp-site")?$("e-pp-site").value.trim():""), conventions:($("e-pp-conv")?$("e-pp-conv").value.trim():""), notes:($("e-pp-notes")?$("e-pp-notes").value.trim():"") } };
     delete body.email;
     if(EDIT_LOGO_FILE){ body.logo_base64=await readAsBase64(EDIT_LOGO_FILE); body.logo_name=EDIT_LOGO_FILE.name; body.logo_type=EDIT_LOGO_FILE.type||"image/png"; }
     await callFn("admin-update-client",body);
@@ -1655,6 +1672,36 @@ async function createClient(){
 
 // ===================== PROJECT VAULT (admin only) =====================
 let VAULT_CLIENT=null;
+let LAST_PROMPT="";
+async function genCRPrompt(id){
+  $("modal-root").innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()">
+    <div class="modal" style="max-width:780px">
+      <div class="mh"><div><h2 style="margin:0">✨ Implementation prompt</h2><div class="hint" id="gp-sub">Generating with AI…</div></div><button class="x" onclick="closeModal()">×</button></div>
+      <div class="mb"><div id="gp-body"><div class="gp-loading"><span class="gp-spin"></span> Generating a tailored prompt for this change request…</div></div></div>
+    </div></div>`;
+  try{
+    const data=await callFn("generate-cr-prompt",{request_id:id});
+    LAST_PROMPT=data.prompt||"";
+    const sub=$("gp-sub"); if(sub) sub.textContent=`Generated with ${esc(data.provider||"AI")}${data.model?" · "+esc(data.model):""} — review before use`;
+    const body=$("gp-body"); if(body) body.innerHTML=`
+      <textarea id="gp-text" class="inp" rows="17" style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;line-height:1.55" readonly>${esc(LAST_PROMPT)}</textarea>
+      <div class="row" style="margin-top:12px">
+        <button class="btn btn-sm btn-ok" onclick="copyPrompt()">📋 Copy prompt</button>
+        <button class="btn btn-sm btn-ghost" onclick="genCRPrompt('${id}')">↻ Regenerate</button>
+      </div>`;
+  }catch(e){
+    const sub=$("gp-sub"); if(sub) sub.textContent="Failed";
+    const body=$("gp-body"); if(body) body.innerHTML=`<div style="color:#ffb4b4;font-size:14px">${esc(e.message||"Could not generate prompt.")}</div>
+      <div class="hint" style="margin-top:10px">If it says no AI key is configured, add <b>ANTHROPIC_API_KEY</b> (or <b>OPENAI_API_KEY</b>) in Supabase → Edge Functions → Manage secrets, then try again.</div>
+      <button class="btn btn-sm btn-ghost" style="margin-top:12px" onclick="genCRPrompt('${id}')">↻ Try again</button>`;
+  }
+}
+function copyPrompt(){
+  const t=$("gp-text");
+  const done=()=>toast("Prompt copied to clipboard.");
+  if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(LAST_PROMPT).then(done).catch(()=>{ if(t){t.removeAttribute('readonly');t.select();try{document.execCommand('copy');done();}catch(_){toast("Select the text and copy manually.",true);}t.setAttribute('readonly','');} }); }
+  else if(t){ t.removeAttribute('readonly'); t.select(); try{document.execCommand('copy');done();}catch(_){toast("Select the text and copy manually.",true);} t.setAttribute('readonly',''); }
+}
 let NOTES_CLIENT=null, NOTES_CACHE=[], NEW_NOTE_COLOR="indigo";
 const NOTE_COLORS=[["indigo","#6c5ce7"],["blue","#2f7bf6"],["green","#22c55e"],["amber","#ffb020"],["rose","#f43f5e"],["slate","#64748b"]];
 function noteColor(c){ const f=NOTE_COLORS.find(x=>x[0]===c); return f?f[1]:"#6c5ce7"; }
@@ -1830,6 +1877,7 @@ async function openDetail(id){
         ${imgs.length?`<div class="section-title">Photos (${imgs.length})</div><div class="photo-grid" id="photo-grid"></div>`:""}
         ${audios.length?`<div class="section-title">Voice notes (${audios.length})</div><div id="audio-list"></div>`:""}
         ${isAdmin?`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">
+          <button class="btn btn-sm" style="background:linear-gradient(135deg,#6c5ce7,#8e7cff)" onclick="genCRPrompt('${r.id}')">✨ Generate implementation prompt</button>
           <button class="btn btn-sm btn-ghost" onclick="exportCRPdf('${r.id}')">⬇ Export this CR (PDF)</button>
           <button class="btn btn-sm btn-danger" onclick="deleteCR('${r.id}')">🗑 Delete CR</button>
         </div>
