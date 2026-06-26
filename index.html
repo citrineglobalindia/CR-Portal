@@ -1672,6 +1672,36 @@ async function createClient(){
 
 // ===================== PROJECT VAULT (admin only) =====================
 let VAULT_CLIENT=null;
+function commitUrl(c,repo){
+  if(c.url) return c.url;
+  const h=String(c.hash||"").trim();
+  if(/^https?:\/\//i.test(h)) return h;
+  if(repo){ let r=String(repo).trim().replace(/\.git$/,"").replace(/\/+$/,""); if(!/^https?:\/\//i.test(r)) r="https://"+r.replace(/^\/+/,""); return r+"/commit/"+h; }
+  return "";
+}
+function renderCommits(arr,repo,isAdmin,crId){
+  if(!arr||!arr.length) return `<div class="hint">No commits linked yet.</div>`;
+  return arr.map(c=>{
+    const u=commitUrl(c,repo);
+    let short=String(c.hash||"").replace(/^https?:\/\/.*\//,"").slice(0,12)||"commit";
+    const label=`<span class="ref">${esc(short)}</span>`;
+    return `<div class="att"><span>🔗</span><span class="name">${u?`<a href="${esc(u)}" target="_blank" rel="noopener">${label}</a>`:label}${c.message?` — ${esc(c.message)}`:""}<div class="hint" style="font-size:11px;margin-top:2px">${esc(c.added_by_name||"")} · ${esc(fmtDay(c.created_at))}</div></span>${isAdmin?`<button class="btn btn-sm btn-ghost" onclick="deleteCommit('${c.id}','${crId}')">Remove</button>`:""}</div>`;
+  }).join("");
+}
+async function addCommit(id){
+  const raw=($("cm-hash").value||"").trim(); const msg=($("cm-msg").value||"").trim();
+  if(!raw){toast("Enter a commit hash or GitHub URL.",true);return;}
+  let url=null, h=raw;
+  if(/^https?:\/\//i.test(raw)){ url=raw; const m=raw.match(/([0-9a-f]{7,40})/i); if(m) h=m[1]; }
+  const {error}=await sb.from("cr_commits").insert({request_id:id,hash:h,url,message:msg||null,added_by:(SESSION&&SESSION.user)?SESSION.user.id:null,added_by_name:ME.full_name||ME.username||"Admin"});
+  if(error){toast(error.message,true);return;}
+  toast("Commit linked."); openDetail(id);
+}
+async function deleteCommit(id,crId){
+  const {error}=await sb.from("cr_commits").delete().eq("id",id);
+  if(error){toast(error.message,true);return;}
+  toast("Commit removed."); openDetail(crId);
+}
 let LAST_PROMPT="";
 async function genCRPrompt(id){
   $("modal-root").innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()">
@@ -1836,12 +1866,16 @@ async function deleteVaultEntry(id){
 // ===================== DETAIL MODAL =====================
 async function openDetail(id){
   const r=CACHE.find(x=>x.id===id); if(!r)return;
-  const [{data:comments},{data:hist},{data:atts}]=await Promise.all([
+  const [{data:comments},{data:hist},{data:atts},{data:commitRows}]=await Promise.all([
     sb.from("cr_comments").select("*").eq("request_id",id).order("created_at"),
     sb.from("cr_status_history").select("*").eq("request_id",id).order("created_at"),
-    sb.from("cr_attachments").select("*").eq("request_id",id).order("created_at")
+    sb.from("cr_attachments").select("*").eq("request_id",id).order("created_at"),
+    sb.from("cr_commits").select("*").eq("request_id",id).order("created_at")
   ]);
   const isAdmin=ME.role==="admin";
+  const _crClient=CLIENTS.find(x=>x.id===r.created_by);
+  const crRepo=(_crClient&&_crClient.project_profile&&_crClient.project_profile.repo)||"";
+  const commitsArr=commitRows||[];
   const confirms=(atts||[]).filter(a=>a.kind==="confirmation");
   const normal=(atts||[]).filter(a=>a.kind!=="confirmation");
   const imgs=normal.filter(a=>(a.mime_type||"").startsWith("image/"));
@@ -1897,6 +1931,13 @@ async function openDetail(id){
         <div class="section-title">Change-made confirmation${confirms.length?` (${confirms.length})`:""}</div>
         ${confirms.length?`<div>${confirms.map(a=>`<div class="att"><span>✅</span><span class="name">${esc(a.file_name)}</span><span class="hint">${fmtDay(a.created_at)}</span> <button class="btn btn-sm btn-ghost" onclick="downloadAtt('${esc(a.file_path)}','${esc(a.file_name)}')">Download</button></div>`).join("")}</div>`:`<div class="hint">${isAdmin?"No confirmation uploaded yet.":"The change confirmation will appear here once added."}</div>`}
         ${isAdmin?`<div class="row" style="margin-top:8px"><input id="d-confirm-file" class="inp" type="file" style="flex:1"/><button class="btn btn-sm btn-ok" id="d-confirm-btn" onclick="submitConfirmation('${r.id}')">⬆ Upload confirmation</button></div><div class="hint">Attach a file confirming the change was made — the client is notified and can download it.</div>`:""}
+        <div class="section-title">GitHub commits${commitsArr.length?` (${commitsArr.length})`:""}</div>
+        <div id="cr-commits">${renderCommits(commitsArr,crRepo,isAdmin,r.id)}</div>
+        ${isAdmin?`<div class="row" style="margin-top:8px">
+          <input id="cm-hash" class="inp" placeholder="Commit hash or full GitHub commit URL" style="flex:2;min-width:200px"/>
+          <input id="cm-msg" class="inp" placeholder="Message (optional)" style="flex:1;min-width:120px"/>
+          <button class="btn btn-sm btn-ok" onclick="addCommit('${r.id}')">＋ Link commit</button>
+        </div><div class="hint">Paste a commit hash (uses the client's repo URL from their Project profile) or a full GitHub commit link.</div>`:""}
         <div class="section-title">Status history</div>
         <div>${(hist||[]).map(h=>`<div class="hist">${h.old_status?esc(h.old_status)+" → ":""}<strong>${esc(h.new_status)}</strong> · ${esc(h.changed_by_name||"")} · ${fmtDate(h.created_at)}${h.note?`<br><em>${esc(h.note)}</em>`:""}</div>`).join("")||'<div class="hint">No history.</div>'}</div>
         <div class="section-title">Comments (${(comments||[]).length})</div>
