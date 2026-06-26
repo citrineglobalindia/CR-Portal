@@ -366,6 +366,12 @@
 
   .paste-zone{border:1.5px dashed var(--line);border-radius:10px;padding:14px;text-align:center;color:var(--muted);font-size:13px;cursor:text;background:var(--panel2);transition:border-color .2s,background .2s,color .2s;margin-top:8px}
   .paste-zone:focus{outline:none;border-color:var(--brand);background:rgba(108,92,231,.06);color:var(--txt)}
+
+  .paste-grid{display:flex;flex-wrap:wrap;gap:10px}
+  .paste-thumb{position:relative;width:96px;height:96px;border-radius:8px;overflow:hidden;border:1px solid var(--line);background:var(--panel2)}
+  .paste-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+  .paste-x{position:absolute;top:3px;right:3px;width:22px;height:22px;border-radius:50%;border:0;background:rgba(0,0,0,.6);color:#fff;font-size:16px;line-height:1;cursor:pointer;display:grid;place-items:center;padding:0}
+  .paste-x:hover{background:var(--danger)}
 </style>
 </head>
 <body>
@@ -1003,26 +1009,33 @@ async function uploadConfirmation(reqId,file){
   if(e2){toast(e2.message,true);return false;}
   return true;
 }
-let CONFIRM_PASTE=null;
+let CONFIRM_PASTES=[];
 function confirmPaste(e){
-  const items=(e.clipboardData&&e.clipboardData.items)||[];
-  for(const it of items){ if(it.type&&it.type.indexOf("image")===0){ const f=it.getAsFile(); if(f){ e.preventDefault(); const ext=(f.type.split("/")[1]||"png"); CONFIRM_PASTE=new File([f],`pasted-${Date.now()}.${ext}`,{type:f.type||"image/png"}); showConfirmPreview(); toast("Screenshot ready — click Upload confirmation."); return; } } }
+  const items=(e.clipboardData&&e.clipboardData.items)||[]; let added=0;
+  for(const it of items){ if(it.type&&it.type.indexOf("image")===0){ const f=it.getAsFile(); if(f){ const ext=(f.type.split("/")[1]||"png"); CONFIRM_PASTES.push(new File([f],`pasted-${Date.now()}-${CONFIRM_PASTES.length+1}.${ext}`,{type:f.type||"image/png"})); added++; } } }
+  if(added){ e.preventDefault(); showConfirmPreview(); toast(added+" screenshot"+(added>1?"s":"")+" added — paste more or click Upload."); }
 }
 function showConfirmPreview(){
   const box=$("d-confirm-prev"); if(!box)return;
-  if(CONFIRM_PASTE){ const url=URL.createObjectURL(CONFIRM_PASTE); box.innerHTML=`<div style="display:flex;align-items:center;gap:10px"><img src="${url}" style="max-height:110px;max-width:100%;border-radius:8px;border:1px solid var(--line)"/><button class="btn btn-sm btn-ghost" onclick="clearConfirmPaste()">Remove</button></div>`; box.classList.remove("hidden"); }
-  else { box.innerHTML=""; box.classList.add("hidden"); }
+  if(CONFIRM_PASTES.length){
+    box.innerHTML=`<div class="paste-grid">`+CONFIRM_PASTES.map((f,i)=>{ const url=URL.createObjectURL(f); return `<div class="paste-thumb"><img src="${url}" alt=""/><button class="paste-x" title="Remove" onclick="removeConfirmPaste(${i})">×</button></div>`; }).join("")+`</div><div class="hint" style="margin-top:6px">${CONFIRM_PASTES.length} screenshot${CONFIRM_PASTES.length>1?"s":""} ready</div>`;
+    box.classList.remove("hidden");
+  } else { box.innerHTML=""; box.classList.add("hidden"); }
 }
-function clearConfirmPaste(){ CONFIRM_PASTE=null; showConfirmPreview(); }
+function removeConfirmPaste(i){ CONFIRM_PASTES.splice(i,1); showConfirmPreview(); }
+function clearConfirmPaste(){ CONFIRM_PASTES=[]; showConfirmPreview(); }
 async function submitConfirmation(id){
-  const inp=$("d-confirm-file"); const f=CONFIRM_PASTE||(inp&&inp.files&&inp.files[0]);
-  if(!f){toast("Paste a screenshot or choose a file first.",true);return;}
+  const inp=$("d-confirm-file");
+  const files=CONFIRM_PASTES.slice();
+  if(inp&&inp.files){ for(const f of inp.files) files.push(f); }
+  if(!files.length){toast("Paste a screenshot or choose a file first.",true);return;}
   const btn=$("d-confirm-btn"); if(btn){btn.disabled=true;btn.textContent="Uploading…";}
-  const ok=await uploadConfirmation(id,f);
-  if(!ok){ if(btn){btn.disabled=false;btn.textContent="⬆ Upload confirmation";} return; }
-  CONFIRM_PASTE=null;
+  let okCount=0;
+  for(const f of files){ const ok=await uploadConfirmation(id,f); if(ok) okCount++; }
+  if(!okCount){ if(btn){btn.disabled=false;btn.textContent="⬆ Upload confirmation";} return; }
+  CONFIRM_PASTES=[];
   notify("confirmation",id).catch(()=>{});
-  toast("Confirmation uploaded — the client has been notified.");
+  toast(okCount+" confirmation"+(okCount>1?"s":"")+" uploaded — the client has been notified.");
   openDetail(id);
 }
 
@@ -1887,7 +1900,7 @@ async function deleteVaultEntry(id){
 // ===================== DETAIL MODAL =====================
 async function openDetail(id){
   const r=CACHE.find(x=>x.id===id); if(!r)return;
-  CONFIRM_PASTE=null;
+  CONFIRM_PASTES=[];
   const [{data:comments},{data:hist},{data:atts},{data:commitRows}]=await Promise.all([
     sb.from("cr_comments").select("*").eq("request_id",id).order("created_at"),
     sb.from("cr_status_history").select("*").eq("request_id",id).order("created_at"),
@@ -1954,7 +1967,7 @@ async function openDetail(id){
         ${confirms.length?`<div>${confirms.map(a=>`<div class="att"><span>✅</span><span class="name">${esc(a.file_name)}</span><span class="hint">${fmtDay(a.created_at)}</span> <button class="btn btn-sm btn-ghost" onclick="downloadAtt('${esc(a.file_path)}','${esc(a.file_name)}')">Download</button></div>`).join("")}</div>`:`<div class="hint">${isAdmin?"No confirmation uploaded yet.":"The change confirmation will appear here once added."}</div>`}
         ${isAdmin?`<div class="paste-zone" id="d-confirm-paste" tabindex="0" onpaste="confirmPaste(event)">📋 Click here and paste a screenshot (Ctrl/Cmd + V)</div>
         <div id="d-confirm-prev" class="hidden" style="margin-top:8px"></div>
-        <div class="row" style="margin-top:8px"><input id="d-confirm-file" class="inp" type="file" accept="image/*,application/pdf" style="flex:1"/><button class="btn btn-sm btn-ok" id="d-confirm-btn" onclick="submitConfirmation('${r.id}')">⬆ Upload confirmation</button></div><div class="hint">Attach a file confirming the change was made — paste a screenshot above or choose a file. The client is notified and can download it.</div>`:""}
+        <div class="row" style="margin-top:8px"><input id="d-confirm-file" class="inp" type="file" accept="image/*,application/pdf" multiple style="flex:1"/><button class="btn btn-sm btn-ok" id="d-confirm-btn" onclick="submitConfirmation('${r.id}')">⬆ Upload confirmation</button></div><div class="hint">Attach a file confirming the change was made — paste a screenshot above or choose a file. The client is notified and can download it.</div>`:""}
         <div class="section-title">GitHub commits${commitsArr.length?` (${commitsArr.length})`:""}</div>
         <div id="cr-commits">${renderCommits(commitsArr,crRepo,isAdmin,r.id)}</div>
         ${isAdmin?`<div class="row" style="margin-top:8px">
