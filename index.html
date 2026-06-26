@@ -361,6 +361,8 @@
   .gp-loading{display:flex;align-items:center;gap:11px;color:var(--muted);padding:24px 0;font-size:14px}
   .gp-spin{width:18px;height:18px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--brand);animation:gpspin .8s linear infinite}
   @keyframes gpspin{to{transform:rotate(360deg)}}
+
+  .cm-badge{display:inline-block;font-size:11px;font-weight:700;color:var(--brand2);background:rgba(142,124,255,.14);border:1px solid rgba(142,124,255,.35);border-radius:999px;padding:1px 7px;vertical-align:middle}
 </style>
 </head>
 <body>
@@ -1080,8 +1082,12 @@ async function assignCR(id,adminId){
   const r=CACHE.find(x=>x.id===id); if(r){r.assigned_to=adminId||null;r.assigned_name=name;}
   toast(name?("Assigned to "+name):"Unassigned"); if($("a-table")) renderAdminTable();
 }
+let COMMIT_COUNTS={};
+async function loadCommitCounts(){
+  try{ const {data}=await sb.from("cr_commits").select("request_id"); const m={}; (data||[]).forEach(x=>{m[x.request_id]=(m[x.request_id]||0)+1;}); COMMIT_COUNTS=m; }catch(_){ COMMIT_COUNTS={}; }
+}
 async function loadAndRenderAdmin(){
-  await loadRequests(); await loadClients(); await loadAdmins();
+  await loadRequests(); await loadClients(); await loadAdmins(); await loadCommitCounts();
   await loadSearchContent();
   const asel=$("a-assignee");
   if(asel){const acur=asel.value; asel.innerHTML=`<option value="">Any assignee</option><option value="__unassigned__">Unassigned</option>`+ADMINS.map(a=>`<option value="${a.id}" ${a.id===acur?"selected":""}>${esc(a.full_name||a.username||a.email)}</option>`).join("");}
@@ -1161,7 +1167,7 @@ function renderAdminTable(){
     <thead><tr><th>Ref</th><th>Heading</th><th>Client</th><th>Owner</th><th>Pri.</th><th>Status</th><th>Updated</th><th></th></tr></thead>
     <tbody>${rows.map(r=>`<tr>
       <td><span class="ref">${esc(r.ref_no)}</span></td>
-      <td>${esc(r.title)}${(r.tags&&r.tags.length)?` <span style="color:var(--muted);font-size:11px">#${esc(r.tags[0])}${r.tags.length>1?"+"+(r.tags.length-1):""}</span>`:""}</td>
+      <td>${esc(r.title)}${(r.tags&&r.tags.length)?` <span style="color:var(--muted);font-size:11px">#${esc(r.tags[0])}${r.tags.length>1?"+"+(r.tags.length-1):""}</span>`:""}${COMMIT_COUNTS[r.id]?` <span class="cm-badge" title="${COMMIT_COUNTS[r.id]} commit(s) linked">🔗 ${COMMIT_COUNTS[r.id]}</span>`:""}</td>
       <td>${esc(r.client_name||"—")}</td>
       <td>${esc(r.assigned_name||"—")}</td>
       <td class="pr-${r.priority}">${esc(r.priority)}</td>
@@ -1695,12 +1701,12 @@ async function addCommit(id){
   if(/^https?:\/\//i.test(raw)){ url=raw; const m=raw.match(/([0-9a-f]{7,40})/i); if(m) h=m[1]; }
   const {error}=await sb.from("cr_commits").insert({request_id:id,hash:h,url,message:msg||null,added_by:(SESSION&&SESSION.user)?SESSION.user.id:null,added_by_name:ME.full_name||ME.username||"Admin"});
   if(error){toast(error.message,true);return;}
-  toast("Commit linked."); openDetail(id);
+  COMMIT_COUNTS[id]=(COMMIT_COUNTS[id]||0)+1; toast("Commit linked."); openDetail(id);
 }
 async function deleteCommit(id,crId){
   const {error}=await sb.from("cr_commits").delete().eq("id",id);
   if(error){toast(error.message,true);return;}
-  toast("Commit removed."); openDetail(crId);
+  if(COMMIT_COUNTS[crId]) COMMIT_COUNTS[crId]=Math.max(0,COMMIT_COUNTS[crId]-1); toast("Commit removed."); openDetail(crId);
 }
 let LAST_PROMPT="";
 async function genCRPrompt(id){
