@@ -372,6 +372,10 @@
   .paste-thumb img{width:100%;height:100%;object-fit:cover;display:block}
   .paste-x{position:absolute;top:3px;right:3px;width:22px;height:22px;border-radius:50%;border:0;background:rgba(0,0,0,.6);color:#fff;font-size:16px;line-height:1;cursor:pointer;display:grid;place-items:center;padding:0}
   .paste-x:hover{background:var(--danger)}
+
+  .comment .cmt-body{font-size:13.5px;line-height:1.5}
+  .comment .cmt-body .rich-view{margin:2px 0}
+  #d-comment.rich-area{min-height:64px}
 </style>
 </head>
 <body>
@@ -1917,6 +1921,8 @@ async function openDetail(id){
   const crRepo=(_crClient&&_crClient.project_profile&&_crClient.project_profile.repo)||"";
   const commitsArr=commitRows||[];
   const confirms=(atts||[]).filter(a=>a.kind==="confirmation");
+  const confirmImgs=confirms.filter(a=>(a.mime_type||"").startsWith("image/"));
+  const confirmFiles=confirms.filter(a=>!(a.mime_type||"").startsWith("image/"));
   const normal=(atts||[]).filter(a=>a.kind!=="confirmation");
   const imgs=normal.filter(a=>(a.mime_type||"").startsWith("image/"));
   const audios=normal.filter(a=>(a.mime_type||"").startsWith("audio/"));
@@ -1969,7 +1975,9 @@ async function openDetail(id){
         <div>${files.map(a=>`<div class="att"><span>📎</span><span class="name">${esc(a.file_name)}</span>
           <button class="btn btn-sm btn-ghost" onclick="downloadAtt('${esc(a.file_path)}','${esc(a.file_name)}')">Download</button></div>`).join("")}</div>`:""}
         <div class="section-title">Change-made confirmation${confirms.length?` (${confirms.length})`:""}</div>
-        ${confirms.length?`<div>${confirms.map(a=>`<div class="att"><span>✅</span><span class="name">${esc(a.file_name)}</span><span class="hint">${fmtDay(a.created_at)}</span> <button class="btn btn-sm btn-ghost" onclick="downloadAtt('${esc(a.file_path)}','${esc(a.file_name)}')">Download</button></div>`).join("")}</div>`:`<div class="hint">${isAdmin?"No confirmation uploaded yet.":"The change confirmation will appear here once added."}</div>`}
+        ${confirmImgs.length?`<div class="photo-grid" id="confirm-grid"></div>`:""}
+        ${confirmFiles.length?`<div>${confirmFiles.map(a=>`<div class="att"><span>✅</span><span class="name">${esc(a.file_name)}</span><span class="hint">${fmtDay(a.created_at)}</span> <button class="btn btn-sm btn-ghost" onclick="downloadAtt('${esc(a.file_path)}','${esc(a.file_name)}')">Download</button></div>`).join("")}</div>`:""}
+        ${(!confirms.length)?`<div class="hint">${isAdmin?"No confirmation uploaded yet.":"The change confirmation will appear here once added."}</div>`:""}
         ${isAdmin?`<div class="paste-zone" id="d-confirm-paste" tabindex="0" onpaste="confirmPaste(event)">📋 Click here and paste a screenshot (Ctrl/Cmd + V)</div>
         <div id="d-confirm-prev" class="hidden" style="margin-top:8px"></div>
         <div class="row" style="margin-top:8px"><input id="d-confirm-file" class="inp" type="file" accept="image/*,application/pdf" multiple style="flex:1"/><button class="btn btn-sm btn-ok" id="d-confirm-btn" onclick="submitConfirmation('${r.id}')">⬆ Upload confirmation</button></div><div class="hint">Attach a file confirming the change was made — paste a screenshot above or choose a file. The client is notified and can download it.</div>`:""}
@@ -1983,17 +1991,23 @@ async function openDetail(id){
         <div class="section-title">Status history</div>
         <div>${(hist||[]).map(h=>`<div class="hist">${h.old_status?esc(h.old_status)+" → ":""}<strong>${esc(h.new_status)}</strong> · ${esc(h.changed_by_name||"")} · ${fmtDate(h.created_at)}${h.note?`<br><em>${esc(h.note)}</em>`:""}</div>`).join("")||'<div class="hint">No history.</div>'}</div>
         <div class="section-title">Comments (${(comments||[]).length})</div>
-        <div id="cmt-list">${(comments||[]).map(c=>`<div class="comment"><div class="meta"><strong>${esc(c.author_name||"")}</strong> <span class="pill" style="font-size:10px">${esc((c.author_role||"").toUpperCase())}</span> · ${fmtDate(c.created_at)}</div>${esc(c.body)}</div>`).join("")||'<div class="hint">No comments yet.</div>'}</div>
-        <div class="row" style="margin-top:10px">
-          <input id="d-comment" class="inp" placeholder="Add a comment…" style="flex:1" onkeydown="if(event.key==='Enter')addComment('${r.id}')"/>
-          <button class="btn btn-sm" onclick="addComment('${r.id}')">Post</button>
-        </div>
+        <div id="cmt-list">${(comments||[]).map(c=>`<div class="comment"><div class="meta"><strong>${esc(c.author_name||"")}</strong> <span class="pill" style="font-size:10px">${esc((c.author_role||"").toUpperCase())}</span> · ${fmtDate(c.created_at)}</div><div class="cmt-body">${renderDesc(c.body)}</div></div>`).join("")||'<div class="hint">No comments yet.</div>'}</div>
+        <div style="margin-top:10px">${richEditor("d-comment","Add a comment…  Pasting keeps formatting (bold, lists, line breaks).")}</div>
+        <div class="row" style="margin-top:8px"><button class="btn btn-sm" onclick="addComment('${r.id}')">Post comment</button></div>
       </div>
     </div>
   </div>`;
   if(imgs.length){
     const g=$("photo-grid");
     for(const a of imgs){
+      const {data}=await sb.storage.from("cr-attachments").createSignedUrl(a.file_path,600);
+      if(data&&data.signedUrl){ const wrap=document.createElement("a"); wrap.href=data.signedUrl; wrap.target="_blank"; wrap.rel="noopener";
+        const im=document.createElement("img"); im.src=data.signedUrl; im.alt=a.file_name; wrap.appendChild(im); g.appendChild(wrap); }
+    }
+  }
+  if(confirmImgs.length){
+    const g=$("confirm-grid");
+    if(g) for(const a of confirmImgs){
       const {data}=await sb.storage.from("cr-attachments").createSignedUrl(a.file_path,600);
       if(data&&data.signedUrl){ const wrap=document.createElement("a"); wrap.href=data.signedUrl; wrap.target="_blank"; wrap.rel="noopener";
         const im=document.createElement("img"); im.src=data.signedUrl; im.alt=a.file_name; wrap.appendChild(im); g.appendChild(wrap); }
@@ -2027,7 +2041,8 @@ async function saveStatus(id){
   ME.role==="admin"?renderAdminTable():renderClientTable();
 }
 async function addComment(id){
-  const body=$("d-comment").value.trim(); if(!body)return;
+  const text=richText("d-comment"); if(!text)return;
+  const body=richHTML("d-comment");
   const {error}=await sb.from("cr_comments").insert({request_id:id,author_id:SESSION.user.id,
     author_name:ME.full_name||ME.username||ME.email,author_role:ME.role,body});
   if(error){toast(error.message,true);return;}
