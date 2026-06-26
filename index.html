@@ -96,10 +96,16 @@
   th,td{text-align:left;padding:11px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
   th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em}
   tr:hover td{background:rgba(255,255,255,.02)}
-  #a-table table{font-size:15.5px}
-  #a-table th,#a-table td{padding:15px 12px}
-  #a-table th{font-size:13px}
-  #a-table td .ref{font-size:15.5px}
+  #a-table table{font-size:14px;min-width:1080px}
+  #a-table th,#a-table td{padding:12px 11px;vertical-align:middle}
+  #a-table th{font-size:12px;white-space:nowrap}
+  #a-table td .ref{font-size:14px}
+  #a-table th:nth-child(1),#a-table td:nth-child(1){white-space:nowrap}
+  #a-table th:nth-child(5),#a-table td:nth-child(5){white-space:nowrap}
+  #a-table th:nth-child(6),#a-table td:nth-child(6){white-space:nowrap}
+  #a-table td:nth-child(2){min-width:200px}
+  #a-table td:nth-child(3){min-width:150px}
+  .table-wrap{overflow-x:auto;border-radius:12px}
   #a-table select.inp{font-size:14px!important;padding:8px 10px!important}
   #a-table .btn-sm,#a-table .link-btn{font-size:14px;padding:8px 12px}
   .table-wrap{overflow-x:auto}
