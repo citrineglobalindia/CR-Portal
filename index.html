@@ -1216,7 +1216,7 @@ function renderAdminTable(){
       <td><select class="inp" style="padding:5px 6px;font-size:12px" onchange="quickStatus('${r.id}',this.value)">
           ${STATUSES.map(s=>`<option ${s===r.status?"selected":""}>${s}</option>`).join("")}</select></td>
       <td style="white-space:nowrap"><div>${fmtDay(r.created_at)}</div><div style="color:var(--muted);font-size:11px">${fmtTime(r.created_at)}</div></td>
-      <td style="white-space:nowrap">${(r.status==="Done"&&COMPLETED_AT[r.id])?`<div style="color:#22c55e;font-weight:600">${fmtDay(COMPLETED_AT[r.id])}</div><div style="color:var(--muted);font-size:11px">${fmtTime(COMPLETED_AT[r.id])}</div>`:`<span style="color:var(--muted)">—</span>`}</td>
+      <td style="white-space:nowrap">${r.status==="Done"?`<div style="color:#22c55e;font-weight:600">${fmtDay(COMPLETED_AT[r.id]||r.updated_at)}</div><div style="color:var(--muted);font-size:11px">${fmtTime(COMPLETED_AT[r.id]||r.updated_at)}</div>`:`<span style="color:var(--muted)">—</span>`}</td>
       <td style="white-space:nowrap">${r.status!=="Done"?`<button class="btn btn-sm btn-ok" onclick="quickStatus('${r.id}','Done')">✓ Complete</button> `:""}<button class="link-btn" onclick="openDetail('${r.id}')">Open</button> <button class="link-btn" style="color:#ff7b7b" title="Delete change request" onclick="deleteCR('${r.id}')">🗑</button></td>
     </tr>`).join("")}</tbody></table>`:`<div class="empty">No change requests match the current filters.</div>`;
 }
@@ -1302,6 +1302,7 @@ async function quickStatus(id,newStatus){
     changed_by:SESSION.user.id,changed_by_name:ME.full_name,note:"Status changed via dashboard"});
   notify("status",id,newStatus).catch(()=>{});
   r.status=newStatus; r.updated_at=new Date().toISOString();
+  if(newStatus==="Done"){ COMPLETED_AT[id]=new Date().toISOString(); } else { delete COMPLETED_AT[id]; }
   toast(`${r.ref_no} → ${newStatus}`); if($("a-table")) renderAdminTable();
 }
 
