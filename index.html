@@ -429,7 +429,7 @@
   @media(max-width:820px){.adminlayout{flex-direction:column}.sidebar{position:static;flex-direction:row;flex-wrap:wrap;width:100%;flex:none}.sidebar .navside{width:auto}.side-cap{display:none}.sidebar .navside.active::before{display:none}}
 
   /* 3D background + depth */
-  #bg3d{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;opacity:.5}
+  #bg3d{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;opacity:.85}
   #auth-view,#app-view{position:relative;z-index:1}
   header.top{backdrop-filter:blur(8px)}
   .stat{background:linear-gradient(160deg,var(--panel),var(--panel2))}
@@ -2507,13 +2507,13 @@ function init3D(){
   const camera=new THREE.PerspectiveCamera(60,innerWidth/innerHeight,0.1,100); camera.position.z=8;
   const cssVar=n=>{ const v=getComputedStyle(document.documentElement).getPropertyValue(n).trim(); return v||"#6c5ce7"; };
   const brand=()=>new THREE.Color(cssVar("--brand")), accent=()=>new THREE.Color(cssVar("--accent"));
-  const mat=new THREE.MeshBasicMaterial({color:brand(),wireframe:true,transparent:true,opacity:.5});
-  const ico=new THREE.Mesh(new THREE.IcosahedronGeometry(2.7,1),mat); scene.add(ico);
-  const mat2=new THREE.MeshBasicMaterial({color:accent(),wireframe:true,transparent:true,opacity:.2});
-  const ico2=new THREE.Mesh(new THREE.IcosahedronGeometry(1.7,0),mat2); scene.add(ico2);
-  const N=380, pos=new Float32Array(N*3); for(let i=0;i<N*3;i++) pos[i]=(Math.random()-0.5)*24;
+  const mat=new THREE.MeshBasicMaterial({color:brand(),wireframe:true,transparent:true,opacity:.7});
+  const ico=new THREE.Mesh(new THREE.IcosahedronGeometry(2.9,1),mat); scene.add(ico);
+  const mat2=new THREE.MeshBasicMaterial({color:accent(),wireframe:true,transparent:true,opacity:.5,blending:THREE.AdditiveBlending,depthWrite:false});
+  const ico2=new THREE.Mesh(new THREE.TorusKnotGeometry(1.5,0.42,140,14),mat2); scene.add(ico2);
+  const N=650, pos=new Float32Array(N*3); for(let i=0;i<N*3;i++) pos[i]=(Math.random()-0.5)*26;
   const pg=new THREE.BufferGeometry(); pg.setAttribute("position",new THREE.BufferAttribute(pos,3));
-  const pmat=new THREE.PointsMaterial({color:brand(),size:.05,transparent:true,opacity:.6});
+  const pmat=new THREE.PointsMaterial({color:brand(),size:.07,transparent:true,opacity:.9,blending:THREE.AdditiveBlending,depthWrite:false});
   const pts=new THREE.Points(pg,pmat); scene.add(pts);
   let mx=0,my=0; window.addEventListener("mousemove",e=>{ mx=(e.clientX/innerWidth-.5); my=(e.clientY/innerHeight-.5); });
   function resize(){ renderer.setSize(innerWidth,innerHeight,false); camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); }
@@ -2522,8 +2522,20 @@ function init3D(){
     camera.position.x+=(mx*1.6-camera.position.x)*.04; camera.position.y+=(-my*1.6-camera.position.y)*.04; camera.lookAt(0,0,0); renderer.render(scene,camera); })();
   THREE_SCENE={ recolor:()=>{ mat.color=brand(); mat2.color=accent(); pmat.color=brand(); } };
 }
+function setupTilt(){
+  if(window.matchMedia && matchMedia("(prefers-reduced-motion:reduce)").matches) return;
+  const sel=".stat,.rep-stat,.rep-card,.card,.client-card,.bcard,.lead-due";
+  let cur=null;
+  document.addEventListener("pointermove",e=>{
+    const card=e.target.closest?e.target.closest(sel):null;
+    if(card!==cur){ if(cur){cur.style.transition="";cur.style.transform="";} cur=card; if(cur){cur.style.transition="transform .06s linear";cur.style.transformStyle="preserve-3d";cur.style.willChange="transform";} }
+    if(cur){ const r=cur.getBoundingClientRect(); const px=(e.clientX-r.left)/r.width-0.5, py=(e.clientY-r.top)/r.height-0.5; cur.style.transform=`perspective(900px) rotateX(${(-py*7).toFixed(2)}deg) rotateY(${(px*7).toFixed(2)}deg) translateY(-5px)`; }
+  },{passive:true});
+  document.addEventListener("pointerout",e=>{ if(cur && (!e.relatedTarget || !cur.contains(e.relatedTarget))){ cur.style.transition="";cur.style.transform="";cur=null; } },{passive:true});
+}
 if(sb) sb.auth.onAuthStateChange((_e,s)=>{SESSION=s;});
 try{ init3D(); }catch(_){}
+try{ setupTilt(); }catch(_){}
 function hideLoader(){ const l=$("app-loader"); if(l){ l.classList.add("hide"); setTimeout(()=>{try{l.remove();}catch(_){}} ,700); } }
 (async()=>{ const t0=Date.now(); try{ await initTheme(); }catch(_){} try{ await boot(); }catch(_){} setTimeout(hideLoader, Math.max(0,900-(Date.now()-t0))); })();
 </script>
