@@ -412,6 +412,16 @@
   .lead-table tbody tr:hover{background:var(--panel2)}
   .lead-fu.overdue{color:#ff6b6b;font-weight:700}
   .lead-fu.soon{color:#ffb020;font-weight:600}
+
+  /* left sidebar menu */
+  .adminlayout{display:flex;gap:18px;align-items:flex-start}
+  .sidebar{flex:0 0 212px;position:sticky;top:16px;display:flex;flex-direction:column;gap:6px;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:12px;box-shadow:var(--shadow)}
+  .sidebar .navside{display:flex;align-items:center;gap:11px;width:100%;text-align:left;background:transparent;border:1px solid transparent;color:var(--muted);padding:11px 13px;border-radius:10px;font-weight:600;font-size:14px;cursor:pointer;transition:background .18s,color .18s,transform .12s}
+  .sidebar .navside>span{width:20px;text-align:center;font-size:15px}
+  .sidebar .navside:hover{background:var(--panel2);color:var(--txt);transform:translateX(2px)}
+  .sidebar .navside.active{background:var(--brand);color:#fff;border-color:var(--brand)}
+  .adminmain{flex:1;min-width:0}
+  @media(max-width:820px){.adminlayout{flex-direction:column}.sidebar{position:static;flex-direction:row;flex-wrap:wrap;width:100%;flex:none}.sidebar .navside{width:auto}}
 </style>
 </head>
 <body>
@@ -1090,14 +1100,16 @@ async function submitConfirmation(id){
 // ===================== ADMIN VIEW =====================
 function renderAdmin(){
   $("app-body").innerHTML=`
-    <div class="navtabs">
-      <button id="nt-dash" class="${ADMIN_TAB==='dashboard'?'active':''}" onclick="setAdminTab('dashboard')">Change Requests</button>
-      <button id="nt-leads" class="${ADMIN_TAB==='leads'?'active':''}" onclick="setAdminTab('leads')">Leads</button>
-      <button id="nt-clients" class="${ADMIN_TAB==='clients'?'active':''}" onclick="setAdminTab('clients')">Clients</button>
-      <button id="nt-board" class="${ADMIN_TAB==='board'?'active':''}" onclick="setAdminTab('board')">Board</button>
-      <button id="nt-reports" class="${ADMIN_TAB==='reports'?'active':''}" onclick="setAdminTab('reports')">Reports</button>
-    </div>
-    <div id="admin-pane"></div>`;
+    <div class="adminlayout">
+      <aside class="sidebar">
+        <button id="nt-dash" class="navside ${ADMIN_TAB==='dashboard'?'active':''}" onclick="setAdminTab('dashboard')"><span>📋</span> Change Requests</button>
+        <button id="nt-leads" class="navside ${ADMIN_TAB==='leads'?'active':''}" onclick="setAdminTab('leads')"><span>🎯</span> Leads</button>
+        <button id="nt-clients" class="navside ${ADMIN_TAB==='clients'?'active':''}" onclick="setAdminTab('clients')"><span>👥</span> Clients</button>
+        <button id="nt-board" class="navside ${ADMIN_TAB==='board'?'active':''}" onclick="setAdminTab('board')"><span>▦</span> Board</button>
+        <button id="nt-reports" class="navside ${ADMIN_TAB==='reports'?'active':''}" onclick="setAdminTab('reports')"><span>📊</span> Reports</button>
+      </aside>
+      <div class="adminmain"><div id="admin-pane"></div></div>
+    </div>`;
   if(ADMIN_TAB==="clients") renderAdminClients(); else if(ADMIN_TAB==="reports") renderAdminReports(); else if(ADMIN_TAB==="board") renderAdminBoard(); else if(ADMIN_TAB==="leads") renderAdminLeads(); else renderAdminDash();
 }
 function setAdminTab(t){ ADMIN_TAB=t; renderAdmin(); }
