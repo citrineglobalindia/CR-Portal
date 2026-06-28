@@ -399,6 +399,19 @@
   .vr-note{margin:0 0 8px}
   .vr-player .vr-tag,.vr-note .vr-tag{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:7px;font-weight:700}
   .vr-player audio,.vr-note audio{width:100%;height:40px;display:block}
+
+  /* leads / CRM */
+  .lead-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:4px 0 16px}
+  .lead-bar .seg{display:inline-flex;background:var(--panel2);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  .lead-bar .seg button{background:transparent;border:0;color:var(--muted);padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer}
+  .lead-bar .seg button.on{background:var(--brand);color:#fff}
+  .lead-due{background:rgba(255,176,32,.12);border:1px solid rgba(255,176,32,.4);color:#ffd591;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:13.5px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .lead-table{width:100%;border-collapse:collapse;font-size:13.5px;min-width:860px}
+  .lead-table th,.lead-table td{padding:11px 12px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+  .lead-table th{color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.03em}
+  .lead-table tbody tr:hover{background:var(--panel2)}
+  .lead-fu.overdue{color:#ff6b6b;font-weight:700}
+  .lead-fu.soon{color:#ffb020;font-weight:600}
 </style>
 </head>
 <body>
@@ -1079,12 +1092,13 @@ function renderAdmin(){
   $("app-body").innerHTML=`
     <div class="navtabs">
       <button id="nt-dash" class="${ADMIN_TAB==='dashboard'?'active':''}" onclick="setAdminTab('dashboard')">Change Requests</button>
+      <button id="nt-leads" class="${ADMIN_TAB==='leads'?'active':''}" onclick="setAdminTab('leads')">Leads</button>
       <button id="nt-clients" class="${ADMIN_TAB==='clients'?'active':''}" onclick="setAdminTab('clients')">Clients</button>
       <button id="nt-board" class="${ADMIN_TAB==='board'?'active':''}" onclick="setAdminTab('board')">Board</button>
       <button id="nt-reports" class="${ADMIN_TAB==='reports'?'active':''}" onclick="setAdminTab('reports')">Reports</button>
     </div>
     <div id="admin-pane"></div>`;
-  if(ADMIN_TAB==="clients") renderAdminClients(); else if(ADMIN_TAB==="reports") renderAdminReports(); else if(ADMIN_TAB==="board") renderAdminBoard(); else renderAdminDash();
+  if(ADMIN_TAB==="clients") renderAdminClients(); else if(ADMIN_TAB==="reports") renderAdminReports(); else if(ADMIN_TAB==="board") renderAdminBoard(); else if(ADMIN_TAB==="leads") renderAdminLeads(); else renderAdminDash();
 }
 function setAdminTab(t){ ADMIN_TAB=t; renderAdmin(); }
 
@@ -1359,6 +1373,173 @@ async function dropCard(e,status){
   const r=CACHE.find(x=>x.id===id); if(!r||r.status===status) return;
   await quickStatus(id,status);
   buildBoard();
+}
+
+
+// ===================== LEADS (CRM) =====================
+let LEADS=[], LEAD_VIEW="pipeline", LEAD_DRAG=null;
+const LEAD_STAGES=["New","Contacted","Qualified","Proposal","Negotiation","Won","Lost"];
+const LEAD_SC={New:"#9aa0bd",Contacted:"#00b8d4",Qualified:"#8e7cff",Proposal:"#ffb020",Negotiation:"#f59e0b",Won:"#22c55e",Lost:"#ff6b6b"};
+const LEAD_SOURCES=["Referral","Website","Cold call","Social","Event","Other"];
+function money(v){ if(v==null||v==="") return "—"; const n=Number(v); if(isNaN(n)) return "—"; return "₹"+n.toLocaleString("en-IN"); }
+function toLocalDT(iso){ const d=new Date(iso); const p=n=>String(n).padStart(2,"0"); return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate())+"T"+p(d.getHours())+":"+p(d.getMinutes()); }
+function leadFollowState(l){ if(!l.follow_up_at) return ""; const t=new Date(l.follow_up_at).getTime(), now=Date.now(); if(t<now-60000) return "overdue"; if(t<now+24*3600000) return "soon"; return ""; }
+async function loadLeads(){ const {data,error}=await sb.from("cr_leads").select("*").order("updated_at",{ascending:false}); if(error){toast(error.message,true);return [];} LEADS=data||[]; return LEADS; }
+async function renderAdminLeads(){ $("admin-pane").innerHTML=`<div id="leads-pane"><div class="hint">Loading…</div></div>`; await loadAdmins(); await loadLeads(); drawLeads(); }
+function leadStats(){ const open=LEADS.filter(l=>l.stage!=="Won"&&l.stage!=="Lost"); const won=LEADS.filter(l=>l.stage==="Won"); return {total:LEADS.length, open:open.length, won:won.length, pipeVal:open.reduce((s,l)=>s+(Number(l.value)||0),0), wonVal:won.reduce((s,l)=>s+(Number(l.value)||0),0)}; }
+function drawLeads(){
+  const st=leadStats();
+  const due=LEADS.filter(l=>l.follow_up_at && l.stage!=="Won"&&l.stage!=="Lost" && new Date(l.follow_up_at).getTime()<=Date.now());
+  $("leads-pane").innerHTML=`
+    <div class="stats">
+      ${statCard("👥","#8e7cff",st.total,"Total leads")}
+      ${statCard("🔥","#00b8d4",st.open,"Open")}
+      ${statCard("🏆","#22c55e",st.won,"Won")}
+      ${statCard("💰","#ffb020",money(st.pipeVal),"Open pipeline")}
+      ${statCard("✅","#00d2a8",money(st.wonVal),"Won value")}
+    </div>
+    ${due.length?`<div class="lead-due">⏰ <b>${due.length}</b> follow-up${due.length>1?"s":""} due — ${due.slice(0,3).map(l=>esc(l.name)).join(", ")}${due.length>3?"…":""} <button class="btn btn-sm btn-ghost" onclick="setLeadView('list')">Review in list</button></div>`:""}
+    <div class="lead-bar">
+      <div class="seg"><button class="${LEAD_VIEW==='pipeline'?'on':''}" onclick="setLeadView('pipeline')">▦ Pipeline</button><button class="${LEAD_VIEW==='list'?'on':''}" onclick="setLeadView('list')">☰ List</button></div>
+      <div class="row" style="gap:8px;flex-wrap:wrap;margin:0">
+        <input id="lead-search" class="inp" placeholder="🔍 Search leads…" oninput="drawLeadBody()" style="min-width:200px"/>
+        <select id="lead-owner" class="inp" onchange="drawLeadBody()" style="max-width:190px"><option value="">All owners</option>${ADMINS.map(a=>`<option value="${a.id}">${esc(a.full_name||a.username||a.email)}</option>`).join("")}</select>
+        <button class="btn btn-sm btn-ok" onclick="openLeadForm()">＋ Add lead</button>
+      </div>
+    </div>
+    <div id="lead-body"></div>`;
+  drawLeadBody();
+}
+function setLeadView(v){ LEAD_VIEW=v; if($("leads-pane")) drawLeads(); }
+function filteredLeads(){
+  const term=($("lead-search")?$("lead-search").value:"").trim().toLowerCase();
+  const owner=$("lead-owner")?$("lead-owner").value:"";
+  return LEADS.filter(l=>{ if(owner&&l.owner_id!==owner) return false; if(term){ const hay=[l.name,l.company,l.email,l.phone,l.source,l.notes].filter(Boolean).join(" ").toLowerCase(); if(!hay.includes(term)) return false; } return true; });
+}
+function drawLeadBody(){ if(LEAD_VIEW==="pipeline") buildLeadBoard(); else renderLeadList(); }
+function leadCard(l){ const fs=leadFollowState(l); return `<div class="bcard" draggable="true" ondragstart="dragLead(event,'${l.id}')" onclick="openLeadDetail('${l.id}')">
+    <div class="bc-title">${esc(l.name)}</div>
+    ${l.company?`<div class="bc-meta">🏢 ${esc(l.company)}</div>`:""}
+    <div class="bc-meta">${l.value?("💰 "+money(l.value)):""}${l.owner_name?` · 👤 ${esc(l.owner_name)}`:""}</div>
+    ${l.follow_up_at?`<div class="bc-meta lead-fu ${fs}">⏰ ${esc(fmtDay(l.follow_up_at))}</div>`:""}
+  </div>`; }
+function buildLeadBoard(){
+  const body=$("lead-body"); if(!body)return; const list=filteredLeads();
+  body.innerHTML=`<div class="board">`+LEAD_STAGES.map(stg=>{
+    const items=list.filter(l=>l.stage===stg); const val=items.reduce((s,l)=>s+(Number(l.value)||0),0);
+    return `<div class="bcol" ondragover="event.preventDefault();this.classList.add('over')" ondragleave="this.classList.remove('over')" ondrop="dropLead(event,'${stg}')">
+      <div class="bcol-h"><span class="badge" style="background:${LEAD_SC[stg]}26;color:${LEAD_SC[stg]};border:1px solid ${LEAD_SC[stg]}66">${stg}</span><span style="color:var(--muted)">${items.length}${val?" · "+money(val):""}</span></div>
+      <div>${items.map(l=>leadCard(l)).join("")||`<div class="hint" style="padding:6px">—</div>`}</div>
+    </div>`;
+  }).join("")+`</div>`;
+}
+function renderLeadList(){
+  const body=$("lead-body"); if(!body)return;
+  const list=filteredLeads().slice().sort((a,b)=>new Date(b.updated_at)-new Date(a.updated_at));
+  body.innerHTML=`<div class="table-wrap"><table class="lead-table"><thead><tr><th>Name</th><th>Company</th><th>Contact</th><th>Source</th><th>Value</th><th>Stage</th><th>Owner</th><th>Follow-up</th></tr></thead><tbody>${list.map(l=>{
+    const fs=leadFollowState(l);
+    return `<tr onclick="openLeadDetail('${l.id}')" style="cursor:pointer">
+      <td><b>${esc(l.name)}</b></td><td>${esc(l.company||"—")}</td>
+      <td>${[l.email,l.phone].filter(Boolean).map(esc).join("<br>")||"—"}</td>
+      <td>${esc(l.source||"—")}</td><td>${money(l.value)}</td>
+      <td><span class="badge" style="background:${LEAD_SC[l.stage]}26;color:${LEAD_SC[l.stage]};border:1px solid ${LEAD_SC[l.stage]}66">${esc(l.stage)}</span></td>
+      <td>${esc(l.owner_name||"—")}</td>
+      <td>${l.follow_up_at?`<span class="lead-fu ${fs}">${esc(fmtDay(l.follow_up_at))}</span>`:"—"}</td>
+    </tr>`;
+  }).join("")||`<tr><td colspan="8" style="color:var(--muted)">No leads yet — click “＋ Add lead”.</td></tr>`}</tbody></table></div>`;
+}
+function dragLead(e,id){ LEAD_DRAG=id; e.dataTransfer.effectAllowed="move"; }
+async function dropLead(e,stage){
+  e.preventDefault(); e.currentTarget.classList.remove("over");
+  const id=LEAD_DRAG; LEAD_DRAG=null; if(!id)return;
+  const l=LEADS.find(x=>x.id===id); if(!l||l.stage===stage)return; const old=l.stage;
+  const {error}=await sb.from("cr_leads").update({stage,updated_at:new Date().toISOString()}).eq("id",id);
+  if(error){toast(error.message,true);return;}
+  l.stage=stage; l.updated_at=new Date().toISOString();
+  sb.from("cr_lead_activities").insert({lead_id:id,kind:"stage",body:`Stage: ${old} → ${stage}`,created_by:SESSION.user.id,created_by_name:ME.full_name||"Admin"});
+  toast(`${l.name} → ${stage}`); buildLeadBoard();
+}
+function openLeadForm(id){
+  const l=id?LEADS.find(x=>x.id===id):null;
+  $("modal-root").innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()"><div class="modal">
+    <div class="mh"><h2 style="margin:0">${l?"Edit lead":"Add lead"}</h2><button class="x" onclick="closeModal()">×</button></div>
+    <div class="mb">
+      <div class="grid2">
+        <div><label>Name <span class="req">*</span></label><input id="ld-name" class="inp" value="${l?esc(l.name):""}"/></div>
+        <div><label>Company</label><input id="ld-company" class="inp" value="${l?esc(l.company||""):""}"/></div>
+        <div><label>Email</label><input id="ld-email" class="inp" value="${l?esc(l.email||""):""}"/></div>
+        <div><label>Phone</label><input id="ld-phone" class="inp" value="${l?esc(l.phone||""):""}"/></div>
+        <div><label>Source</label><select id="ld-source" class="inp"><option value="">—</option>${LEAD_SOURCES.map(x=>`<option ${l&&l.source===x?"selected":""}>${x}</option>`).join("")}</select></div>
+        <div><label>Stage</label><select id="ld-stage" class="inp">${LEAD_STAGES.map(x=>`<option ${(l?l.stage:"New")===x?"selected":""}>${x}</option>`).join("")}</select></div>
+        <div><label>Estimated value (₹)</label><input id="ld-value" class="inp" type="number" min="0" value="${l&&l.value!=null?l.value:""}"/></div>
+        <div><label>Expected close</label><input id="ld-close" class="inp" type="date" value="${l&&l.expected_close?l.expected_close:""}"/></div>
+        <div><label>Owner (assign to)</label><select id="ld-owner" class="inp"><option value="">Unassigned</option>${ADMINS.map(a=>`<option value="${a.id}" ${l&&l.owner_id===a.id?"selected":""}>${esc(a.full_name||a.username||a.email)}</option>`).join("")}</select></div>
+        <div><label>Follow-up reminder</label><input id="ld-follow" class="inp" type="datetime-local" value="${l&&l.follow_up_at?toLocalDT(l.follow_up_at):""}"/></div>
+      </div>
+      <label style="margin-top:12px">Notes</label>
+      <textarea id="ld-notes" class="inp" rows="3">${l?esc(l.notes||""):""}</textarea>
+      <div class="row" style="margin-top:16px"><button class="btn btn-sm btn-ok" id="ld-save" onclick="saveLead(${l?`'${l.id}'`:"null"})">${l?"Save changes":"Create lead"}</button><button class="btn btn-sm btn-ghost" onclick="closeModal()">Cancel</button></div>
+    </div></div></div>`;
+}
+async function saveLead(id){
+  const name=($("ld-name").value||"").trim(); if(!name){toast("Name is required.",true);return;}
+  const ownerId=$("ld-owner").value||null; const a=ADMINS.find(x=>x.id===ownerId); const ownerName=a?(a.full_name||a.username||a.email):null;
+  const fu=$("ld-follow").value;
+  const payload={ name, company:$("ld-company").value.trim()||null, email:$("ld-email").value.trim()||null, phone:$("ld-phone").value.trim()||null, source:$("ld-source").value||null, stage:$("ld-stage").value, value:$("ld-value").value!==""?Number($("ld-value").value):null, expected_close:$("ld-close").value||null, owner_id:ownerId, owner_name:ownerName, follow_up_at:fu?new Date(fu).toISOString():null, notes:$("ld-notes").value.trim()||null, updated_at:new Date().toISOString() };
+  const btn=$("ld-save"); if(btn){btn.disabled=true;btn.textContent="Saving…";}
+  let error;
+  if(id){ ({error}=await sb.from("cr_leads").update(payload).eq("id",id)); }
+  else { payload.created_by=SESSION.user.id; payload.created_by_name=ME.full_name||"Admin"; ({error}=await sb.from("cr_leads").insert(payload)); }
+  if(btn){btn.disabled=false;}
+  if(error){toast(error.message,true);return;}
+  toast(id?"Lead updated.":"Lead created."); closeModal(); await loadLeads(); drawLeads();
+}
+function leadActRow(a){ const ic={note:"📝",call:"📞",email:"✉️",meeting:"🤝",stage:"↗"}[a.kind]||"•"; return `<div class="hist">${ic} ${esc(a.body||"")} <span style="color:var(--muted)">· ${esc(a.created_by_name||"")} · ${esc(fmtDate(a.created_at))}</span></div>`; }
+async function openLeadDetail(id){
+  const l=LEADS.find(x=>x.id===id); if(!l)return;
+  const {data:acts}=await sb.from("cr_lead_activities").select("*").eq("lead_id",id).order("created_at",{ascending:false});
+  const fs=leadFollowState(l);
+  $("modal-root").innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()"><div class="modal">
+    <div class="mh"><div><h2 style="margin:0">${esc(l.name)}</h2><div class="hint">${esc(l.company||"")}</div></div><button class="x" onclick="closeModal()">×</button></div>
+    <div class="mb">
+      <div class="kv">
+        <div class="k">Stage</div><div><span class="badge" style="background:${LEAD_SC[l.stage]}26;color:${LEAD_SC[l.stage]};border:1px solid ${LEAD_SC[l.stage]}66">${esc(l.stage)}</span></div>
+        <div class="k">Email</div><div>${esc(l.email||"—")}</div>
+        <div class="k">Phone</div><div>${esc(l.phone||"—")}</div>
+        <div class="k">Source</div><div>${esc(l.source||"—")}</div>
+        <div class="k">Value</div><div>${money(l.value)}</div>
+        <div class="k">Expected close</div><div>${l.expected_close?esc(fmtDay(l.expected_close)):"—"}</div>
+        <div class="k">Owner</div><div>${esc(l.owner_name||"Unassigned")}</div>
+        <div class="k">Follow-up</div><div>${l.follow_up_at?`<span class="lead-fu ${fs}">⏰ ${esc(fmtDate(l.follow_up_at))}</span>${l.follow_up_note?" — "+esc(l.follow_up_note):""}`:"—"}</div>
+      </div>
+      ${l.notes?`<div class="k" style="color:var(--muted);font-size:13px;margin:6px 0 4px">Notes</div><div style="white-space:pre-wrap;font-size:14px">${esc(l.notes)}</div>`:""}
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center">
+        <button class="btn btn-sm btn-ghost" onclick="openLeadForm('${l.id}')">✏️ Edit</button>
+        <select class="inp" style="max-width:170px" onchange="changeLeadStage('${l.id}',this.value)">${LEAD_STAGES.map(x=>`<option ${l.stage===x?"selected":""}>${x}</option>`).join("")}</select>
+        ${l.stage==="Won"?`<button class="btn btn-sm btn-ok" onclick="convertLead('${l.id}')">➜ Convert to client</button>`:""}
+        <button class="btn btn-sm btn-danger" onclick="deleteLead('${l.id}')">🗑 Delete</button>
+      </div>
+      <div class="section-title">Follow-up reminder</div>
+      <div class="row"><input id="ld-rem-at" class="inp" type="datetime-local" value="${l.follow_up_at?toLocalDT(l.follow_up_at):""}" style="max-width:230px"/><input id="ld-rem-note" class="inp" placeholder="Reminder note (optional)" value="${esc(l.follow_up_note||"")}" style="flex:1;min-width:160px"/><button class="btn btn-sm" onclick="setLeadReminder('${l.id}')">Save</button>${l.follow_up_at?`<button class="btn btn-sm btn-ghost" onclick="clearLeadReminder('${l.id}')">Clear</button>`:""}</div>
+      <div class="section-title">Activity</div>
+      <div class="row"><input id="ld-act" class="inp" placeholder="Log a call, email, meeting or note…" style="flex:1;min-width:180px" onkeydown="if(event.key==='Enter')addLeadActivity('${l.id}')"/><select id="ld-act-kind" class="inp" style="max-width:130px"><option value="note">📝 Note</option><option value="call">📞 Call</option><option value="email">✉️ Email</option><option value="meeting">🤝 Meeting</option></select><button class="btn btn-sm" onclick="addLeadActivity('${l.id}')">Log</button></div>
+      <div id="ld-acts" style="margin-top:10px">${(acts||[]).map(a=>leadActRow(a)).join("")||'<div class="hint">No activity yet.</div>'}</div>
+    </div></div></div>`;
+}
+async function changeLeadStage(id,stage){ const l=LEADS.find(x=>x.id===id); if(!l)return; const old=l.stage; const {error}=await sb.from("cr_leads").update({stage,updated_at:new Date().toISOString()}).eq("id",id); if(error){toast(error.message,true);return;} l.stage=stage; await sb.from("cr_lead_activities").insert({lead_id:id,kind:"stage",body:`Stage: ${old} → ${stage}`,created_by:SESSION.user.id,created_by_name:ME.full_name||"Admin"}); toast("Stage updated."); openLeadDetail(id); }
+async function addLeadActivity(id){ const inp=$("ld-act"); const body=(inp.value||"").trim(); if(!body)return; const kind=$("ld-act-kind").value; const {error}=await sb.from("cr_lead_activities").insert({lead_id:id,kind,body,created_by:SESSION.user.id,created_by_name:ME.full_name||"Admin"}); if(error){toast(error.message,true);return;} await sb.from("cr_leads").update({updated_at:new Date().toISOString()}).eq("id",id); const l=LEADS.find(x=>x.id===id); if(l)l.updated_at=new Date().toISOString(); openLeadDetail(id); }
+async function setLeadReminder(id){ const at=$("ld-rem-at").value; const note=($("ld-rem-note").value||"").trim(); const iso=at?new Date(at).toISOString():null; const {error}=await sb.from("cr_leads").update({follow_up_at:iso,follow_up_note:note||null,updated_at:new Date().toISOString()}).eq("id",id); if(error){toast(error.message,true);return;} const l=LEADS.find(x=>x.id===id); if(l){l.follow_up_at=iso;l.follow_up_note=note||null;} toast(iso?"Reminder saved.":"Reminder cleared."); openLeadDetail(id); }
+async function clearLeadReminder(id){ const {error}=await sb.from("cr_leads").update({follow_up_at:null,follow_up_note:null}).eq("id",id); if(error){toast(error.message,true);return;} const l=LEADS.find(x=>x.id===id); if(l){l.follow_up_at=null;l.follow_up_note=null;} toast("Reminder cleared."); openLeadDetail(id); }
+function deleteLead(id){ $("modal-root").innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()"><div class="modal" style="max-width:420px"><div class="mh"><h2 style="margin:0;color:#ffb4b4">Delete lead</h2><button class="x" onclick="closeModal()">×</button></div><div class="mb"><p style="line-height:1.55">Permanently delete this lead and its activity history?</p><div class="row" style="margin-top:14px"><button class="btn btn-sm btn-danger" onclick="confirmDeleteLead('${id}')">Yes, delete</button><button class="btn btn-sm btn-ghost" onclick="openLeadDetail('${id}')">Cancel</button></div></div></div></div>`; }
+async function confirmDeleteLead(id){ const {error}=await sb.from("cr_leads").delete().eq("id",id); if(error){toast(error.message,true);return;} toast("Lead deleted."); closeModal(); await loadLeads(); drawLeads(); }
+function convertLead(id){
+  const l=LEADS.find(x=>x.id===id); if(!l)return;
+  closeModal(); setAdminTab('clients');
+  setTimeout(()=>{ const set=(i,v)=>{const e=$(i); if(e&&v)e.value=v;}; set("cl-name",l.name); set("cl-company",l.company); set("cl-email",l.email); set("cl-phone",l.phone); try{ if(typeof autoCode==="function") autoCode(); }catch(_){}
+    sb.from("cr_lead_activities").insert({lead_id:id,kind:"note",body:"Converting to client (details prefilled in Clients tab)",created_by:SESSION.user.id,created_by_name:ME.full_name||"Admin"});
+    toast("Lead details prefilled — set a username, code & password to create the client.");
+    window.scrollTo({top:0,behavior:"smooth"});
+  },120);
 }
 
 // ----- Admin: Reports -----
