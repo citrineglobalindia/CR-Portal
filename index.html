@@ -1669,19 +1669,77 @@ function buildReports(){
 async function exportCRPdf(id){
   const r=CACHE.find(x=>x.id===id); if(!r)return;
   const {data:hist}=await sb.from("cr_status_history").select("*").eq("request_id",id).order("created_at");
-  const {jsPDF}=window.jspdf; const doc=new jsPDF();
-  doc.setFillColor(108,92,231); doc.rect(0,0,210,24,"F");
-  doc.setTextColor(255,255,255); doc.setFontSize(15); doc.text("Stepstones — Change Request",14,15);
-  doc.setTextColor(20,20,20); doc.setFontSize(14); doc.text(`${r.ref_no}   [${r.status}]`,14,36);
-  doc.setFontSize(11); let y=46;
-  const line=(k,v)=>{doc.setTextColor(120,120,120);doc.text(k,14,y);doc.setTextColor(20,20,20);doc.text(String(v==null?"-":v),58,y);y+=8;};
-  line("Title",r.title); line("Client",r.client_name); line("Type",r.type); line("Priority",r.priority);
-  line("Raised",fmtDate(r.created_at)); if(r.due_date) line("Needed by",fmtDay(r.due_date)); line("Last update",fmtDate(r.updated_at));
-  y+=3; doc.setTextColor(120,120,120); doc.text("Description",14,y); y+=7; doc.setTextColor(20,20,20);
-  const desc=doc.splitTextToSize(htmlToText(r.description)||"-",182); doc.text(desc,14,y); y+=desc.length*6+6;
-  doc.setTextColor(120,120,120); doc.text("Status history",14,y); y+=7; doc.setTextColor(20,20,20);
-  (hist||[]).forEach(h=>{ const t=(h.old_status?h.old_status+" -> ":"")+h.new_status+"  ("+fmtDate(h.created_at)+")"+(h.note?" - "+h.note:""); const ls=doc.splitTextToSize(t,182); if(y+ls.length*6>285){doc.addPage();y=20;} doc.text(ls,14,y); y+=ls.length*6+2; });
-  doc.save(r.ref_no+".pdf");
+  let commits=[]; try{ const ck=await sb.from("cr_commits").select("*").eq("request_id",id).order("created_at"); commits=ck.data||[]; }catch(_){}
+  const {jsPDF}=window.jspdf; const doc=new jsPDF({unit:"mm",format:"a4"});
+  const W=210, M=14;
+  const fmtFull=d=>d?new Date(d).toLocaleString("en-GB",{year:"numeric",month:"short",day:"numeric",hour:"2-digit",minute:"2-digit",second:"2-digit"}):"—";
+  const PC={Low:[100,116,139],Medium:[245,176,32],High:[234,88,12],Critical:[239,68,68]};
+  const SC={New:[154,160,189],"In Review":[255,176,32],Approved:[142,124,255],"In Progress":[0,210,168],Done:[34,197,94],Rejected:[255,107,107]};
+  let completed=null; (hist||[]).forEach(h=>{ if(h.new_status==="Done") completed=h.created_at; }); if(!completed&&r.status==="Done") completed=r.updated_at;
+  // header band
+  doc.setFillColor(108,92,231); doc.rect(0,0,W,26,"F");
+  doc.setTextColor(255,255,255); doc.setFont("helvetica","bold"); doc.setFontSize(16); doc.text("Stepstones Global India",M,12);
+  doc.setFont("helvetica","normal"); doc.setFontSize(10); doc.text("Change Request Report",M,19.5);
+  doc.setFont("helvetica","bold"); doc.setFontSize(12); doc.text(String(r.ref_no||""),W-M,11,{align:"right"});
+  const sc=SC[r.status]||[120,120,120]; const stTxt=String(r.status||"").toUpperCase();
+  doc.setFontSize(9); const stW=doc.getTextWidth(stTxt)+8; doc.setFillColor(sc[0],sc[1],sc[2]); doc.roundedRect(W-M-stW,15,stW,6.5,2,2,"F");
+  doc.setTextColor(255,255,255); doc.text(stTxt,W-M-stW/2,19.4,{align:"center"});
+  // title with accent bar
+  let y=37;
+  doc.setFillColor(196,154,74); doc.rect(M,y-5,3.5,9,"F");
+  doc.setTextColor(25,25,30); doc.setFont("helvetica","bold"); doc.setFontSize(16);
+  const titleLines=doc.splitTextToSize(String(r.title||""),W-2*M-8); doc.text(titleLines,M+7,y+1.5); y+=titleLines.length*7+3;
+  // Area / Type / Priority strip
+  doc.autoTable({ startY:y, theme:"grid", styles:{fontSize:10,cellPadding:2.6,lineColor:[225,225,232]},
+    body:[[{content:"Area",styles:{fontStyle:"bold",textColor:[120,120,128],cellWidth:18}}, r.area||"—",
+           {content:"Type",styles:{fontStyle:"bold",textColor:[120,120,128],cellWidth:18}}, r.type||"—",
+           {content:"Priority",styles:{fontStyle:"bold",textColor:[120,120,128],cellWidth:20}}, {content:r.priority||"—",styles:{textColor:PC[r.priority]||[20,20,20],fontStyle:"bold"}}]],
+    margin:{left:M,right:M} });
+  y=doc.lastAutoTable.finalY+5;
+  // details (dates + status)
+  doc.autoTable({ startY:y, theme:"plain", styles:{fontSize:10,cellPadding:1.7},
+    columnStyles:{0:{fontStyle:"bold",textColor:[120,120,128],cellWidth:42}},
+    body:[
+      ["Reference", String(r.ref_no||"—")],
+      ["Client", String(r.client_name||"—")],
+      ["Status", String(r.status||"—")],
+      ["Raised on (date & time)", fmtFull(r.created_at)],
+      ["Completed on (date & time)", completed?fmtFull(completed):"— not completed yet"],
+      ["Needed by", r.due_date?fmtDay(r.due_date):"—"],
+      ["Assigned to", String(r.assigned_name||"Unassigned")],
+      ["Tags", (r.tags&&r.tags.length)?r.tags.join(", "):"—"],
+    ], margin:{left:M,right:M} });
+  y=doc.lastAutoTable.finalY+6;
+  // description
+  doc.setFont("helvetica","bold"); doc.setFontSize(11); doc.setTextColor(25,25,30); doc.text("Description",M,y); y+=2;
+  doc.autoTable({ startY:y, theme:"grid", styles:{fontSize:10,cellPadding:3.2,textColor:[45,45,50],lineColor:[225,225,232]},
+    body:[[ htmlToText(r.description)||"—" ]], margin:{left:M,right:M} });
+  y=doc.lastAutoTable.finalY+6;
+  // status history
+  if((hist||[]).length){
+    doc.setFont("helvetica","bold"); doc.setFontSize(11); doc.setTextColor(25,25,30); doc.text("Status history",M,y); y+=2;
+    doc.autoTable({ startY:y, theme:"striped", headStyles:{fillColor:[108,92,231]}, styles:{fontSize:9,cellPadding:2.2},
+      head:[["When","Change","By","Note"]],
+      body:(hist||[]).map(h=>[ fmtFull(h.created_at), (h.old_status?h.old_status+" → ":"")+h.new_status, h.changed_by_name||"—", h.note||"" ]),
+      columnStyles:{0:{cellWidth:42},1:{cellWidth:40},2:{cellWidth:34}}, margin:{left:M,right:M} });
+    y=doc.lastAutoTable.finalY+6;
+  }
+  // commits
+  if(commits.length){
+    doc.setFont("helvetica","bold"); doc.setFontSize(11); doc.setTextColor(25,25,30); doc.text("GitHub commits",M,y); y+=2;
+    doc.autoTable({ startY:y, theme:"grid", headStyles:{fillColor:[40,40,46]}, styles:{fontSize:9,cellPadding:2},
+      head:[["Commit","Message","Added"]],
+      body:commits.map(c=>[ String(c.hash||"").replace(/^https?:\/\/.*\//,"").slice(0,14), c.message||"", fmtDay(c.created_at) ]),
+      columnStyles:{0:{cellWidth:34},2:{cellWidth:30}}, margin:{left:M,right:M} });
+    y=doc.lastAutoTable.finalY+6;
+  }
+  // footer on every page
+  const pages=doc.internal.getNumberOfPages();
+  for(let i=1;i<=pages;i++){ doc.setPage(i); doc.setDrawColor(225,225,232); doc.line(M,288,W-M,288);
+    doc.setFont("helvetica","normal"); doc.setFontSize(8); doc.setTextColor(150,150,156);
+    doc.text("Generated "+fmtFull(new Date())+" · Stepstones Global India",M,293);
+    doc.text("Page "+i+" of "+pages,W-M,293,{align:"right"}); }
+  doc.save(String(r.ref_no||"CR")+".pdf");
 }
 
 // ----- Admin: Clients -----
