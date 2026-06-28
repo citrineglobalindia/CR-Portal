@@ -8,7 +8,7 @@
   :root{
     --bg:#0f1220; --panel:#171a2b; --panel2:#1e2238; --line:#2a2f4a;
     --txt:#e7e9f3; --muted:#9aa0bd; --brand:#6c5ce7; --brand2:#8e7cff;
-    --accent:#00d2a8; --danger:#ff6b6b; --warn:#ffb020; --ok:#22c55e;
+    --accent:#00d2a8; --danger:#ff6b6b; --warn:#ffb020; --ok:#22c55e; --g1:rgba(108,92,231,.22); --g2:rgba(0,210,168,.14);
     --chip:#252a45; --shadow:0 10px 30px rgba(0,0,0,.35);
     --g1:rgba(108,92,231,.18); --g2:rgba(0,210,168,.12);
   }
@@ -437,6 +437,11 @@
 
   #admin-pane{animation:cr-fade-up .42s cubic-bezier(.22,.61,.36,1) both}
   .sidebar .navside.active{animation:cr-pop .35s ease both}
+
+  /* backside light / glow behind every card */
+  .stat,.card,.rep-card,.rep-stat,.client-card,.bcard{box-shadow:0 10px 30px rgba(0,0,0,.32), 0 0 26px var(--g1), 0 0 10px var(--g2)}
+  .stat:hover,.card:hover,.rep-card:hover,.rep-stat:hover,.client-card:hover,.bcard:hover{box-shadow:0 16px 44px rgba(0,0,0,.44), 0 0 52px var(--g1), 0 0 22px var(--g2)}
+  .nt-card,.comment,.att,.vr-note,.vr-player{box-shadow:0 4px 16px rgba(0,0,0,.22), 0 0 14px var(--g1)}
 </style>
 </head>
 <body>
