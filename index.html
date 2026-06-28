@@ -434,6 +434,9 @@
   header.top{backdrop-filter:blur(8px)}
   .stat{background:linear-gradient(160deg,var(--panel),var(--panel2))}
   .card{box-shadow:0 14px 36px rgba(0,0,0,.34)}
+
+  #admin-pane{animation:cr-fade-up .42s cubic-bezier(.22,.61,.36,1) both}
+  .sidebar .navside.active{animation:cr-pop .35s ease both}
 </style>
 </head>
 <body>
@@ -2522,6 +2525,25 @@ function init3D(){
     camera.position.x+=(mx*1.6-camera.position.x)*.04; camera.position.y+=(-my*1.6-camera.position.y)*.04; camera.lookAt(0,0,0); renderer.render(scene,camera); })();
   THREE_SCENE={ recolor:()=>{ mat.color=brand(); mat2.color=accent(); pmat.color=brand(); } };
 }
+function animCount(el){
+  if(el.dataset.an) return;
+  const raw=el.textContent.trim();
+  const m=raw.match(/^(₹)?([\d,]+(\.\d+)?)(%)?$/);
+  if(!m){ return; }
+  el.dataset.an="1";
+  if(window.matchMedia && matchMedia("(prefers-reduced-motion:reduce)").matches) return;
+  const prefix=m[1]||"", suffix=m[4]||"", target=parseFloat(m[2].replace(/,/g,"")), dec=m[3]?1:0;
+  const dur=950, t0=performance.now();
+  (function step(t){ const p=Math.min(1,(t-t0)/dur), e=1-Math.pow(1-p,3), v=target*e;
+    el.textContent=prefix+(dec?v.toFixed(1):Math.round(v).toLocaleString("en-IN"))+suffix;
+    if(p<1) requestAnimationFrame(step); else el.textContent=raw; })(t0);
+}
+function watchCounters(){
+  const scan=()=>document.querySelectorAll(".stat .n, .rep-stat .n").forEach(animCount);
+  const root=document.getElementById("app-body")||document.body;
+  try{ new MutationObserver(scan).observe(root,{childList:true,subtree:true}); }catch(_){}
+  scan();
+}
 function setupTilt(){
   if(window.matchMedia && matchMedia("(prefers-reduced-motion:reduce)").matches) return;
   const sel=".stat,.rep-stat,.rep-card,.card,.client-card,.bcard,.lead-due";
@@ -2536,6 +2558,7 @@ function setupTilt(){
 if(sb) sb.auth.onAuthStateChange((_e,s)=>{SESSION=s;});
 try{ init3D(); }catch(_){}
 try{ setupTilt(); }catch(_){}
+try{ watchCounters(); }catch(_){}
 function hideLoader(){ const l=$("app-loader"); if(l){ l.classList.add("hide"); setTimeout(()=>{try{l.remove();}catch(_){}} ,700); } }
 (async()=>{ const t0=Date.now(); try{ await initTheme(); }catch(_){} try{ await boot(); }catch(_){} setTimeout(hideLoader, Math.max(0,900-(Date.now()-t0))); })();
 </script>
