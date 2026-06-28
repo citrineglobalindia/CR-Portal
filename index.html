@@ -984,6 +984,15 @@ async function loadClients(){
 }
 
 // ===================== CLIENT VIEW =====================
+let CLIENT_TAB="list";
+function setClientTab(t){ CLIENT_TAB=t;
+  const c=$("client-create-view"), l=$("client-list-view");
+  if(c) c.classList.toggle("hidden",t!=="create");
+  if(l) l.classList.toggle("hidden",t==="create");
+  const bc=$("ctab-create"), bl=$("ctab-list");
+  if(bc) bc.classList.toggle("on",t==="create");
+  if(bl) bl.classList.toggle("on",t!=="create");
+}
 function renderClient(){
   const lg=logoUrl(ME.logo_path);
   $("app-body").innerHTML=`
@@ -995,6 +1004,8 @@ function renderClient(){
       </div>
     </div>
     <div class="stats" id="client-stats"></div>
+    <div class="lead-bar" style="margin:4px 0 14px"><div class="seg"><button id="ctab-list" class="on" onclick="setClientTab('list')">📋 My Requests</button><button id="ctab-create" onclick="setClientTab('create')">＋ Raise a request</button></div></div>
+    <div id="client-create-view" class="hidden">
     <div class="card">
       <h2>Raise a Change Request</h2>
       <div class="sub">Add a heading, a description and an optional photo, then submit. Your reference number is generated automatically.</div>
@@ -1015,6 +1026,8 @@ function renderClient(){
       <div id="file-preview" class="photo-grid" style="margin-top:10px"></div>
       <button class="btn" style="max-width:240px" id="submit-cr" onclick="submitCR()">Submit Change Request</button>
     </div>
+    </div>
+    <div id="client-list-view">
     <div class="card">
       <h2>My Change Requests</h2>
       <div class="sub">Track the status of everything you've submitted.</div>
@@ -1025,6 +1038,7 @@ function renderClient(){
         <button class="btn btn-sm btn-ghost" onclick="loadAndRenderClient()">↻ Refresh</button>
       </div>
       <div class="table-wrap"><div id="c-table"></div></div>
+    </div>
     </div>`;
   $("f-files").addEventListener("change",previewFiles);
   loadAndRenderClient();
