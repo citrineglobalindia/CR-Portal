@@ -382,6 +382,23 @@
   .comment .cmt-body{font-size:13.5px;line-height:1.5}
   .comment .cmt-body .rich-view{margin:2px 0}
   #d-comment.rich-area{min-height:64px}
+
+  /* voice recorder */
+  .voicerec{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:4px}
+  .vr-btn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--panel2);color:var(--txt);border-radius:10px;padding:9px 15px;font-size:13px;font-weight:600;cursor:pointer;transition:border-color .2s,background .2s,transform .15s}
+  .vr-btn:hover{border-color:var(--brand2);transform:translateY(-1px)}
+  .vr-btn .vr-ic{font-size:16px;line-height:1}
+  .vr-btn.recording{background:rgba(255,107,107,.15);border-color:var(--danger);color:#ffb4b4}
+  .vr-btn.recording .vr-ic{animation:vrpulse 1s ease-in-out infinite}
+  @keyframes vrpulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(1.3)}}
+  .vr-time{font-variant-numeric:tabular-nums;font-weight:700;color:var(--danger);font-size:14px;display:inline-flex;align-items:center;gap:7px}
+  .vr-time:before{content:"";width:9px;height:9px;border-radius:50%;background:var(--danger);display:inline-block;animation:vrpulse 1s infinite}
+  .vr-remove{border:1px solid var(--line);background:var(--chip);color:var(--muted);border-radius:9px;padding:8px 12px;font-size:12.5px;font-weight:600;cursor:pointer;transition:.2s}
+  .vr-remove:hover{color:#ffb4b4;border-color:var(--danger)}
+  .vr-player,.vr-note{margin-top:10px;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:11px 13px}
+  .vr-note{margin:0 0 8px}
+  .vr-player .vr-tag,.vr-note .vr-tag{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:7px;font-weight:700}
+  .vr-player audio,.vr-note audio{width:100%;height:40px;display:block}
 </style>
 </head>
 <body>
@@ -571,7 +588,8 @@ function statCard(icon,color,num,label){
 }
 const parseTags = s => { const a=String(s||"").split(",").map(t=>t.trim()).filter(Boolean); return a.length?a:null; };
 // ----- Voice recording (MediaRecorder) -----
-let MEDIA_REC=null, AUDIO_CHUNKS=[], RECORDED={};
+let MEDIA_REC=null, AUDIO_CHUNKS=[], RECORDED={}, REC_TIMER=null;
+function fmtSecs(s){ const m=Math.floor(s/60), ss=String(s%60).padStart(2,"0"); return m+":"+ss; }
 async function toggleRecord(key,btnId,playerId){
   const btn=$(btnId);
   if(MEDIA_REC && MEDIA_REC.state==="recording"){ MEDIA_REC.stop(); return; }
@@ -580,23 +598,30 @@ async function toggleRecord(key,btnId,playerId){
     AUDIO_CHUNKS=[]; MEDIA_REC=new MediaRecorder(stream);
     MEDIA_REC.ondataavailable=e=>{ if(e.data&&e.data.size) AUDIO_CHUNKS.push(e.data); };
     MEDIA_REC.onstop=()=>{
+      if(REC_TIMER){clearInterval(REC_TIMER);REC_TIMER=null;}
+      const tEl=$(btnId+"-time"); if(tEl) tEl.classList.add("hidden");
       const blob=new Blob(AUDIO_CHUNKS,{type:"audio/webm"}); RECORDED[key]=blob;
-      const p=$(playerId); if(p){ p.src=URL.createObjectURL(blob); p.classList.remove("hidden"); }
+      const p=$(playerId); if(p){ p.src=URL.createObjectURL(blob); }
+      const wrap=$(playerId+"-wrap"); if(wrap) wrap.classList.remove("hidden");
       const cl=$(playerId+"-clear"); if(cl) cl.classList.remove("hidden");
       stream.getTracks().forEach(t=>t.stop());
-      if(btn){ btn.textContent="● Record voice note"; btn.classList.remove("rec"); }
+      if(btn){ btn.classList.remove("recording"); const lab=btn.querySelector(".vr-label"); if(lab) lab.textContent="Re-record"; }
     };
-    MEDIA_REC.start(); if(btn){ btn.textContent="■ Stop recording"; btn.classList.add("rec"); }
+    MEDIA_REC.start();
+    let secs=0; const tEl=$(btnId+"-time"); if(tEl){ tEl.textContent="0:00"; tEl.classList.remove("hidden"); }
+    REC_TIMER=setInterval(()=>{ secs++; const t2=$(btnId+"-time"); if(t2) t2.textContent=fmtSecs(secs); },1000);
+    if(btn){ btn.classList.add("recording"); const lab=btn.querySelector(".vr-label"); if(lab) lab.textContent="Stop recording"; }
   }catch(e){ toast("Microphone not available or permission denied.",true); }
 }
-function clearRecord(key,playerId){ delete RECORDED[key]; const p=$(playerId); if(p){p.src="";p.classList.add("hidden");} const cl=$(playerId+"-clear"); if(cl) cl.classList.add("hidden"); }
+function clearRecord(key,playerId){ delete RECORDED[key]; const p=$(playerId); if(p){p.src="";} const wrap=$(playerId+"-wrap"); if(wrap) wrap.classList.add("hidden"); const cl=$(playerId+"-clear"); if(cl) cl.classList.add("hidden"); }
 function recorderUI(key,btnId,playerId){
   return `<label style="margin-top:12px">Voice note <span class="hint">(optional — record & attach)</span></label>
-    <div class="row" style="align-items:center">
-      <button type="button" class="btn btn-sm btn-ghost" id="${btnId}" onclick="toggleRecord('${key}','${btnId}','${playerId}')">● Record voice note</button>
-      <button type="button" class="btn btn-sm btn-ghost hidden" id="${playerId}-clear" onclick="clearRecord('${key}','${playerId}')">Remove</button>
+    <div class="voicerec">
+      <button type="button" class="vr-btn" id="${btnId}" onclick="toggleRecord('${key}','${btnId}','${playerId}')"><span class="vr-ic">🎙</span><span class="vr-label">Record voice note</span></button>
+      <span class="vr-time hidden" id="${btnId}-time">0:00</span>
+      <button type="button" class="vr-remove hidden" id="${playerId}-clear" onclick="clearRecord('${key}','${playerId}')">🗑 Remove</button>
     </div>
-    <audio id="${playerId}" class="hidden" controls style="margin-top:8px;width:100%"></audio>`;
+    <div class="vr-player hidden" id="${playerId}-wrap"><span class="vr-tag">🎧 Preview</span><audio id="${playerId}" controls></audio></div>`;
 }
 async function uploadRecording(key,reqId){
   if(!RECORDED[key]) return;
@@ -2066,7 +2091,7 @@ async function openDetail(id){
     const g=$("audio-list");
     for(const a of audios){
       const {data}=await sb.storage.from("cr-attachments").createSignedUrl(a.file_path,600);
-      if(data&&data.signedUrl){ const au=document.createElement("audio"); au.controls=true; au.src=data.signedUrl; au.style.width="100%"; au.style.marginBottom="8px"; g.appendChild(au); }
+      if(data&&data.signedUrl){ const w=document.createElement("div"); w.className="vr-note"; const tag=document.createElement("span"); tag.className="vr-tag"; tag.textContent="🎙 Voice note"; const au=document.createElement("audio"); au.controls=true; au.src=data.signedUrl; w.appendChild(tag); w.appendChild(au); g.appendChild(w); }
     }
   }
 }
