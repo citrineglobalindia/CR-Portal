@@ -1,0 +1,13 @@
+{
+  "appId": "com.stepstones.crportal",
+  "appName": "Stepstones Portal",
+  "webDir": "www",
+  "server": {
+    "url": "https://cr-portal.vercel.app",
+    "androidScheme": "https",
+    "cleartext": false
+  },
+  "android": {
+    "allowMixedContent": false
+  }
+}
