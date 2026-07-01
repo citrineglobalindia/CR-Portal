@@ -442,6 +442,7 @@
   .stat,.card,.rep-card,.rep-stat,.client-card,.bcard{box-shadow:0 10px 30px rgba(0,0,0,.32), 0 0 26px var(--g1), 0 0 10px var(--g2)}
   .stat:hover,.card:hover,.rep-card:hover,.rep-stat:hover,.client-card:hover,.bcard:hover{box-shadow:0 16px 44px rgba(0,0,0,.44), 0 0 52px var(--g1), 0 0 22px var(--g2)}
   .nt-card,.comment,.att,.vr-note,.vr-player{box-shadow:0 4px 16px rgba(0,0,0,.22), 0 0 14px var(--g1)}
+  .cm-badge.resent{color:#ff8a8a;background:rgba(255,107,107,.14);border-color:rgba(255,107,107,.4)}
 </style>
 </head>
 <body>
@@ -1068,7 +1069,7 @@ function renderClientTable(){
       <td class="pr-${r.priority}">${esc(r.priority)}</td>
       <td><span class="badge ${badgeClass(r.status)}">${esc(r.status)}</span></td>
       <td>${fmtDay(r.created_at)}</td>
-      <td style="white-space:nowrap">${r.status==="Done"?`<button class="btn btn-sm btn-ghost" onclick="reopenCR('${r.id}')">↺ Not completed</button> `:""}<button class="link-btn" onclick="openDetail('${r.id}')">View</button></td>
+      <td style="white-space:nowrap">${r.status==="Done"?`<button class="btn btn-sm btn-ghost" onclick="openReopen('${r.id}')">↺ Not completed</button> `:""}<button class="link-btn" onclick="openDetail('${r.id}')">View</button></td>
     </tr>`).join("")}</tbody></table>`:`<div class="empty">No change requests yet. Submit your first one above.</div>`;
 }
 async function submitCR(){
@@ -1300,7 +1301,7 @@ function renderAdminTable(){
     <thead><tr><th>Ref</th><th>Heading</th><th>Client</th><th>Owner</th><th>Pri.</th><th>Status</th><th>Raised</th><th>Completed</th><th></th></tr></thead>
     <tbody>${rows.map(r=>`<tr>
       <td><span class="ref">${esc(r.ref_no)}</span></td>
-      <td>${esc(r.title)}${(r.tags&&r.tags.length)?` <span style="color:var(--muted);font-size:11px">#${esc(r.tags[0])}${r.tags.length>1?"+"+(r.tags.length-1):""}</span>`:""}${COMMIT_COUNTS[r.id]?` <span class="cm-badge" title="${COMMIT_COUNTS[r.id]} commit(s) linked">🔗 ${COMMIT_COUNTS[r.id]}</span>`:""}</td>
+      <td>${esc(r.title)}${(r.tags&&r.tags.length)?` <span style="color:var(--muted);font-size:11px">#${esc(r.tags[0])}${r.tags.length>1?"+"+(r.tags.length-1):""}</span>`:""}${COMMIT_COUNTS[r.id]?` <span class="cm-badge" title="${COMMIT_COUNTS[r.id]} commit(s) linked">🔗 ${COMMIT_COUNTS[r.id]}</span>`:""}${r.resent_count?` <span class="cm-badge resent" title="Re-sent by client ${r.resent_count} time(s)">↩ Re-Sent${r.resent_count>1?" ×"+r.resent_count:""}</span>`:""}</td>
       <td>${esc(r.client_name||"—")}</td>
       <td>${esc(r.assigned_name||"—")}</td>
       <td class="pr-${r.priority}">${esc(r.priority)}</td>
@@ -1376,14 +1377,34 @@ async function confirmDeleteCR(id){
     closeModal(); await loadAndRenderAdmin();
   }catch(e){ toast(e.message||"Could not delete.",true); if($("del-btn")){btn.disabled=false; btn.textContent="Yes, delete permanently";} }
 }
-async function reopenCR(id){
-  const {error}=await sb.rpc("cr_reopen",{p_id:id});
-  if(error){toast(error.message||"Could not reopen.",true);return;}
+function openReopen(id){
+  const r=CACHE.find(x=>x.id===id); if(!r)return;
+  $("modal-root").innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()"><div class="modal">
+    <div class="mh"><div><h2 style="margin:0">Mark as not completed</h2><div class="hint">${esc(r.ref_no)} — this re-sends it to the admin as <b>Re-Sent</b>.</div></div><button class="x" onclick="closeModal()">×</button></div>
+    <div class="mb">
+      <label>What still needs to be done? <span class="hint">(recommended)</span></label>
+      <textarea id="ro-note" class="inp" rows="3" placeholder="Explain what is still pending or wrong…"></textarea>
+      <label style="margin-top:12px">Add photos <span class="hint">(optional)</span></label>
+      <input id="ro-files" class="inp" type="file" accept="image/*" multiple onchange="previewInto('ro-files','ro-prev')"/>
+      <div id="ro-prev" class="photo-grid" style="margin-top:8px"></div>
+      ${recorderUI("reopen","ro-rec-btn","ro-rec-player")}
+      <div class="row" style="margin-top:16px"><button class="btn btn-sm btn-ok" id="ro-btn" onclick="submitReopen('${id}')">↩ Re-send to admin</button><button class="btn btn-sm btn-ghost" onclick="closeModal()">Cancel</button></div>
+    </div></div></div>`;
+}
+async function submitReopen(id){
+  const note=($("ro-note")?$("ro-note").value:"").trim();
+  const btn=$("ro-btn"); if(btn){btn.disabled=true;btn.textContent="Sending…";}
+  const {error}=await sb.rpc("cr_reopen",{p_id:id,p_note:note||null});
+  if(error){ if(btn){btn.disabled=false;btn.textContent="↩ Re-send to admin";} toast(error.message||"Could not re-send.",true); return; }
+  if(note){ try{ await sb.from("cr_comments").insert({request_id:id,author_id:SESSION.user.id,author_name:ME.full_name||ME.username||ME.email,author_role:ME.role,body:note}); }catch(_){} }
+  const inp=$("ro-files"); if(inp&&inp.files){ for(const f of inp.files){ await uploadAttachment(id,f); } }
+  try{ await uploadRecording("reopen",id); }catch(_){}
   notify("reopen",id).catch(()=>{});
-  toast("Request reopened — the team has been notified.");
+  toast("Re-sent to admin — they've been notified.");
   closeModal();
   if(ME.role==="admin"){ await loadRequests(); renderAdminTable(); } else { await loadAndRenderClient(); }
 }
+async function reopenCR(id){ openReopen(id); }
 async function quickStatus(id,newStatus){
   const r=CACHE.find(x=>x.id===id); if(!r||r.status===newStatus)return;
   const old=r.status;
@@ -2116,6 +2137,10 @@ function openCREdit(id){
         </div>
         <label style="margin-top:12px">Tags <span class="hint">comma-separated</span></label>
         <input id="ed-tags" class="inp" value="${esc((r.tags||[]).join(', '))}" placeholder="e.g. urgent, billing"/>
+        <label style="margin-top:12px">Add photos <span class="hint">(optional)</span></label>
+        <input id="ed-files" class="inp" type="file" accept="image/*" multiple onchange="previewInto('ed-files','ed-prev')"/>
+        <div id="ed-prev" class="photo-grid" style="margin-top:8px"></div>
+        ${recorderUI("edit","ed-rec-btn","ed-rec-player")}
         <div class="row" style="margin-top:16px">
           <button class="btn btn-sm btn-ok" id="ed-save" onclick="saveCREdit('${id}')">Save changes</button>
           <button class="btn btn-sm btn-ghost" onclick="openDetail('${id}')">Cancel</button>
@@ -2134,6 +2159,8 @@ async function saveCREdit(id){
   const {error}=await sb.from("cr_requests").update(patch).eq("id",id);
   if(btn){btn.disabled=false;btn.textContent="Save changes";}
   if(error){toast(error.message||"Could not save changes.",true);return;}
+  const inp=$("ed-files"); if(inp&&inp.files){ for(const f of inp.files){ await uploadAttachment(id,f); } }
+  try{ await uploadRecording("edit",id); }catch(_){}
   const r=CACHE.find(x=>x.id===id); if(r) Object.assign(r,patch);
   toast("Request updated.");
   openDetail(id);
@@ -2334,7 +2361,7 @@ async function openDetail(id){
           <button class="btn btn-sm" onclick="saveStatus('${r.id}')">Save</button>
         </div>`:""}
         ${(!isAdmin && r.status==="Done")?`<div class="section-title">Not completed?</div>
-        <button class="btn btn-sm btn-ghost" onclick="reopenCR('${r.id}')">↺ Mark as not completed (reopen)</button>
+        <button class="btn btn-sm btn-ghost" onclick="openReopen('${r.id}')">↺ Mark as not completed (reopen)</button>
         <div class="hint">This reopens the request and notifies the team to look again.</div>`:""}
         ${files.length?`<div class="section-title">Attachments (${files.length})</div>
         <div>${files.map(a=>`<div class="att"><span>📎</span><span class="name">${esc(a.file_name)}</span>
