@@ -443,6 +443,32 @@
   .stat:hover,.card:hover,.rep-card:hover,.rep-stat:hover,.client-card:hover,.bcard:hover{box-shadow:0 16px 44px rgba(0,0,0,.44), 0 0 52px var(--g1), 0 0 22px var(--g2)}
   .nt-card,.comment,.att,.vr-note,.vr-player{box-shadow:0 4px 16px rgba(0,0,0,.22), 0 0 14px var(--g1)}
   .cm-badge.resent{color:#ff8a8a;background:rgba(255,107,107,.14);border-color:rgba(255,107,107,.4)}
+
+  /* gantt */
+  .gt-legend{display:flex;flex-wrap:wrap;gap:14px;margin:2px 0 14px;font-size:12px;color:var(--muted)}
+  .gt-legend span{display:inline-flex;align-items:center;gap:6px}
+  .gt-legend i{width:12px;height:12px;border-radius:3px;display:inline-block}
+  .gt-legend i.mile{width:11px;height:11px;transform:rotate(45deg);background:var(--panel);border:2px solid var(--warn);border-radius:2px}
+  .gt-wrap{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--panel);box-shadow:var(--shadow)}
+  .gt-scroll{overflow-x:auto}
+  .gt-grid{position:relative}
+  .gt-head{display:flex;position:sticky;top:0;z-index:4;background:var(--panel2);border-bottom:1px solid var(--line)}
+  .gt-ticks{position:relative;height:34px;flex:0 0 auto}
+  .gt-tick{position:absolute;top:0;height:100%;border-left:1px solid var(--line);opacity:.4}
+  .gt-tick.month{opacity:.85}
+  .gt-tick span{position:absolute;top:9px;left:5px;font-size:11px;color:var(--muted);white-space:nowrap}
+  .gt-body{position:relative}
+  .gt-lines{z-index:0}
+  .gt-row{display:flex;border-bottom:1px solid var(--line);min-height:42px;position:relative;z-index:1}
+  .gt-label{flex:0 0 240px;position:sticky;left:0;z-index:3;background:var(--panel);border-right:1px solid var(--line);padding:6px 12px;display:flex;flex-direction:column;justify-content:center;gap:2px}
+  .gt-row:hover .gt-label{background:var(--panel2)}
+  .gt-label .t{font-size:12px;color:var(--muted);max-width:212px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .gt-lane{position:relative;flex:0 0 auto}
+  .gt-bar{position:absolute;top:10px;height:22px;border-radius:6px;cursor:pointer;display:flex;align-items:center;padding:0 8px;font-size:11px;font-weight:700;color:#0a0f14;white-space:nowrap;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.3);transition:transform .12s,box-shadow .2s}
+  .gt-bar:hover{transform:translateY(-1px);box-shadow:0 5px 16px rgba(0,0,0,.45)}
+  .gt-mile{position:absolute;top:12px;width:14px;height:14px;margin-left:-7px;transform:rotate(45deg);background:var(--panel);z-index:2}
+  .gt-today{position:absolute;top:0;bottom:0;width:2px;background:var(--brand);z-index:1}
+  .gt-today span{position:absolute;top:-1px;left:4px;font-size:10px;color:#fff;font-weight:700;background:var(--brand);padding:1px 5px;border-radius:4px}
 </style>
 </head>
 <body>
@@ -1147,11 +1173,12 @@ function renderAdmin(){
         <button id="nt-leads" class="navside ${ADMIN_TAB==='leads'?'active':''}" onclick="setAdminTab('leads')"><span><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.6"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></span> Leads</button>
         <button id="nt-clients" class="navside ${ADMIN_TAB==='clients'?'active':''}" onclick="setAdminTab('clients')"><span><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 19v-1a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v1"/><circle cx="9.5" cy="8" r="3.2"/><path d="M21 19v-1a4 4 0 0 0-3-3.85"/><path d="M16 4.15a3.2 3.2 0 0 1 0 6.2"/></svg></span> Clients</button>
         <button id="nt-board" class="navside ${ADMIN_TAB==='board'?'active':''}" onclick="setAdminTab('board')"><span><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="5" height="16" rx="1"/><rect x="9.5" y="4" width="5" height="11" rx="1"/><rect x="16" y="4" width="5" height="14" rx="1"/></svg></span> Board</button>
+        <button id="nt-gantt" class="navside ${ADMIN_TAB==='gantt'?'active':''}" onclick="setAdminTab('gantt')"><span><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="11" height="3" rx="1"/><rect x="7" y="10.5" width="13" height="3" rx="1"/><rect x="3" y="16" width="8" height="3" rx="1"/></svg></span> Gantt</button>
         <button id="nt-reports" class="navside ${ADMIN_TAB==='reports'?'active':''}" onclick="setAdminTab('reports')"><span><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><rect x="5" y="11" width="3" height="7" rx="1"/><rect x="10.5" y="6" width="3" height="12" rx="1"/><rect x="16" y="9" width="3" height="9" rx="1"/></svg></span> Reports</button>
       </aside>
       <div class="adminmain"><div id="admin-pane"></div></div>
     </div>`;
-  if(ADMIN_TAB==="clients") renderAdminClients(); else if(ADMIN_TAB==="reports") renderAdminReports(); else if(ADMIN_TAB==="board") renderAdminBoard(); else if(ADMIN_TAB==="leads") renderAdminLeads(); else renderAdminDash();
+  if(ADMIN_TAB==="clients") renderAdminClients(); else if(ADMIN_TAB==="reports") renderAdminReports(); else if(ADMIN_TAB==="board") renderAdminBoard(); else if(ADMIN_TAB==="leads") renderAdminLeads(); else if(ADMIN_TAB==="gantt") renderAdminGantt(); else renderAdminDash();
 }
 function setAdminTab(t){ ADMIN_TAB=t; renderAdmin(); }
 
@@ -1613,6 +1640,65 @@ function convertLead(id){
     toast("Lead details prefilled — set a username, code & password to create the client.");
     window.scrollTo({top:0,behavior:"smooth"});
   },120);
+}
+
+
+// ===================== GANTT (CR timeline) =====================
+let GANTT_ZOOM=9;
+async function renderAdminGantt(){
+  $("admin-pane").innerHTML=`<div id="gantt-pane"><div class="hint">Loading…</div></div>`;
+  await loadRequests(); await loadClients(); await loadCompletedTimes();
+  drawGantt();
+}
+function drawGantt(){
+  const clients=[...new Set(CACHE.map(r=>r.client_name).filter(Boolean))].sort();
+  $("gantt-pane").innerHTML=`
+    <div class="lead-bar">
+      <h2 style="margin:0">CR Timeline (Gantt)</h2>
+      <div class="row" style="gap:8px;flex-wrap:wrap;margin:0">
+        <div class="seg" id="gt-zoom"><button data-z="26" onclick="gZoom(26)">Day</button><button data-z="9" class="on" onclick="gZoom(9)">Week</button><button data-z="3" onclick="gZoom(3)">Month</button></div>
+        <select id="gt-client" class="inp" onchange="buildGantt()" style="max-width:200px"><option value="">All clients</option>${clients.map(c=>`<option>${esc(c)}</option>`).join("")}</select>
+        <select id="gt-status" class="inp" onchange="buildGantt()"><option value="">All statuses</option>${STATUSES.map(x=>`<option>${x}</option>`).join("")}</select>
+      </div>
+    </div>
+    <div class="gt-legend">${STATUSES.map(x=>`<span><i style="background:${REP_SC[x]||'#8e7cff'}"></i>${esc(x)}</span>`).join("")}<span><i class="mile"></i>Due date</span></div>
+    <div id="gt-body-wrap"></div>`;
+  buildGantt();
+}
+function gZoom(z){ GANTT_ZOOM=z; document.querySelectorAll('#gt-zoom button').forEach(b=>b.classList.toggle('on',+b.dataset.z===z)); buildGantt(); }
+function buildGantt(){
+  const wrap=$("gt-body-wrap"); if(!wrap) return;
+  const cf=$("gt-client")?$("gt-client").value:"", sf=$("gt-status")?$("gt-status").value:"";
+  let rows=CACHE.filter(r=>(!cf||r.client_name===cf)&&(!sf||r.status===sf)).slice().sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
+  if(!rows.length){ wrap.innerHTML=`<div class="empty">No change requests match.</div>`; return; }
+  const DAY=86400000;
+  const endOf=r=>{ if(r.status==="Done") return new Date(COMPLETED_AT[r.id]||r.updated_at).getTime(); const due=r.due_date?new Date(r.due_date).getTime():0; return Math.max(Date.now(),due); };
+  const minS=Math.min(...rows.map(r=>new Date(r.created_at).getTime()));
+  const maxE=Math.max(Date.now(),...rows.map(endOf));
+  const p=new Date(minS-3*DAY); p.setHours(0,0,0,0);
+  const start=p.getTime(), end=maxE+6*DAY, dayW=GANTT_ZOOM, labelW=240;
+  const totalDays=Math.ceil((end-start)/DAY), tlW=totalDays*dayW;
+  const xOf=t=>((t-start)/DAY)*dayW;
+  let ticks=""; let d=new Date(start); d.setDate(1);
+  while(d.getTime()<end){ ticks+=`<div class="gt-tick month" style="left:${xOf(d.getTime())}px"><span>${d.toLocaleDateString(undefined,{month:"short",year:"2-digit"})}</span></div>`; d.setMonth(d.getMonth()+1); }
+  if(dayW>=9){ let w=new Date(start); w.setHours(0,0,0,0); w.setDate(w.getDate()-((w.getDay()+6)%7)); while(w.getTime()<end){ ticks+=`<div class="gt-tick" style="left:${xOf(w.getTime())}px"></div>`; w.setDate(w.getDate()+7); } }
+  const todayX=xOf(Date.now());
+  const body=rows.map(r=>{
+    const st=new Date(r.created_at).getTime(), en=endOf(r), left=xOf(st), w=Math.max(8,xOf(en)-left);
+    const col=REP_SC[r.status]||"#8e7cff";
+    const due=r.due_date?new Date(r.due_date).getTime():0;
+    const overdue=due&&r.status!=="Done"&&due<Date.now();
+    const dur=Math.max(1,Math.round((en-st)/DAY));
+    const tip=`${r.ref_no} · ${r.status} · raised ${fmtDay(r.created_at)}${r.status==="Done"?" · done "+fmtDay(en):(due?" · due "+fmtDay(r.due_date):"")} · ${dur}d`;
+    const mile=due?`<div class="gt-mile" style="left:${xOf(due)}px;border-color:${overdue?'#ff6b6b':'#ffb020'}" title="Due ${esc(fmtDay(r.due_date))}"></div>`:"";
+    return `<div class="gt-row"><div class="gt-label"><span class="ref">${esc(r.ref_no)}</span><span class="t" title="${esc(r.title)}">${esc(r.title)}</span></div>
+      <div class="gt-lane" style="width:${tlW}px"><div class="gt-bar" style="left:${left}px;width:${w}px;background:${col}" title="${esc(tip)}" onclick="openDetail('${r.id}')">${w>58?esc(r.ref_no):""}</div>${mile}</div></div>`;
+  }).join("");
+  const lines=ticks.replace(/<span[^>]*>.*?<\/span>/g,"");
+  wrap.innerHTML=`<div class="gt-wrap"><div class="gt-scroll"><div class="gt-grid" style="width:${labelW+tlW}px">
+    <div class="gt-head"><div class="gt-label" style="justify-content:center"><b>Change request</b></div><div class="gt-ticks" style="width:${tlW}px">${ticks}</div></div>
+    <div class="gt-body"><div class="gt-lines" style="position:absolute;left:${labelW}px;top:0;bottom:0;right:0;pointer-events:none">${lines}<div class="gt-today" style="left:${todayX}px"><span>Today</span></div></div>${body}</div>
+  </div></div></div>`;
 }
 
 // ----- Admin: Reports -----
