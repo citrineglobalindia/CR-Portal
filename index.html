@@ -637,6 +637,9 @@
     .stats{grid-template-columns:repeat(2,1fr)!important}
     .stat .n{font-size:20px}
   }
+  .insights{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}
+  .insights .ins{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:11px 13px;font-size:13px;color:var(--muted)}
+  .insights .ins b{color:var(--txt)}
 </style>
 </head>
 <body>
@@ -2047,9 +2050,17 @@ async function renderAdminReports(){
       <div class="rep-card wide"><h3>Status mix per client</h3><div class="rep-cv" style="height:300px"><canvas id="ch-clientstatus"></canvas></div></div>
       <div class="rep-card"><h3>Avg days to complete — by client</h3><div class="rep-cv"><canvas id="ch-resolution"></canvas></div></div>
       <div class="rep-card"><h3>Cumulative requests over time</h3><div class="rep-cv"><canvas id="ch-cum"></canvas></div></div>
+      <div class="rep-card wide" style="background:linear-gradient(135deg,var(--panel),var(--panel2))"><h3>💡 Insights</h3><div id="an-insights" class="insights"></div></div>
+      <div class="rep-card wide"><h3>Created vs Completed — weekly throughput</h3><div class="rep-cv"><canvas id="ch-throughput"></canvas></div></div>
+      <div class="rep-card"><h3>Open backlog over time</h3><div class="rep-cv"><canvas id="ch-backlog"></canvas></div></div>
+      <div class="rep-card"><h3>Open CR aging</h3><div class="rep-cv"><canvas id="ch-aging"></canvas></div></div>
+      <div class="rep-card"><h3>Resolution time distribution</h3><div class="rep-cv"><canvas id="ch-rdist"></canvas></div></div>
+      <div class="rep-card"><h3>SLA — completed on time</h3><div class="rep-cv"><canvas id="ch-sla"></canvas></div></div>
+      <div class="rep-card"><h3>By type</h3><div class="rep-cv"><canvas id="ch-type"></canvas></div></div>
+      <div class="rep-card wide"><h3>Sales funnel — leads by stage</h3><div class="rep-cv"><canvas id="ch-funnel"></canvas></div></div>
       <div class="rep-card wide"><h3>Client performance breakdown</h3><div class="an-wrap" id="an-table"></div></div>
     </div>`;
-  await loadRequests(); await loadClients();
+  await loadRequests(); await loadClients(); try{ await loadLeads(); }catch(_){}
   buildReports();
 }
 function setRepRange(d){ REP_RANGE=d; document.querySelectorAll('#rep-rng .rng-btn').forEach(b=>b.classList.toggle('on',+b.dataset.d===d)); buildReports(); }
@@ -2118,6 +2129,47 @@ function buildReports(){
     const mo={}; data.forEach(r=>{const d=new Date(r.created_at);const k=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");mo[k]=(mo[k]||0)+1;});
     const mkeys=Object.keys(mo).sort(); let run=0; const cum=mkeys.map(k=>run+=mo[k]);
     mk("cum",{type:"line",data:{labels:mkeys.map(k=>{const a=k.split("-");return new Date(a[0],a[1]-1).toLocaleDateString(undefined,{month:"short",year:"2-digit"})}),datasets:[{label:"Total",data:cum,borderColor:"#6c5ce7",backgroundColor:"rgba(108,92,231,.18)",fill:true,tension:.35,pointRadius:3}]},options:Object.assign({},noLeg,{scales:{y:{beginAtZero:true,ticks:{precision:0}},x:{grid:{display:false}}}})});
+    // ===== next-level analytics =====
+    const DAY=86400000, now=Date.now();
+    const weekStart=t=>{ const dd=new Date(t); dd.setHours(0,0,0,0); dd.setDate(dd.getDate()-((dd.getDay()+6)%7)); return dd.getTime(); };
+    const wLabels=[], wStarts=[]; const tw=weekStart(now); for(let i=11;i>=0;i--){ const ws=tw-i*7*DAY; wStarts.push(ws); wLabels.push(new Date(ws).toLocaleDateString(undefined,{month:"short",day:"numeric"})); }
+    const created=wStarts.map(()=>0), completed=wStarts.map(()=>0);
+    data.forEach(r=>{ const ci=wStarts.indexOf(weekStart(new Date(r.created_at).getTime())); if(ci>=0) created[ci]++; if(r.status==="Done"){ const di=wStarts.indexOf(weekStart(new Date(COMPLETED_AT[r.id]||r.updated_at).getTime())); if(di>=0) completed[di]++; } });
+    mk("throughput",{type:"bar",data:{labels:wLabels,datasets:[{label:"Created",data:created,backgroundColor:"#8e7cff",borderRadius:5,maxBarThickness:16},{label:"Completed",data:completed,backgroundColor:"#22c55e",borderRadius:5,maxBarThickness:16}]},options:{plugins:{legend:{position:"bottom",labels:{boxWidth:10,boxHeight:10,padding:10}}},scales:{y:{beginAtZero:true,ticks:{precision:0}},x:{grid:{display:false},ticks:{maxRotation:0,autoSkip:true,maxTicksLimit:12}}}}});
+    const backAbs=wStarts.map(ws=>{ const we=ws+7*DAY; let open=0; data.forEach(r=>{ const ct=new Date(r.created_at).getTime(); if(ct<=we){ let done=false; if(r.status==="Done"){ if(new Date(COMPLETED_AT[r.id]||r.updated_at).getTime()<=we) done=true; } if(r.status==="Rejected") done=true; if(!done) open++; } }); return open; });
+    mk("backlog",{type:"line",data:{labels:wLabels,datasets:[{label:"Open",data:backAbs,borderColor:"#ffb020",backgroundColor:"rgba(255,176,32,.18)",fill:true,tension:.35,pointRadius:2}]},options:Object.assign({},noLeg,{scales:{y:{beginAtZero:true,ticks:{precision:0}},x:{grid:{display:false},ticks:{maxRotation:0,autoSkip:true,maxTicksLimit:12}}}})});
+    const openCRs=data.filter(r=>r.status!=="Done"&&r.status!=="Rejected");
+    const ageB=[0,0,0,0,0]; openCRs.forEach(r=>{ const a=(now-new Date(r.created_at).getTime())/DAY; if(a<=3)ageB[0]++;else if(a<=7)ageB[1]++;else if(a<=14)ageB[2]++;else if(a<=30)ageB[3]++;else ageB[4]++; });
+    mk("aging",{type:"bar",data:{labels:["0-3d","4-7d","8-14d","15-30d","30d+"],datasets:[{data:ageB,backgroundColor:["#22c55e","#00d2a8","#ffb020","#ff9f45","#ff6b6b"],borderRadius:6,maxBarThickness:36}]},options:Object.assign({},noLeg,{scales:{y:{beginAtZero:true,ticks:{precision:0}},x:{grid:{display:false}}}})});
+    const doneAll=data.filter(r=>r.status==="Done");
+    const rB=[0,0,0,0,0,0]; doneAll.forEach(r=>{ const dv=(new Date(COMPLETED_AT[r.id]||r.updated_at)-new Date(r.created_at))/DAY; if(dv<1)rB[0]++;else if(dv<=3)rB[1]++;else if(dv<=7)rB[2]++;else if(dv<=14)rB[3]++;else if(dv<=30)rB[4]++;else rB[5]++; });
+    mk("rdist",{type:"bar",data:{labels:["<1d","1-3d","4-7d","8-14d","15-30d","30d+"],datasets:[{data:rB,backgroundColor:"#8e7cff",borderRadius:6,maxBarThickness:32}]},options:Object.assign({},noLeg,{scales:{y:{beginAtZero:true,ticks:{precision:0}},x:{grid:{display:false}}}})});
+    const withDue=doneAll.filter(r=>r.due_date);
+    const onTime=withDue.filter(r=>new Date(COMPLETED_AT[r.id]||r.updated_at)<=new Date(r.due_date+"T23:59:59")).length;
+    mk("sla",{type:"doughnut",data:{labels:["On time","Late"],datasets:[{data:[onTime,withDue.length-onTime],backgroundColor:["#22c55e","#ff6b6b"],borderWidth:0}]},options:{cutout:"62%",plugins:{legend:{position:"bottom",labels:{boxWidth:10,boxHeight:10,padding:10}}}}});
+    const ty=by(data,"type");
+    mk("type",{type:"doughnut",data:{labels:Object.keys(ty),datasets:[{data:Object.values(ty),backgroundColor:["#8e7cff","#00d2a8","#ffb020","#ff6b6b","#3b82f6","#a855f7"],borderWidth:0}]},options:{cutout:"60%",plugins:{legend:{position:"bottom",labels:{boxWidth:10,boxHeight:10,padding:10}}}}});
+    const lst=(typeof LEADS!=="undefined"?LEADS:[])||[];
+    const fL=(typeof LEAD_STAGES!=="undefined"?LEAD_STAGES:["New","Contacted","Qualified","Proposal","Negotiation","Won","Lost"]);
+    mk("funnel",{type:"bar",data:{labels:fL,datasets:[{data:fL.map(stg=>lst.filter(l=>l.stage===stg).length),backgroundColor:fL.map(x=>(typeof LEAD_SC!=="undefined"&&LEAD_SC[x])||"#8e7cff"),borderRadius:6,maxBarThickness:26}]},options:Object.assign({},noLeg,{indexAxis:"y",scales:{x:{beginAtZero:true,ticks:{precision:0}},y:{grid:{display:false}}}})});
+    // insights
+    const iel=$("an-insights"); if(iel){
+      const bl=[]; const compRate2=data.length?Math.round(doneAll.length/data.length*100):0;
+      const avgRes=doneAll.length?(doneAll.reduce((sx,r)=>sx+(new Date(COMPLETED_AT[r.id]||r.updated_at)-new Date(r.created_at)),0)/doneAll.length/DAY):0;
+      const last4=created.slice(-4).reduce((a,b)=>a+b,0), prev4=created.slice(-8,-4).reduce((a,b)=>a+b,0);
+      const trend=prev4?Math.round((last4-prev4)/prev4*100):null;
+      const dowArr=[0,0,0,0,0,0,0]; data.forEach(r=>dowArr[new Date(r.created_at).getDay()]++); const busiest=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][dowArr.indexOf(Math.max(...dowArr))];
+      const overdue=openCRs.filter(r=>r.due_date&&new Date(r.due_date)<new Date()).length;
+      const oldest=openCRs.length?Math.round(Math.max(...openCRs.map(r=>(now-new Date(r.created_at))/DAY))):0;
+      bl.push(`✅ <b>${compRate2}%</b> completion rate · avg resolution <b>${avgRes?avgRes.toFixed(1):"—"}</b> days`);
+      if(trend!==null) bl.push(`${trend>=0?"📈":"📉"} New CRs ${trend>=0?"up":"down"} <b>${Math.abs(trend)}%</b> vs previous 4 weeks`);
+      bl.push(`🔥 Busiest request day: <b>${busiest}</b>`);
+      if(topNames&&topNames[0]) bl.push(`🏆 Most active client: <b>${esc(topNames[0])}</b>`);
+      bl.push(`🕒 <b>${openCRs.length}</b> open · <b>${overdue}</b> overdue · oldest open <b>${oldest}</b>d`);
+      if(withDue.length) bl.push(`🎯 SLA: <b>${Math.round(onTime/withDue.length*100)}%</b> of due CRs completed on time`);
+      if(lst.length){ const won=lst.filter(l=>l.stage==="Won").length, lostn=lst.filter(l=>l.stage==="Lost").length; const wr=(won+lostn)?Math.round(won/(won+lostn)*100):null; bl.push(`💼 Leads: <b>${lst.length}</b> total · win rate <b>${wr==null?"—":wr+"%"}</b>`); }
+      iel.innerHTML=bl.map(x=>`<div class="ins">${x}</div>`).join("");
+    }
   });
 }
 
