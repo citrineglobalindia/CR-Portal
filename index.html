@@ -939,6 +939,7 @@ const THEMES={
   sunset:{name:"Sunset",dot:"linear-gradient(135deg,#ea580c,#f43f5e)",v:{"--bg":"#1a0f0c","--panel":"#241512","--panel2":"#2e1a16","--line":"#48281f","--txt":"#fae9e3","--muted":"#caa094","--brand":"#ea580c","--brand2":"#fb7185","--accent":"#f59e0b","--chip":"#3a1e18","--g1":"rgba(234,88,12,.2)","--g2":"rgba(244,63,94,.13)"}},
   rose:{name:"Rose",dot:"linear-gradient(135deg,#db2777,#a855f7)",v:{"--bg":"#160e18","--panel":"#211526","--panel2":"#2a1a30","--line":"#43284c","--txt":"#f6e9f6","--muted":"#c39bc6","--brand":"#db2777","--brand2":"#e879f9","--accent":"#a855f7","--chip":"#321d39","--g1":"rgba(219,39,119,.2)","--g2":"rgba(168,85,247,.14)"}},
   slate:{name:"Slate",dot:"linear-gradient(135deg,#475569,#94a3b8)",v:{"--bg":"#0d1117","--panel":"#161b22","--panel2":"#1c232c","--line":"#2d333b","--txt":"#e6edf3","--muted":"#9098a3","--brand":"#5b6b82","--brand2":"#8b9bb4","--accent":"#56b6c2","--chip":"#222a33","--g1":"rgba(91,107,130,.18)","--g2":"rgba(86,182,194,.1)"}},
+  ember:{name:"Ember",dot:"linear-gradient(135deg,#ff7a1a,#ffb347)",v:{"--bg":"#08080b","--panel":"#131117","--panel2":"#1b1820","--line":"#2b2620","--txt":"#f6efe6","--muted":"#a79f92","--brand":"#ff7a1a","--brand2":"#ff9f45","--accent":"#ffb020","--chip":"#241f1a","--g1":"rgba(255,122,26,.24)","--g2":"rgba(255,176,32,.15)"}},
   neon:{name:"Neon",dot:"linear-gradient(135deg,#ff2bd6,#7c3aed)",v:{"--bg":"#0a0612","--panel":"#150d23","--panel2":"#1d1230","--line":"#33214d","--txt":"#f5e9ff","--muted":"#b69ad6","--brand":"#ff2bd6","--brand2":"#c026d3","--accent":"#22d3ee","--chip":"#241634","--g1":"rgba(255,43,214,.22)","--g2":"rgba(124,58,237,.16)"}},
   light:{name:"Light",dot:"linear-gradient(135deg,#6c5ce7,#00b894)",v:{"--bg":"#f4f6fb","--panel":"#ffffff","--panel2":"#eef2fa","--line":"#dde3ee","--txt":"#1e2333","--muted":"#5d6680","--brand":"#6c5ce7","--brand2":"#5848d6","--accent":"#0ea5a0","--chip":"#e9edf7","--g1":"rgba(108,92,231,.1)","--g2":"rgba(0,184,148,.08)","--shadow":"0 10px 30px rgba(20,30,60,.08)"}}
 };
@@ -1938,6 +1939,7 @@ async function renderAdminHome(){
 }
 function drawHome(){
   const C=CACHE;
+  const BR=(getComputedStyle(document.documentElement).getPropertyValue("--brand")||"#8e7cff").trim();
   const open=C.filter(r=>r.status!=="Done"&&r.status!=="Rejected");
   const done=C.filter(r=>r.status==="Done");
   const overdue=open.filter(r=>r.due_date&&new Date(r.due_date)<new Date());
@@ -1992,7 +1994,7 @@ function drawHome(){
   C.forEach(r=>{const d=new Date(r.created_at);const k=d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate();mp[k]=(mp[k]||0)+1;});
   for(let n=days-1;n>=0;n--){const d=new Date(today.getTime()-n*864e5);const k=d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate();lbl.push(d.toLocaleDateString(undefined,{month:"short",day:"numeric"}));cnt.push(mp[k]||0);}
   startClock(); renderCalendar(); renderAgenda();
-  try{ HM_CHARTS.daily=new Chart($("hm-daily"),{type:"bar",data:{labels:lbl,datasets:[{data:cnt,backgroundColor:"#8e7cff",borderRadius:5,maxBarThickness:20}]},options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0}},x:{grid:{display:false},ticks:{maxRotation:0,autoSkip:true,maxTicksLimit:8}}}}}); }catch(_){}
+  try{ HM_CHARTS.daily=new Chart($("hm-daily"),{type:"bar",data:{labels:lbl,datasets:[{data:cnt,backgroundColor:BR,borderRadius:5,maxBarThickness:20}]},options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0}},x:{grid:{display:false},ticks:{maxRotation:0,autoSkip:true,maxTicksLimit:8}}}}}); }catch(_){}
 }
 
 // ----- Admin: Reports -----
