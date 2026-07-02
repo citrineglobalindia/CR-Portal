@@ -485,6 +485,21 @@
   .clk-s{display:inline-block;transition:transform .25s cubic-bezier(.2,1.4,.4,1)}
   .clk-ap{font-size:14px;font-weight:700;color:var(--muted);-webkit-text-fill-color:var(--muted);margin-left:7px;align-self:center;letter-spacing:1px}
   .clk-date{font-size:12.5px;color:var(--muted);letter-spacing:.04em;font-weight:600}
+  /* AI assistant */
+  .ai-fab{position:fixed;right:22px;bottom:22px;width:56px;height:56px;border-radius:50%;border:0;background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;font-size:24px;box-shadow:0 10px 30px var(--g1),0 8px 20px rgba(0,0,0,.4);z-index:70;cursor:pointer;transition:transform .2s}
+  .ai-fab:hover{transform:scale(1.08) translateY(-2px)}
+  .ai-panel{position:fixed;right:22px;bottom:88px;width:min(94vw,380px);height:min(72vh,560px);background:var(--panel);border:1px solid var(--line);border-radius:18px;box-shadow:0 24px 60px rgba(0,0,0,.5),0 0 30px var(--g1);z-index:70;display:flex;flex-direction:column;overflow:hidden;animation:cr-modal-in .3s ease both}
+  .ai-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:14px 16px;border-bottom:1px solid var(--line);background:linear-gradient(120deg,var(--g1),transparent)}
+  .ai-head .x{background:var(--chip);border:1px solid var(--line);color:var(--txt);width:30px;height:30px;border-radius:8px;font-size:17px;flex:none}
+  .ai-msgs{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px}
+  .ai-msg{max-width:88%;padding:10px 13px;border-radius:14px;font-size:13.5px;line-height:1.5}
+  .ai-msg.user{align-self:flex-end;background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;border-bottom-right-radius:4px}
+  .ai-msg.assistant{align-self:flex-start;background:var(--panel2);border:1px solid var(--line);border-bottom-left-radius:4px}
+  .ai-msg.typing{opacity:.65;font-style:italic}
+  .ai-ref{color:var(--brand2);font-weight:700;text-decoration:underline;cursor:pointer}
+  .ai-input{display:flex;gap:8px;padding:12px;border-top:1px solid var(--line)}
+  .ai-input .inp{flex:1}
+  @media(max-width:520px){.ai-panel{right:3vw;left:3vw;width:auto}}
 </style>
 </head>
 <body>
@@ -1006,6 +1021,7 @@ async function boot(){
   $("who-role").className="pill"+(ME.role==="admin"?" admin":"");
   renderAvatar();
   if(ME.role==="admin") renderAdmin(); else renderClient();
+  if(ME.role==="admin"){ try{ setupAssistant(); }catch(_){ } }
   startNotifPolling();
 }
 
@@ -2736,6 +2752,41 @@ function exportWord(){
 }
 function dl(blob,name){ const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1500); }
 
+let AI_MSGS=[];
+function setupAssistant(){
+  if(document.getElementById("ai-fab")) return;
+  const fab=document.createElement("button"); fab.id="ai-fab"; fab.className="ai-fab"; fab.title="AI Assistant"; fab.innerHTML="🤖"; fab.onclick=toggleAssistant;
+  const panel=document.createElement("div"); panel.id="ai-panel"; panel.className="ai-panel hidden";
+  panel.innerHTML=`<div class="ai-head"><div><b>🤖 CR Assistant</b><div class="hint">Ask about past change requests</div></div><button class="x" onclick="toggleAssistant()">×</button></div>
+    <div class="ai-msgs" id="ai-msgs"></div>
+    <div class="ai-input"><input id="ai-q" class="inp" placeholder="e.g. Was the password toggle done?" onkeydown="if(event.key==='Enter')aiSend()"/><button class="btn btn-sm" onclick="aiSend()">Send</button></div>`;
+  document.body.appendChild(fab); document.body.appendChild(panel);
+  AI_MSGS=[{role:"assistant",text:"Hi! Ask me anything about your change requests — e.g. “has the retailer registration bug been fixed?”, “list open CRs for BharatOne”, or “when was CR-BHO-2 completed?”"}];
+  renderAiMsgs();
+}
+function toggleAssistant(){ const p=$("ai-panel"); if(!p)return; p.classList.toggle("hidden"); if(!p.classList.contains("hidden")){ const q=$("ai-q"); if(q) setTimeout(()=>q.focus(),60); } }
+function aiLinkify(t){
+  let h=esc(t); const map={}; (CACHE||[]).forEach(r=>{ if(r.ref_no) map[r.ref_no]=r.id; });
+  h=h.replace(/CR-[A-Za-z0-9]+-\d+/g, m=> map[m]?`<a class="ai-ref" onclick="aiOpen('${map[m]}')">${m}</a>`:m);
+  return h.replace(/\n/g,"<br>");
+}
+function aiOpen(id){ const p=$("ai-panel"); if(p) p.classList.add("hidden"); openDetail(id); }
+function renderAiMsgs(){ const el=$("ai-msgs"); if(!el)return; el.innerHTML=AI_MSGS.map(m=>`<div class="ai-msg ${m.role}${m.typing?' typing':''}">${m.role==='assistant'&&!m.typing?aiLinkify(m.text):esc(m.text)}</div>`).join(""); el.scrollTop=el.scrollHeight; }
+async function aiSend(){
+  const inp=$("ai-q"); const q=(inp.value||"").trim(); if(!q)return; inp.value="";
+  AI_MSGS.push({role:"user",text:q}); AI_MSGS.push({role:"assistant",text:"…thinking",typing:true}); renderAiMsgs();
+  try{
+    if(!CACHE||!CACHE.length){ try{ await loadRequests(); }catch(_){ } }
+    const hist=AI_MSGS.filter(m=>!m.typing).slice(-8).map(m=>({role:m.role,text:m.text}));
+    const data=await callFn("cr-assistant",{question:q,history:hist});
+    AI_MSGS=AI_MSGS.filter(m=>!m.typing); AI_MSGS.push({role:"assistant",text:data.answer||"(no answer)"}); renderAiMsgs();
+  }catch(e){
+    AI_MSGS=AI_MSGS.filter(m=>!m.typing);
+    let msg=e.message||"Something went wrong.";
+    if(/key|configured/i.test(msg)) msg+=" Add ANTHROPIC_API_KEY (or OPENAI_API_KEY) in Supabase → Edge Functions → Manage secrets.";
+    AI_MSGS.push({role:"assistant",text:"⚠️ "+msg}); renderAiMsgs();
+  }
+}
 let THREE_SCENE=null;
 function init3D(){
   if(typeof THREE==="undefined") return;
