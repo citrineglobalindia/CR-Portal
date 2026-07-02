@@ -479,13 +479,13 @@
   .hm-row:last-child{border-bottom:0}
   .hm-row:hover{background:var(--panel2)}
   /* 3D digital clock */
-  .clock3d{position:relative;display:inline-flex;flex-direction:column;align-items:center;gap:5px;padding:15px 24px;border-radius:18px;background:linear-gradient(145deg,var(--panel2),var(--panel));border:1px solid var(--line);box-shadow:0 16px 38px rgba(0,0,0,.45),0 0 30px var(--g1);transform-style:preserve-3d;animation:clkfloat 7s ease-in-out infinite}
-  @keyframes clkfloat{0%,100%{transform:perspective(760px) rotateX(9deg) rotateY(-7deg)}50%{transform:perspective(760px) rotateX(9deg) rotateY(7deg)}}
-  .clk-time{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:42px;font-weight:800;letter-spacing:2px;line-height:1;display:flex;align-items:baseline;gap:2px;background:linear-gradient(180deg,#ffffff,var(--brand2));-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 3px 12px var(--g1))}
-  .clk-time .clk-c{color:var(--accent);-webkit-text-fill-color:var(--accent);animation:clkblink 1s steps(1) infinite}
+  .clock3d{position:relative;display:inline-flex;flex-direction:column;align-items:center;gap:6px;padding:16px 26px;border-radius:18px;background:linear-gradient(145deg,var(--panel2),var(--panel));border:1px solid var(--line);box-shadow:0 16px 38px rgba(0,0,0,.45),0 0 30px var(--g1);animation:clkfloat 5s ease-in-out infinite}
+  @keyframes clkfloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+  .clk-time{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:44px;font-weight:800;letter-spacing:2px;line-height:1;display:flex;align-items:baseline;gap:3px;color:#f5f7ff;text-shadow:0 0 16px var(--g1),0 0 6px rgba(140,124,255,.55)}
+  .clk-time .clk-c{color:var(--accent);animation:clkblink 1s steps(1) infinite}
   @keyframes clkblink{50%{opacity:.22}}
-  .clk-s{display:inline-block;transition:transform .25s cubic-bezier(.2,1.4,.4,1)}
-  .clk-ap{font-size:14px;font-weight:700;color:var(--muted);-webkit-text-fill-color:var(--muted);margin-left:7px;align-self:center;letter-spacing:1px}
+  .clk-s{display:inline-block;min-width:1.2em;text-align:center;color:var(--brand2);transition:transform .2s cubic-bezier(.2,1.4,.4,1)}
+  .clk-ap{font-size:14px;font-weight:700;color:var(--muted);margin-left:8px;align-self:center;letter-spacing:1px}
   .clk-date{font-size:12.5px;color:var(--muted);letter-spacing:.04em;font-weight:600}
   /* AI assistant */
   .ai-fab{position:fixed;right:22px;bottom:22px;width:56px;height:56px;border-radius:50%;border:0;background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;font-size:24px;box-shadow:0 10px 30px var(--g1),0 8px 20px rgba(0,0,0,.4);z-index:70;cursor:pointer;transition:transform .2s}
@@ -526,6 +526,13 @@
   .cal-legend i.cr{background:var(--warn)} .cal-legend i.lead{background:var(--accent)}
   .cal-ag{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}
   .cal-ag:last-child{border-bottom:0}
+  /* advanced delete animation */
+  .del-fx{position:fixed;inset:0;z-index:130;display:grid;place-items:center;pointer-events:none}
+  .del-core{font-size:62px;animation:delcore .95s cubic-bezier(.2,1.2,.4,1) forwards;filter:drop-shadow(0 10px 26px rgba(0,0,0,.5))}
+  @keyframes delcore{0%{transform:scale(0) rotate(-25deg);opacity:0}28%{transform:scale(1.15) rotate(8deg);opacity:1}55%{transform:scale(1) rotate(-5deg)}100%{transform:scale(.5) translateY(34px);opacity:0}}
+  .del-fx i{position:absolute;left:50%;top:50%;width:10px;height:10px;border-radius:2px;background:linear-gradient(135deg,var(--brand),var(--accent));transform:translate(-50%,-50%) rotate(var(--a)) translateX(0);animation:delpart .85s ease-out forwards;opacity:0}
+  @keyframes delpart{0%{opacity:1;transform:translate(-50%,-50%) rotate(var(--a)) translateX(0) scale(1)}100%{opacity:0;transform:translate(-50%,-50%) rotate(var(--a)) translateX(var(--d)) scale(.2)}}
+  @media(prefers-reduced-motion:reduce){.del-fx{display:none}}
 </style>
 </head>
 <body>
@@ -715,6 +722,12 @@ function toast(msg,isErr){ const t=$("toast"); t.textContent=msg; t.className="t
 function authMsg(msg,type){ const m=$("auth-msg"); m.textContent=msg; m.className="msg show "+(type||"err"); }
 function statCard(icon,color,num,label){
   return `<div class="stat"><div class="ic" style="background:${color}1f;color:${color}">${icon}</div><div class="n" style="color:${color}">${num}</div><div class="l">${esc(label)}</div></div>`;
+}
+function deleteFx(){
+  try{ const o=document.createElement("div"); o.className="del-fx";
+    o.innerHTML='<div class="del-core">🗑️</div>'+Array.from({length:16}).map((_,i)=>`<i style="--a:${Math.round(i/16*360)}deg;--d:${50+Math.round(Math.random()*45)}px"></i>`).join("");
+    document.body.appendChild(o); setTimeout(()=>{try{o.remove();}catch(_){}} ,950);
+  }catch(_){ }
 }
 function emailList(x){ return [...new Set(String(x||"").split(/[\n,;]+/).map(v=>v.trim()).filter(v=>v.includes("@")))]; }
 const parseTags = s => { const a=String(s||"").split(",").map(t=>t.trim()).filter(Boolean); return a.length?a:null; };
@@ -1471,7 +1484,7 @@ async function confirmDeleteCR(id){
   const btn=$("del-btn"); btn.disabled=true; btn.textContent="Deleting…";
   try{
     await callFn("admin-delete-cr",{request_id:id});
-    toast("Change request deleted.");
+    deleteFx(); toast("Change request deleted.");
     closeModal(); await loadAndRenderAdmin();
   }catch(e){ toast(e.message||"Could not delete.",true); if($("del-btn")){btn.disabled=false; btn.textContent="Yes, delete permanently";} }
 }
@@ -1702,7 +1715,7 @@ async function addLeadActivity(id){ const inp=$("ld-act"); const body=(inp.value
 async function setLeadReminder(id){ const at=$("ld-rem-at").value; const note=($("ld-rem-note").value||"").trim(); const iso=at?new Date(at).toISOString():null; const {error}=await sb.from("cr_leads").update({follow_up_at:iso,follow_up_note:note||null,updated_at:new Date().toISOString()}).eq("id",id); if(error){toast(error.message,true);return;} const l=LEADS.find(x=>x.id===id); if(l){l.follow_up_at=iso;l.follow_up_note=note||null;} toast(iso?"Reminder saved.":"Reminder cleared."); openLeadDetail(id); }
 async function clearLeadReminder(id){ const {error}=await sb.from("cr_leads").update({follow_up_at:null,follow_up_note:null}).eq("id",id); if(error){toast(error.message,true);return;} const l=LEADS.find(x=>x.id===id); if(l){l.follow_up_at=null;l.follow_up_note=null;} toast("Reminder cleared."); openLeadDetail(id); }
 function deleteLead(id){ $("modal-root").innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()"><div class="modal" style="max-width:420px"><div class="mh"><h2 style="margin:0;color:#ffb4b4">Delete lead</h2><button class="x" onclick="closeModal()">×</button></div><div class="mb"><p style="line-height:1.55">Permanently delete this lead and its activity history?</p><div class="row" style="margin-top:14px"><button class="btn btn-sm btn-danger" onclick="confirmDeleteLead('${id}')">Yes, delete</button><button class="btn btn-sm btn-ghost" onclick="openLeadDetail('${id}')">Cancel</button></div></div></div></div>`; }
-async function confirmDeleteLead(id){ const {error}=await sb.from("cr_leads").delete().eq("id",id); if(error){toast(error.message,true);return;} toast("Lead deleted."); closeModal(); await loadLeads(); drawLeads(); }
+async function confirmDeleteLead(id){ const {error}=await sb.from("cr_leads").delete().eq("id",id); if(error){toast(error.message,true);return;} deleteFx(); toast("Lead deleted."); closeModal(); await loadLeads(); drawLeads(); }
 function convertLead(id){
   const l=LEADS.find(x=>x.id===id); if(!l)return;
   closeModal(); setAdminTab('clients');
@@ -2204,7 +2217,7 @@ function renderClientsList(){
 }
 let EDIT_EMAILS=[];
 function deleteClientAsk(id){ const c=CLIENTS.find(x=>x.id===id); $("modal-root").innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()"><div class="modal" style="max-width:470px"><div class="mh"><h2 style="margin:0;color:#ffb4b4">Delete client</h2><button class="x" onclick="closeModal()">×</button></div><div class="mb"><p style="line-height:1.55">Permanently delete <b>${esc(c?(c.company||c.full_name||c.username):"this client")}</b> and <b>all</b> of their change requests, files, vault entries and notes? This cannot be undone.</p><div class="row" style="margin-top:14px"><button class="btn btn-sm btn-danger" id="dc-btn" onclick="confirmDeleteClient('${id}')">Yes, delete permanently</button><button class="btn btn-sm btn-ghost" onclick="openClientEdit('${id}')">Cancel</button></div></div></div></div>`; }
-async function confirmDeleteClient(id){ const btn=$("dc-btn"); if(btn){btn.disabled=true;btn.textContent="Deleting…";} try{ await callFn("admin-delete-client",{client_id:id}); toast("Client deleted."); closeModal(); await loadClients(); renderClientsList(); }catch(e){ toast(e.message||"Could not delete client.",true); if(btn){btn.disabled=false;btn.textContent="Yes, delete permanently";} } }
+async function confirmDeleteClient(id){ const btn=$("dc-btn"); if(btn){btn.disabled=true;btn.textContent="Deleting…";} try{ await callFn("admin-delete-client",{client_id:id}); deleteFx(); toast("Client deleted."); closeModal(); await loadClients(); renderClientsList(); }catch(e){ toast(e.message||"Could not delete client.",true); if(btn){btn.disabled=false;btn.textContent="Yes, delete permanently";} } }
 function renderEmailChips(){ const el=$("e-emails"); if(!el)return; el.innerHTML=EDIT_EMAILS.length?EDIT_EMAILS.map((e,i)=>`<span class="chip">${esc(e)}<button type="button" title="Remove" onclick="removeEmailChip(${i})">×</button></span>`).join(""):`<span class="hint">No emails yet — add at least one below.</span>`; }
 function addEmailChip(){ const inp=$("e-email-add"); const v=(inp.value||"").trim().toLowerCase(); if(!v||!v.includes("@")){toast("Enter a valid email address.",true);return;} if(!EDIT_EMAILS.includes(v)) EDIT_EMAILS.push(v); inp.value=""; renderEmailChips(); inp.focus(); }
 function removeEmailChip(i){ EDIT_EMAILS.splice(i,1); renderEmailChips(); }
@@ -2353,7 +2366,7 @@ async function addCommit(id){
 async function deleteCommit(id,crId){
   const {error}=await sb.from("cr_commits").delete().eq("id",id);
   if(error){toast(error.message,true);return;}
-  if(COMMIT_COUNTS[crId]) COMMIT_COUNTS[crId]=Math.max(0,COMMIT_COUNTS[crId]-1); toast("Commit removed."); openDetail(crId);
+  if(COMMIT_COUNTS[crId]) COMMIT_COUNTS[crId]=Math.max(0,COMMIT_COUNTS[crId]-1); deleteFx(); toast("Commit removed."); openDetail(crId);
 }
 let LAST_PROMPT="";
 async function genCRPrompt(id){
@@ -2490,7 +2503,7 @@ async function addNote(){
   toast("Note added."); await fetchNotes(); renderNotes();
 }
 async function togglePin(id){ const n=NOTES_CACHE.find(x=>x.id===id); if(!n)return; const {error}=await sb.from("cr_client_notes").update({pinned:!n.pinned,updated_at:new Date().toISOString()}).eq("id",id); if(error){toast(error.message,true);return;} await fetchNotes(); renderNotes(); }
-async function deleteNote(id){ const {error}=await sb.from("cr_client_notes").delete().eq("id",id); if(error){toast(error.message,true);return;} toast("Note deleted."); await fetchNotes(); renderNotes(); }
+async function deleteNote(id){ const {error}=await sb.from("cr_client_notes").delete().eq("id",id); if(error){toast(error.message,true);return;} deleteFx(); toast("Note deleted."); await fetchNotes(); renderNotes(); }
 function startEditNote(id){
   const n=NOTES_CACHE.find(x=>x.id===id); if(!n)return;
   renderNotes();
@@ -2560,7 +2573,7 @@ async function addVaultEntry(){
 async function deleteVaultEntry(id){
   const {error}=await sb.from("cr_project_vault").delete().eq("id",id);
   if(error){toast(error.message,true);return;}
-  toast("Entry deleted."); openVault(VAULT_CLIENT);
+  deleteFx(); toast("Entry deleted."); openVault(VAULT_CLIENT);
 }
 
 // ===================== DETAIL MODAL =====================
