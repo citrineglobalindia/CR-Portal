@@ -502,6 +502,30 @@
   .ai-input{display:flex;gap:8px;padding:12px;border-top:1px solid var(--line)}
   .ai-input .inp{flex:1}
   @media(max-width:520px){.ai-panel{right:3vw;left:3vw;width:auto}}
+  /* analog clock + calendar */
+  .cal-head{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+  .cal-head h2{flex:1;text-align:center;font-size:15px}
+  .cal-nav{background:var(--panel2);border:1px solid var(--line);color:var(--txt);width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:16px;flex:none}
+  .cal-nav:hover{border-color:var(--brand2)}
+  .analog{width:46px;height:46px;flex:none}
+  .analog .face{fill:none;stroke:var(--line);stroke-width:2}
+  .analog .tick{stroke:var(--muted);stroke-width:1.4;opacity:.5}
+  .analog .hh,.analog .mm{stroke:var(--txt);stroke-linecap:round}
+  .analog .hh{stroke-width:4.5} .analog .mm{stroke-width:3}
+  .analog .ss{stroke:var(--accent);stroke-width:1.6;stroke-linecap:round;transition:transform .1s}
+  .analog .cen{fill:var(--brand)}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+  .cal-dow{text-align:center;font-size:10.5px;color:var(--muted);font-weight:700;padding:2px 0}
+  .cal-cell{position:relative;aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:12.5px;border-radius:9px}
+  .cal-cell:not(.empty):hover{background:var(--panel2)}
+  .cal-cell.today{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;font-weight:800;box-shadow:0 4px 14px var(--g1)}
+  .cal-dot{position:absolute;bottom:4px;left:50%;transform:translateX(-50%);width:6px;height:6px;border-radius:50%;background:var(--muted)}
+  .cal-dot.cr{background:var(--warn)} .cal-dot.lead{background:var(--accent)} .cal-dot.cr.lead{background:linear-gradient(90deg,var(--warn),var(--accent))}
+  .cal-legend{display:flex;gap:14px;margin-top:10px;font-size:11.5px;color:var(--muted)}
+  .cal-legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:middle}
+  .cal-legend i.cr{background:var(--warn)} .cal-legend i.lead{background:var(--accent)}
+  .cal-ag{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}
+  .cal-ag:last-child{border-bottom:0}
 </style>
 </head>
 <body>
@@ -1750,7 +1774,31 @@ function buildGantt(){
 
 
 // ===================== ADMIN DASHBOARD (overview) =====================
-let HM_CHARTS={}, CLOCK_TIMER=null;
+let HM_CHARTS={}, CLOCK_TIMER=null, CAL_VIEW=null;
+function calKey(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+function calNav(dl){ const b=CAL_VIEW||new Date(); CAL_VIEW=new Date(b.getFullYear(),b.getMonth()+dl,1); renderCalendar(); }
+function buildCalEvents(){ const m={};
+  (CACHE||[]).forEach(r=>{ if(r.due_date){ const k=String(r.due_date).slice(0,10); (m[k]=m[k]||{cr:0,lead:0}).cr++; } });
+  (LEADS||[]).forEach(l=>{ if(l.follow_up_at){ const k=calKey(new Date(l.follow_up_at)); (m[k]=m[k]||{cr:0,lead:0}).lead++; } });
+  return m; }
+function renderCalendar(){
+  const el=$("cal-grid"); if(!el)return; const base=CAL_VIEW||new Date(); const y=base.getFullYear(), mo=base.getMonth();
+  const tt=$("cal-title"); if(tt) tt.textContent=base.toLocaleDateString(undefined,{month:"long",year:"numeric"});
+  const startDow=(new Date(y,mo,1).getDay()+6)%7, days=new Date(y,mo+1,0).getDate();
+  const ev=buildCalEvents(), todayKey=calKey(new Date());
+  let c=["M","T","W","T","F","S","S"].map(d=>`<div class="cal-dow">${d}</div>`).join("");
+  for(let i=0;i<startDow;i++) c+=`<div class="cal-cell empty"></div>`;
+  for(let d=1;d<=days;d++){ const k=calKey(new Date(y,mo,d)); const e=ev[k]; const tip=e?((e.cr?e.cr+" CR due ":"")+(e.lead?e.lead+" follow-up":"")):"";
+    c+=`<div class="cal-cell${k===todayKey?' today':''}" title="${esc(tip)}">${d}${e?`<span class="cal-dot${e.cr?' cr':''}${e.lead?' lead':''}"></span>`:""}</div>`; }
+  el.innerHTML=c;
+}
+function renderAgenda(){
+  const el=$("cal-agenda"); if(!el)return; const now=Date.now(), wk=now+7*864e5; const items=[];
+  (CACHE||[]).forEach(r=>{ if(r.due_date&&r.status!=="Done"&&r.status!=="Rejected"){ const t=new Date(r.due_date).getTime(); if(t<=wk) items.push({t,type:"CR",label:r.ref_no+" · "+r.title,id:r.id,over:t<now}); } });
+  (LEADS||[]).forEach(l=>{ if(l.follow_up_at&&l.stage!=="Won"&&l.stage!=="Lost"){ const t=new Date(l.follow_up_at).getTime(); if(t<=wk) items.push({t,type:"Lead",label:l.name,over:t<now}); } });
+  items.sort((a,b)=>a.t-b.t);
+  el.innerHTML=items.length?items.slice(0,8).map(it=>`<div class="cal-ag" onclick="${it.id?`openDetail('${it.id}')`:`setAdminTab('leads')`}" style="cursor:pointer"><div style="min-width:0"><div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(it.label)}</div><div class="hint">${it.type} · ${esc(fmtDay(new Date(it.t)))}${it.over?" · overdue":""}</div></div><span class="badge" style="${it.over?"background:rgba(255,107,107,.15);color:#ff8a8a;border:1px solid rgba(255,107,107,.4)":""}">${it.type}</span></div>`).join(""):`<div class="empty">Nothing due in the next 7 days. 🎉</div>`;
+}
 function startClock(){ if(CLOCK_TIMER)clearInterval(CLOCK_TIMER); updateClock(); CLOCK_TIMER=setInterval(updateClock,1000); }
 function updateClock(){
   const h=$("clk-h"); if(!h){ if(CLOCK_TIMER){clearInterval(CLOCK_TIMER);CLOCK_TIMER=null;} return; }
@@ -1759,6 +1807,9 @@ function updateClock(){
   const se=$("clk-s"); if(se){ se.textContent=p(d.getSeconds()); se.style.transform="scale(1.22)"; setTimeout(()=>{const x=$("clk-s"); if(x)x.style.transform="scale(1)";},130); }
   $("clk-ap").textContent=ap;
   $("clk-date").textContent=d.toLocaleDateString(undefined,{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+  const s=d.getSeconds(), mi=d.getMinutes(), h12=d.getHours()%12;
+  const setH=(id,deg)=>{const e=$(id); if(e) e.setAttribute("transform","rotate("+deg+" 50 50)");};
+  setH("cl-ss", s*6); setH("cl-mm", mi*6+s*0.1); setH("cl-hh", h12*30+mi*0.5);
 }
 async function renderAdminHome(){
   $("admin-pane").innerHTML=`<div id="home-pane"><div class="hint">Loading dashboard…</div></div>`;
@@ -1792,6 +1843,13 @@ function drawHome(){
       ${statCard("🆕","#6c5ce7",last7,"New (7d)")}
     </div>
     <div class="grid2">
+      <div class="card"><div class="cal-head"><button class="cal-nav" onclick="calNav(-1)">‹</button><h2 id="cal-title" style="margin:0">—</h2><button class="cal-nav" onclick="calNav(1)">›</button>
+        <svg class="analog" viewBox="0 0 100 100">${[...Array(12)].map((_,i)=>{const a=i*30*Math.PI/180,r1=(i%3?44:46),x1=(50+Math.sin(a)*40).toFixed(1),y1=(50-Math.cos(a)*40).toFixed(1),x2=(50+Math.sin(a)*r1).toFixed(1),y2=(50-Math.cos(a)*r1).toFixed(1);return `<line class="tick" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`;}).join("")}<circle class="face" cx="50" cy="50" r="46"/><line id="cl-hh" class="hh" x1="50" y1="50" x2="50" y2="30"/><line id="cl-mm" class="mm" x1="50" y1="50" x2="50" y2="22"/><line id="cl-ss" class="ss" x1="50" y1="50" x2="50" y2="18"/><circle class="cen" cx="50" cy="50" r="3"/></svg></div>
+        <div class="cal-grid" id="cal-grid"></div>
+        <div class="cal-legend"><span><i class="cr"></i>CR due</span><span><i class="lead"></i>Follow-up</span></div></div>
+      <div class="card"><h2>Upcoming (next 7 days)</h2><div id="cal-agenda"></div></div>
+    </div>
+    <div class="grid2">
       <div class="card"><h2>CRs by status</h2><div class="rep-cv" style="height:240px;position:relative"><canvas id="hm-status"></canvas></div></div>
       <div class="card"><h2>Raised — last 14 days</h2><div class="rep-cv" style="height:240px;position:relative"><canvas id="hm-daily"></canvas></div></div>
     </div>
@@ -1807,7 +1865,7 @@ function drawHome(){
   const days=14, today=new Date(); today.setHours(0,0,0,0); const lbl=[],cnt=[],mp={};
   C.forEach(r=>{const d=new Date(r.created_at);const k=d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate();mp[k]=(mp[k]||0)+1;});
   for(let n=days-1;n>=0;n--){const d=new Date(today.getTime()-n*864e5);const k=d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate();lbl.push(d.toLocaleDateString(undefined,{month:"short",day:"numeric"}));cnt.push(mp[k]||0);}
-  startClock();
+  startClock(); renderCalendar(); renderAgenda();
   try{ HM_CHARTS.daily=new Chart($("hm-daily"),{type:"bar",data:{labels:lbl,datasets:[{data:cnt,backgroundColor:"#8e7cff",borderRadius:5,maxBarThickness:20}]},options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0}},x:{grid:{display:false},ticks:{maxRotation:0,autoSkip:true,maxTicksLimit:8}}}}}); }catch(_){}
 }
 
