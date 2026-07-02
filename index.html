@@ -4,6 +4,26 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>CR Portal — Stepstones | Stepstones Global India</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#6c5ce7">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="CR Portal">
+<link rel="apple-touch-icon" href="/icons/icon-192.png">
+<link rel="icon" href="/icons/icon-192.png">
+<script>
+  if('serviceWorker' in navigator){ window.addEventListener('load',function(){ navigator.serviceWorker.register('/sw.js').catch(function(){}); }); }
+  var __deferredPrompt=null;
+  window.addEventListener('beforeinstallprompt', function(e){ e.preventDefault(); __deferredPrompt=e; showInstallBtn(); });
+  window.addEventListener('appinstalled', function(){ __deferredPrompt=null; var b=document.getElementById('pwa-install'); if(b) b.remove(); });
+  function showInstallBtn(){
+    if(document.getElementById('pwa-install')) return;
+    var b=document.createElement('button'); b.id='pwa-install'; b.className='pwa-install'; b.type='button'; b.innerHTML='⬇ Install app';
+    b.onclick=async function(){ if(!__deferredPrompt) return; __deferredPrompt.prompt(); try{ await __deferredPrompt.userChoice; }catch(_){} __deferredPrompt=null; b.remove(); };
+    (document.body||document.documentElement).appendChild(b);
+  }
+</script>
 <style>
   :root{
     --bg:#0f1220; --panel:#171a2b; --panel2:#1e2238; --line:#2a2f4a;
@@ -579,6 +599,9 @@
     .lc-time{font-size:28px}
     .welcome .w-hi{font-size:16px}
   }
+  .pwa-install{position:fixed;left:16px;bottom:16px;z-index:80;background:linear-gradient(135deg,var(--brand,#6c5ce7),var(--brand2,#8e7cff));color:#fff;border:0;border-radius:12px;padding:11px 16px;font-weight:700;font-size:14px;box-shadow:0 10px 26px var(--g1,rgba(108,92,231,.3)),0 6px 16px rgba(0,0,0,.4);cursor:pointer;animation:cr-fade-up .4s both}
+  .pwa-install:hover{transform:translateY(-2px)}
+  @media(max-width:640px){.pwa-install{left:12px;bottom:12px;font-size:13px;padding:10px 14px}}
 </style>
 </head>
 <body>
