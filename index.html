@@ -469,6 +469,10 @@
   .gt-mile{position:absolute;top:12px;width:14px;height:14px;margin-left:-7px;transform:rotate(45deg);background:var(--panel);z-index:2}
   .gt-today{position:absolute;top:0;bottom:0;width:2px;background:var(--brand);z-index:1}
   .gt-today span{position:absolute;top:-1px;left:4px;font-size:10px;color:#fff;font-weight:700;background:var(--brand);padding:1px 5px;border-radius:4px}
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{display:inline-flex;align-items:center;gap:7px;background:var(--chip);border:1px solid var(--line);border-radius:999px;padding:5px 11px;font-size:12.5px}
+  .chip button{background:none;border:0;color:var(--muted);cursor:pointer;font-size:16px;line-height:1;padding:0}
+  .chip button:hover{color:#ff8a8a}
 </style>
 </head>
 <body>
@@ -2035,9 +2039,14 @@ function renderClientsList(){
       </div>
     </div>`;}).join("")}</div>`:`<div class="empty">${term?"No clients match your search.":"No clients yet. Create your first one above."}</div>`;
 }
+let EDIT_EMAILS=[];
+function renderEmailChips(){ const el=$("e-emails"); if(!el)return; el.innerHTML=EDIT_EMAILS.length?EDIT_EMAILS.map((e,i)=>`<span class="chip">${esc(e)}<button type="button" title="Remove" onclick="removeEmailChip(${i})">×</button></span>`).join(""):`<span class="hint">No emails yet — add at least one below.</span>`; }
+function addEmailChip(){ const inp=$("e-email-add"); const v=(inp.value||"").trim().toLowerCase(); if(!v||!v.includes("@")){toast("Enter a valid email address.",true);return;} if(!EDIT_EMAILS.includes(v)) EDIT_EMAILS.push(v); inp.value=""; renderEmailChips(); inp.focus(); }
+function removeEmailChip(i){ EDIT_EMAILS.splice(i,1); renderEmailChips(); }
 function openClientEdit(id){
   const c=CLIENTS.find(x=>x.id===id); if(!c)return;
   EDIT_LOGO_FILE=null;
+  EDIT_EMAILS=(c.notify_emails&&c.notify_emails.length)?c.notify_emails.slice():(c.notify_email?[c.notify_email]:[]);
   const lg=logoUrl(c.logo_path);
   const pp=(c.project_profile||{});
   $("modal-root").innerHTML=`
@@ -2051,7 +2060,7 @@ function openClientEdit(id){
         <div class="grid2">
           <div><label>Company</label><input id="e-company" class="inp" value="${esc(c.company||"")}"/></div>
           <div><label>Full name</label><input id="e-name" class="inp" value="${esc(c.full_name||"")}"/></div>
-          <div><label>Notification email(s) <span class="hint">comma-separated</span></label><input id="e-email" class="inp" value="${esc((c.notify_emails&&c.notify_emails.length)?c.notify_emails.join(', '):(c.notify_email||''))}"/></div>
+          <div style="grid-column:1/-1"><label>Notification email(s) <span class="hint">— all of these get notified</span></label><div id="e-emails" class="chips"></div><div class="row" style="gap:8px;margin-top:7px"><input id="e-email-add" class="inp" placeholder="add another email…" onkeydown="if(event.key==='Enter'){event.preventDefault();addEmailChip();}" style="flex:1"/><button type="button" class="btn btn-sm btn-ghost" onclick="addEmailChip()">＋ Add</button></div></div>
           <div><label>Phone</label><input id="e-phone" class="inp" value="${esc(c.phone||"")}"/></div>
           <div><label>GST / Tax ID</label><input id="e-gst" class="inp" value="${esc(c.gst_no||"")}"/></div>
           <div><label>Website</label><input id="e-web" class="inp" value="${esc(c.website||"")}"/></div>
@@ -2094,6 +2103,7 @@ function openClientEdit(id){
     </div>
   </div>`;
   initDrop("e-drop","e-logo","e-logo-row-na","e-logo-prev",f=>{EDIT_LOGO_FILE=f;$("e-logo-prev").classList.remove("hidden");});
+  renderEmailChips();
   updateEditPreview();
 }
 function updateEditPreview(){
@@ -2110,7 +2120,7 @@ async function resetClientPw(id){
 async function saveClientEdit(id){
   const btn=$("e-save"); btn.disabled=true; btn.textContent="Saving…";
   try{
-    const emails=emailList($("e-email").value);
+    const emails=EDIT_EMAILS.slice(); if(!emails.length){ toast("Add at least one notification email.",true); const b2=$("e-save"); if(b2){b2.disabled=false;b2.textContent="Save changes";} return; }
     const body={ client_id:id,
       company:$("e-company").value.trim(), full_name:$("e-name").value.trim(),
       notify_email:emails[0]||null, notify_emails:emails, phone:$("e-phone").value.trim(), gst_no:$("e-gst").value.trim(),
