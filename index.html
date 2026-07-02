@@ -476,6 +476,15 @@
   .hm-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);cursor:pointer}
   .hm-row:last-child{border-bottom:0}
   .hm-row:hover{background:var(--panel2)}
+  /* 3D digital clock */
+  .clock3d{position:relative;display:inline-flex;flex-direction:column;align-items:center;gap:5px;padding:15px 24px;border-radius:18px;background:linear-gradient(145deg,var(--panel2),var(--panel));border:1px solid var(--line);box-shadow:0 16px 38px rgba(0,0,0,.45),0 0 30px var(--g1);transform-style:preserve-3d;animation:clkfloat 7s ease-in-out infinite}
+  @keyframes clkfloat{0%,100%{transform:perspective(760px) rotateX(9deg) rotateY(-7deg)}50%{transform:perspective(760px) rotateX(9deg) rotateY(7deg)}}
+  .clk-time{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:42px;font-weight:800;letter-spacing:2px;line-height:1;display:flex;align-items:baseline;gap:2px;background:linear-gradient(180deg,#ffffff,var(--brand2));-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 3px 12px var(--g1))}
+  .clk-time .clk-c{color:var(--accent);-webkit-text-fill-color:var(--accent);animation:clkblink 1s steps(1) infinite}
+  @keyframes clkblink{50%{opacity:.22}}
+  .clk-s{display:inline-block;transition:transform .25s cubic-bezier(.2,1.4,.4,1)}
+  .clk-ap{font-size:14px;font-weight:700;color:var(--muted);-webkit-text-fill-color:var(--muted);margin-left:7px;align-self:center;letter-spacing:1px}
+  .clk-date{font-size:12.5px;color:var(--muted);letter-spacing:.04em;font-weight:600}
 </style>
 </head>
 <body>
@@ -1712,7 +1721,16 @@ function buildGantt(){
 
 
 // ===================== ADMIN DASHBOARD (overview) =====================
-let HM_CHARTS={};
+let HM_CHARTS={}, CLOCK_TIMER=null;
+function startClock(){ if(CLOCK_TIMER)clearInterval(CLOCK_TIMER); updateClock(); CLOCK_TIMER=setInterval(updateClock,1000); }
+function updateClock(){
+  const h=$("clk-h"); if(!h){ if(CLOCK_TIMER){clearInterval(CLOCK_TIMER);CLOCK_TIMER=null;} return; }
+  const d=new Date(); let hh=d.getHours(); const ap=hh>=12?"PM":"AM"; hh=hh%12||12; const p=n=>String(n).padStart(2,"0");
+  h.textContent=p(hh); $("clk-m").textContent=p(d.getMinutes());
+  const se=$("clk-s"); if(se){ se.textContent=p(d.getSeconds()); se.style.transform="scale(1.22)"; setTimeout(()=>{const x=$("clk-s"); if(x)x.style.transform="scale(1)";},130); }
+  $("clk-ap").textContent=ap;
+  $("clk-date").textContent=d.toLocaleDateString(undefined,{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+}
 async function renderAdminHome(){
   $("admin-pane").innerHTML=`<div id="home-pane"><div class="hint">Loading dashboard…</div></div>`;
   await loadRequests(); await loadClients(); await loadAdmins(); await loadCompletedTimes();
@@ -1731,8 +1749,9 @@ function drawHome(){
   const recent=C.slice().sort((a,b)=>new Date(b.created_at)-new Date(a.created_at)).slice(0,6);
   const p=$("home-pane"); if(!p) return;
   p.innerHTML=`
-    <div class="welcome"><div><div class="w-hi">Welcome back, ${esc(ME.full_name||ME.company||"Admin")} 👋</div><div class="w-sub">Here's what's happening across your portal today.</div></div>
-      <div class="row" style="gap:8px;margin:0"><button class="btn btn-sm" onclick="openAdminCRForm()">＋ Raise CR</button><button class="btn btn-sm btn-ghost" onclick="setAdminTab('clients')">＋ Client</button><button class="btn btn-sm btn-ghost" onclick="setAdminTab('leads')">＋ Lead</button></div></div>
+    <div class="welcome"><div><div class="w-hi">Welcome back, ${esc(ME.full_name||ME.company||"Admin")} 👋</div><div class="w-sub">Here's what's happening across your portal today.</div>
+      <div class="row" style="gap:8px;margin-top:12px"><button class="btn btn-sm" onclick="openAdminCRForm()">＋ Raise CR</button><button class="btn btn-sm btn-ghost" onclick="setAdminTab('clients')">＋ Client</button><button class="btn btn-sm btn-ghost" onclick="setAdminTab('leads')">＋ Lead</button></div></div>
+      <div class="clock3d" id="clock3d"><div class="clk-time"><span id="clk-h">00</span><b class="clk-c">:</b><span id="clk-m">00</span><b class="clk-c">:</b><span class="clk-s" id="clk-s">00</span><span class="clk-ap" id="clk-ap">AM</span></div><div class="clk-date" id="clk-date">—</div></div></div>
     <div class="stats">
       ${statCard("📋","#8e7cff",C.length,"Total CRs")}
       ${statCard("🕒","#ffb020",open.length,"Open")}
@@ -1759,6 +1778,7 @@ function drawHome(){
   const days=14, today=new Date(); today.setHours(0,0,0,0); const lbl=[],cnt=[],mp={};
   C.forEach(r=>{const d=new Date(r.created_at);const k=d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate();mp[k]=(mp[k]||0)+1;});
   for(let n=days-1;n>=0;n--){const d=new Date(today.getTime()-n*864e5);const k=d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate();lbl.push(d.toLocaleDateString(undefined,{month:"short",day:"numeric"}));cnt.push(mp[k]||0);}
+  startClock();
   try{ HM_CHARTS.daily=new Chart($("hm-daily"),{type:"bar",data:{labels:lbl,datasets:[{data:cnt,backgroundColor:"#8e7cff",borderRadius:5,maxBarThickness:20}]},options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0}},x:{grid:{display:false},ticks:{maxRotation:0,autoSkip:true,maxTicksLimit:8}}}}}); }catch(_){}
 }
 
