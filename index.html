@@ -533,6 +533,22 @@
   .del-fx i{position:absolute;left:50%;top:50%;width:10px;height:10px;border-radius:2px;background:linear-gradient(135deg,var(--brand),var(--accent));transform:translate(-50%,-50%) rotate(var(--a)) translateX(0);animation:delpart .85s ease-out forwards;opacity:0}
   @keyframes delpart{0%{opacity:1;transform:translate(-50%,-50%) rotate(var(--a)) translateX(0) scale(1)}100%{opacity:0;transform:translate(-50%,-50%) rotate(var(--a)) translateX(var(--d)) scale(.2)}}
   @media(prefers-reduced-motion:reduce){.del-fx{display:none}}
+  /* LED 7-segment clock */
+  @font-face{font-family:'DSEG7';font-weight:700;font-style:normal;src:url('https://cdn.jsdelivr.net/gh/keshikan/DSEG@0.46/fonts/DSEG7-Classic/DSEG7Classic-Bold.woff2') format('woff2');font-display:swap}
+  .lclock{display:flex;align-items:center;gap:16px;background:radial-gradient(120% 120% at 50% 0%,#121524,#07080d);border:1px solid #1b2030;border-radius:16px;padding:14px 20px;box-shadow:0 16px 40px rgba(0,0,0,.6),inset 0 0 30px rgba(0,0,0,.5),0 0 24px var(--g1)}
+  .lc-days{display:grid;grid-template-rows:repeat(7,1fr);gap:2px;font-size:9px;font-weight:800;color:#333a52;letter-spacing:.5px;line-height:1}
+  .lc-days span.on{color:#fff;text-shadow:0 0 8px #fff,0 0 14px var(--brand2)}
+  .lc-time{position:relative;font-family:'DSEG7',ui-monospace,Menlo,monospace;font-size:54px;line-height:1;letter-spacing:3px}
+  .lc-ghost{position:absolute;left:0;top:0;color:#141826}
+  .lc-real{position:relative;background:linear-gradient(92deg,#ff4d6d,#ff9f1c,#ffd60a,#38e07b,#00d2a8,#3b82f6,#a855f7);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 10px rgba(120,140,255,.55))}
+  .lc-col{display:flex;flex-direction:column;gap:8px}
+  .lc-ss-wrap,.lc-date-wrap{position:relative;font-family:'DSEG7',ui-monospace,monospace;line-height:1;display:inline-flex;align-items:baseline;gap:6px}
+  .lc-ss-wrap{font-size:22px}.lc-date-wrap{font-size:18px}
+  .lc-ghost2,.lc-ghost3{position:absolute;left:0;top:0;color:#141826}
+  .lc-ss{position:relative;background:linear-gradient(92deg,#00d2a8,#3b82f6);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 6px rgba(0,210,168,.5))}
+  .lc-date{position:relative;color:#ffb020;filter:drop-shadow(0 0 6px rgba(255,176,32,.5))}
+  .lc-ap{font-family:ui-monospace,monospace;font-size:11px;font-weight:800;color:#8b93a7;letter-spacing:1px}
+  @media(max-width:560px){.lc-time{font-size:40px}.lclock{padding:12px 14px;gap:10px}}
 </style>
 </head>
 <body>
@@ -1814,12 +1830,13 @@ function renderAgenda(){
 }
 function startClock(){ if(CLOCK_TIMER)clearInterval(CLOCK_TIMER); updateClock(); CLOCK_TIMER=setInterval(updateClock,1000); }
 function updateClock(){
-  const h=$("clk-h"); if(!h){ if(CLOCK_TIMER){clearInterval(CLOCK_TIMER);CLOCK_TIMER=null;} return; }
+  const real=$("lc-real"); if(!real && !$("cl-ss")){ if(CLOCK_TIMER){clearInterval(CLOCK_TIMER);CLOCK_TIMER=null;} return; }
   const d=new Date(); let hh=d.getHours(); const ap=hh>=12?"PM":"AM"; hh=hh%12||12; const p=n=>String(n).padStart(2,"0");
-  h.textContent=p(hh); $("clk-m").textContent=p(d.getMinutes());
-  const se=$("clk-s"); if(se){ se.textContent=p(d.getSeconds()); se.style.transform="scale(1.22)"; setTimeout(()=>{const x=$("clk-s"); if(x)x.style.transform="scale(1)";},130); }
-  $("clk-ap").textContent=ap;
-  $("clk-date").textContent=d.toLocaleDateString(undefined,{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+  if(real) real.textContent=p(hh)+":"+p(d.getMinutes());
+  const ss=$("lc-ss"); if(ss) ss.textContent=p(d.getSeconds());
+  const apEl=$("lc-ap"); if(apEl) apEl.textContent=ap;
+  const dt=$("lc-date"); if(dt) dt.textContent=p(d.getDate())+"."+p(d.getMonth()+1);
+  const days=$("lc-days"); if(days){ const wd=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][d.getDay()]; days.querySelectorAll("span").forEach(x=>x.classList.toggle("on",x.dataset.d===wd)); }
   const s=d.getSeconds(), mi=d.getMinutes(), h12=d.getHours()%12;
   const setH=(id,deg)=>{const e=$(id); if(e) e.setAttribute("transform","rotate("+deg+" 50 50)");};
   setH("cl-ss", s*6); setH("cl-mm", mi*6+s*0.1); setH("cl-hh", h12*30+mi*0.5);
@@ -1844,7 +1861,14 @@ function drawHome(){
   p.innerHTML=`
     <div class="welcome"><div><div class="w-hi">Welcome back, ${esc(ME.full_name||ME.company||"Admin")} 👋</div><div class="w-sub">Here's what's happening across your portal today.</div>
       <div class="row" style="gap:8px;margin-top:12px"><button class="btn btn-sm" onclick="openAdminCRForm()">＋ Raise CR</button><button class="btn btn-sm btn-ghost" onclick="setAdminTab('clients')">＋ Client</button><button class="btn btn-sm btn-ghost" onclick="setAdminTab('leads')">＋ Lead</button></div></div>
-      <div class="clock3d" id="clock3d"><div class="clk-time"><span id="clk-h">00</span><b class="clk-c">:</b><span id="clk-m">00</span><b class="clk-c">:</b><span class="clk-s" id="clk-s">00</span><span class="clk-ap" id="clk-ap">AM</span></div><div class="clk-date" id="clk-date">—</div></div></div>
+      <div class="lclock" id="clock3d">
+        <div class="lc-days" id="lc-days">${["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map(x=>`<span data-d="${x}">${x}</span>`).join("")}</div>
+        <div class="lc-time"><span class="lc-ghost">88:88</span><span class="lc-real" id="lc-real">--:--</span></div>
+        <div class="lc-col">
+          <div class="lc-ss-wrap"><span class="lc-ghost2">88</span><span class="lc-ss" id="lc-ss">00</span><span class="lc-ap" id="lc-ap">AM</span></div>
+          <div class="lc-date-wrap"><span class="lc-ghost3">88.88</span><span class="lc-date" id="lc-date">--.--</span></div>
+        </div>
+      </div></div>
     <div class="stats">
       ${statCard("📋","#8e7cff",C.length,"Total CRs")}
       ${statCard("🕒","#ffb020",open.length,"Open")}
