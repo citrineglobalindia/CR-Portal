@@ -473,6 +473,9 @@
   .chip{display:inline-flex;align-items:center;gap:7px;background:var(--chip);border:1px solid var(--line);border-radius:999px;padding:5px 11px;font-size:12.5px}
   .chip button{background:none;border:0;color:var(--muted);cursor:pointer;font-size:16px;line-height:1;padding:0}
   .chip button:hover{color:#ff8a8a}
+  .hm-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);cursor:pointer}
+  .hm-row:last-child{border-bottom:0}
+  .hm-row:hover{background:var(--panel2)}
 </style>
 </head>
 <body>
@@ -1174,7 +1177,8 @@ function renderAdmin(){
     <div class="adminlayout">
       <aside class="sidebar">
         <div class="side-cap">Menu</div>
-        <button id="nt-dash" class="navside ${ADMIN_TAB==='dashboard'?'active':''}" onclick="setAdminTab('dashboard')"><span><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="3" width="8" height="4" rx="1"/><path d="M9 5H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-3"/><path d="M8 12h8M8 16h6"/></svg></span> Change Requests</button>
+        <button id="nt-home" class="navside ${ADMIN_TAB==='dashboard'?'active':''}" onclick="setAdminTab('dashboard')"><span><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg></span> Dashboard</button>
+        <button id="nt-crs" class="navside ${ADMIN_TAB==='crs'?'active':''}" onclick="setAdminTab('crs')"><span><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="3" width="8" height="4" rx="1"/><path d="M9 5H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-3"/><path d="M8 12h8M8 16h6"/></svg></span> Change Requests</button>
         <button id="nt-leads" class="navside ${ADMIN_TAB==='leads'?'active':''}" onclick="setAdminTab('leads')"><span><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.6"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></span> Leads</button>
         <button id="nt-clients" class="navside ${ADMIN_TAB==='clients'?'active':''}" onclick="setAdminTab('clients')"><span><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 19v-1a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v1"/><circle cx="9.5" cy="8" r="3.2"/><path d="M21 19v-1a4 4 0 0 0-3-3.85"/><path d="M16 4.15a3.2 3.2 0 0 1 0 6.2"/></svg></span> Clients</button>
         <button id="nt-board" class="navside ${ADMIN_TAB==='board'?'active':''}" onclick="setAdminTab('board')"><span><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="5" height="16" rx="1"/><rect x="9.5" y="4" width="5" height="11" rx="1"/><rect x="16" y="4" width="5" height="14" rx="1"/></svg></span> Board</button>
@@ -1183,7 +1187,7 @@ function renderAdmin(){
       </aside>
       <div class="adminmain"><div id="admin-pane"></div></div>
     </div>`;
-  if(ADMIN_TAB==="clients") renderAdminClients(); else if(ADMIN_TAB==="reports") renderAdminReports(); else if(ADMIN_TAB==="board") renderAdminBoard(); else if(ADMIN_TAB==="leads") renderAdminLeads(); else if(ADMIN_TAB==="gantt") renderAdminGantt(); else renderAdminDash();
+  if(ADMIN_TAB==="clients") renderAdminClients(); else if(ADMIN_TAB==="reports") renderAdminReports(); else if(ADMIN_TAB==="board") renderAdminBoard(); else if(ADMIN_TAB==="leads") renderAdminLeads(); else if(ADMIN_TAB==="gantt") renderAdminGantt(); else if(ADMIN_TAB==="crs") renderAdminDash(); else renderAdminHome();
 }
 function setAdminTab(t){ ADMIN_TAB=t; renderAdmin(); }
 
@@ -1706,6 +1710,58 @@ function buildGantt(){
   </div></div></div>`;
 }
 
+
+// ===================== ADMIN DASHBOARD (overview) =====================
+let HM_CHARTS={};
+async function renderAdminHome(){
+  $("admin-pane").innerHTML=`<div id="home-pane"><div class="hint">Loading dashboard…</div></div>`;
+  await loadRequests(); await loadClients(); await loadAdmins(); await loadCompletedTimes();
+  try{ await loadLeads(); }catch(_){ }
+  drawHome();
+}
+function drawHome(){
+  const C=CACHE;
+  const open=C.filter(r=>r.status!=="Done"&&r.status!=="Rejected");
+  const done=C.filter(r=>r.status==="Done");
+  const overdue=open.filter(r=>r.due_date&&new Date(r.due_date)<new Date());
+  const last7=C.filter(r=>new Date(r.created_at).getTime()>=Date.now()-7*864e5).length;
+  const leadsOpen=(LEADS||[]).filter(l=>l.stage!=="Won"&&l.stage!=="Lost");
+  const pipe=leadsOpen.reduce((s,l)=>s+(Number(l.value)||0),0);
+  const dueLeads=(LEADS||[]).filter(l=>l.follow_up_at&&l.stage!=="Won"&&l.stage!=="Lost"&&new Date(l.follow_up_at)<=new Date());
+  const recent=C.slice().sort((a,b)=>new Date(b.created_at)-new Date(a.created_at)).slice(0,6);
+  const p=$("home-pane"); if(!p) return;
+  p.innerHTML=`
+    <div class="welcome"><div><div class="w-hi">Welcome back, ${esc(ME.full_name||ME.company||"Admin")} 👋</div><div class="w-sub">Here's what's happening across your portal today.</div></div>
+      <div class="row" style="gap:8px;margin:0"><button class="btn btn-sm" onclick="openAdminCRForm()">＋ Raise CR</button><button class="btn btn-sm btn-ghost" onclick="setAdminTab('clients')">＋ Client</button><button class="btn btn-sm btn-ghost" onclick="setAdminTab('leads')">＋ Lead</button></div></div>
+    <div class="stats">
+      ${statCard("📋","#8e7cff",C.length,"Total CRs")}
+      ${statCard("🕒","#ffb020",open.length,"Open")}
+      ${statCard("✅","#22c55e",done.length,"Completed")}
+      ${statCard("⚠️","#ff6b6b",overdue.length,"Overdue")}
+      ${statCard("👥","#00b8d4",CLIENTS.length,"Clients")}
+      ${statCard("🎯","#8e7cff",leadsOpen.length,"Open leads")}
+      ${statCard("💰","#00d2a8","₹"+pipe.toLocaleString("en-IN"),"Pipeline")}
+      ${statCard("🆕","#6c5ce7",last7,"New (7d)")}
+    </div>
+    <div class="grid2">
+      <div class="card"><h2>CRs by status</h2><div class="rep-cv" style="height:240px;position:relative"><canvas id="hm-status"></canvas></div></div>
+      <div class="card"><h2>Raised — last 14 days</h2><div class="rep-cv" style="height:240px;position:relative"><canvas id="hm-daily"></canvas></div></div>
+    </div>
+    <div class="grid2">
+      <div class="card"><h2>Recent change requests</h2>${recent.length?`<div>${recent.map(r=>`<div class="hm-row" onclick="openDetail('${r.id}')"><div style="min-width:0"><div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(r.ref_no)} · ${esc(r.title)}</div><div class="hint">${esc(r.client_name||"")} · ${esc(fmtDay(r.created_at))}</div></div><span class="badge ${badgeClass(r.status)}">${esc(r.status)}</span></div>`).join("")}</div>`:`<div class="empty">No change requests yet.</div>`}</div>
+      <div class="card"><h2>Lead follow-ups due${dueLeads.length?` (${dueLeads.length})`:""}</h2>${dueLeads.length?`<div>${dueLeads.slice(0,6).map(l=>`<div class="hm-row" onclick="setAdminTab('leads')"><div style="min-width:0"><div style="font-weight:600">${esc(l.name)}</div><div class="hint">${esc(l.company||"")} · ⏰ ${esc(fmtDay(l.follow_up_at))}</div></div><span class="badge" style="background:${(LEAD_SC[l.stage]||'#888')}26;color:${LEAD_SC[l.stage]||'#888'};border:1px solid ${(LEAD_SC[l.stage]||'#888')}66">${esc(l.stage)}</span></div>`).join("")}</div>`:`<div class="empty">No follow-ups due. 🎉</div>`}</div>
+    </div>`;
+  if(typeof Chart==="undefined") return;
+  Object.values(HM_CHARTS).forEach(c=>{try{c.destroy()}catch(_){}}); HM_CHARTS={};
+  Chart.defaults.color="#9aa0bd"; Chart.defaults.maintainAspectRatio=false; Chart.defaults.responsive=true;
+  const by={}; C.forEach(r=>{const k=r.status||"—";by[k]=(by[k]||0)+1;});
+  try{ HM_CHARTS.status=new Chart($("hm-status"),{type:"doughnut",data:{labels:Object.keys(by),datasets:[{data:Object.values(by),backgroundColor:Object.keys(by).map(k=>REP_SC[k]||"#9aa0bd"),borderWidth:0}]},options:{cutout:"60%",plugins:{legend:{position:"bottom",labels:{boxWidth:10,boxHeight:10,padding:10}}}}}); }catch(_){}
+  const days=14, today=new Date(); today.setHours(0,0,0,0); const lbl=[],cnt=[],mp={};
+  C.forEach(r=>{const d=new Date(r.created_at);const k=d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate();mp[k]=(mp[k]||0)+1;});
+  for(let n=days-1;n>=0;n--){const d=new Date(today.getTime()-n*864e5);const k=d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate();lbl.push(d.toLocaleDateString(undefined,{month:"short",day:"numeric"}));cnt.push(mp[k]||0);}
+  try{ HM_CHARTS.daily=new Chart($("hm-daily"),{type:"bar",data:{labels:lbl,datasets:[{data:cnt,backgroundColor:"#8e7cff",borderRadius:5,maxBarThickness:20}]},options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0}},x:{grid:{display:false},ticks:{maxRotation:0,autoSkip:true,maxTicksLimit:8}}}}}); }catch(_){}
+}
+
 // ----- Admin: Reports -----
 let CHARTS={}, REP_RANGE=0;
 const REP_SC={"New":"#9aa0bd","In Review":"#ffb020","Approved":"#8e7cff","In Progress":"#00d2a8","Done":"#22c55e","Rejected":"#ff6b6b"};
@@ -2040,6 +2096,8 @@ function renderClientsList(){
     </div>`;}).join("")}</div>`:`<div class="empty">${term?"No clients match your search.":"No clients yet. Create your first one above."}</div>`;
 }
 let EDIT_EMAILS=[];
+function deleteClientAsk(id){ const c=CLIENTS.find(x=>x.id===id); $("modal-root").innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()"><div class="modal" style="max-width:470px"><div class="mh"><h2 style="margin:0;color:#ffb4b4">Delete client</h2><button class="x" onclick="closeModal()">×</button></div><div class="mb"><p style="line-height:1.55">Permanently delete <b>${esc(c?(c.company||c.full_name||c.username):"this client")}</b> and <b>all</b> of their change requests, files, vault entries and notes? This cannot be undone.</p><div class="row" style="margin-top:14px"><button class="btn btn-sm btn-danger" id="dc-btn" onclick="confirmDeleteClient('${id}')">Yes, delete permanently</button><button class="btn btn-sm btn-ghost" onclick="openClientEdit('${id}')">Cancel</button></div></div></div></div>`; }
+async function confirmDeleteClient(id){ const btn=$("dc-btn"); if(btn){btn.disabled=true;btn.textContent="Deleting…";} try{ await callFn("admin-delete-client",{client_id:id}); toast("Client deleted."); closeModal(); await loadClients(); renderClientsList(); }catch(e){ toast(e.message||"Could not delete client.",true); if(btn){btn.disabled=false;btn.textContent="Yes, delete permanently";} } }
 function renderEmailChips(){ const el=$("e-emails"); if(!el)return; el.innerHTML=EDIT_EMAILS.length?EDIT_EMAILS.map((e,i)=>`<span class="chip">${esc(e)}<button type="button" title="Remove" onclick="removeEmailChip(${i})">×</button></span>`).join(""):`<span class="hint">No emails yet — add at least one below.</span>`; }
 function addEmailChip(){ const inp=$("e-email-add"); const v=(inp.value||"").trim().toLowerCase(); if(!v||!v.includes("@")){toast("Enter a valid email address.",true);return;} if(!EDIT_EMAILS.includes(v)) EDIT_EMAILS.push(v); inp.value=""; renderEmailChips(); inp.focus(); }
 function removeEmailChip(i){ EDIT_EMAILS.splice(i,1); renderEmailChips(); }
@@ -2095,6 +2153,9 @@ function openClientEdit(id){
           <button class="btn btn-sm btn-ghost" onclick="resetClientPw('${c.id}')">Set new password</button>
         </div>
         <div class="hint">The client logs in with their username and this new password.</div>
+        <div class="section-title" style="color:#ffb4b4">Danger zone</div>
+        <button class="btn btn-sm btn-danger" onclick="deleteClientAsk('${c.id}')">🗑 Delete this client</button>
+        <div class="hint">Permanently removes the client's login and ALL their change requests, files, vault entries and notes.</div>
         <div class="row" style="margin-top:16px">
           <button class="btn btn-sm" id="e-save" onclick="saveClientEdit('${c.id}')">Save changes</button>
           <button class="btn btn-sm btn-ghost" onclick="closeModal()">Cancel</button>
