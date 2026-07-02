@@ -1200,6 +1200,8 @@ function renderAdmin(){
 }
 function setAdminTab(t){ ADMIN_TAB=t; renderAdmin(); }
 
+let ADMIN_QUICK="pending";
+function setAdminQuick(v){ ADMIN_QUICK=v; document.querySelectorAll('#a-quick button').forEach((b,i)=>b.classList.toggle('on',['pending','all','completed','overdue'][i]===v)); renderAdminTable(); }
 function renderAdminDash(){
   $("admin-pane").innerHTML=`
     <div class="welcome">
@@ -1211,6 +1213,12 @@ function renderAdminDash(){
     </div>
     <div class="stats" id="admin-stats"></div>
     <div class="card">
+      <div class="lead-bar" style="margin:0 0 12px"><div class="seg" id="a-quick">
+        <button class="${ADMIN_QUICK==='pending'?'on':''}" onclick="setAdminQuick('pending')">🕒 Pending</button>
+        <button class="${ADMIN_QUICK==='all'?'on':''}" onclick="setAdminQuick('all')">All</button>
+        <button class="${ADMIN_QUICK==='completed'?'on':''}" onclick="setAdminQuick('completed')">✅ Completed</button>
+        <button class="${ADMIN_QUICK==='overdue'?'on':''}" onclick="setAdminQuick('overdue')">⚠️ Overdue</button>
+      </div><span class="hint" id="a-quick-count"></span></div>
       <div class="toolbar">
         <input id="a-search" class="inp" placeholder="🔍 Search everything — ref, heading, client, description, tags, comments…" oninput="renderAdminTable()" style="min-width:300px;flex:1"/>
         <select id="a-status" class="inp" onchange="renderAdminTable()"><option value="">All statuses</option>${STATUSES.map(s=>`<option>${s}</option>`).join("")}</select>
@@ -1312,6 +1320,9 @@ function filteredAdmin(){
   const fromT=from?new Date(from+"T00:00:00").getTime():null;
   const toT=to?new Date(to+"T23:59:59").getTime():null;
   return CACHE.filter(r=>{
+    if(ADMIN_QUICK==="pending" && (r.status==="Done"||r.status==="Rejected")) return false;
+    if(ADMIN_QUICK==="completed" && r.status!=="Done") return false;
+    if(ADMIN_QUICK==="overdue" && !(r.due_date && r.status!=="Done" && r.status!=="Rejected" && new Date(r.due_date)<new Date())) return false;
     if(st&&r.status!==st) return false;
     if(pr&&r.priority!==pr) return false;
     if(cl&&r.client_name!==cl) return false;
