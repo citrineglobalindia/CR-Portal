@@ -659,6 +659,7 @@ function authMsg(msg,type){ const m=$("auth-msg"); m.textContent=msg; m.classNam
 function statCard(icon,color,num,label){
   return `<div class="stat"><div class="ic" style="background:${color}1f;color:${color}">${icon}</div><div class="n" style="color:${color}">${num}</div><div class="l">${esc(label)}</div></div>`;
 }
+function emailList(x){ return [...new Set(String(x||"").split(/[\n,;]+/).map(v=>v.trim()).filter(v=>v.includes("@")))]; }
 const parseTags = s => { const a=String(s||"").split(",").map(t=>t.trim()).filter(Boolean); return a.length?a:null; };
 // ----- Voice recording (MediaRecorder) -----
 let MEDIA_REC=null, AUDIO_CHUNKS=[], RECORDED={}, REC_TIMER=null;
@@ -915,7 +916,7 @@ function openProfile(){
           ${ME.company?`<div class="k">Company</div><div>${esc(ME.company)}</div>`:""}
           ${ME.username?`<div class="k">Username</div><div>${esc(ME.username)}</div>`:""}
           ${ME.client_code?`<div class="k">Client code</div><div><span class="ref">${esc(ME.client_code)}</span></div>`:""}
-          <div class="k">Email</div><div>${esc(ME.notify_email||ME.email)}</div>
+          <div class="k">Email(s)</div><div>${esc((ME.notify_emails&&ME.notify_emails.length)?ME.notify_emails.join(", "):(ME.notify_email||ME.email))}</div>
           ${ME.phone?`<div class="k">Phone</div><div>${esc(ME.phone)}</div>`:""}
         </div>
         <button class="btn btn-sm" style="margin-top:4px" onclick="openSettings()">⚙️ Edit / Settings</button>
@@ -932,7 +933,7 @@ function openSettings(){
         <div class="grid2">
           <div><label>Full name</label><input id="set-name" class="inp" value="${esc(ME.full_name||"")}"/></div>
           <div><label>Phone</label><input id="set-phone" class="inp" value="${esc(ME.phone||"")}"/></div>
-          ${ME.role!=="admin"?`<div><label>Notification email</label><input id="set-email" class="inp" value="${esc(ME.notify_email||"")}"/></div>`:`<div><label>Email</label><input class="inp" value="${esc(ME.email||"")}" disabled/></div>`}
+          ${ME.role!=="admin"?`<div><label>Notification email(s) <span class="hint">comma-separated</span></label><input id="set-email" class="inp" value="${esc((ME.notify_emails&&ME.notify_emails.length)?ME.notify_emails.join(', '):(ME.notify_email||''))}"/></div>`:`<div><label>Email</label><input class="inp" value="${esc(ME.email||"")}" disabled/></div>`}
         </div>
         <button class="btn btn-sm" style="margin-top:14px" id="set-save" onclick="saveMySettings()">Save profile</button>
         <div class="section-title">Change password</div>
@@ -943,7 +944,7 @@ function openSettings(){
 }
 async function saveMySettings(){
   const patch={ full_name:$("set-name").value.trim()||null, phone:$("set-phone").value.trim()||null };
-  if($("set-email")) patch.notify_email=$("set-email").value.trim()||null;
+  if($("set-email")){ const em=emailList($("set-email").value); patch.notify_email=em[0]||null; patch.notify_emails=em; }
   const btn=$("set-save"); btn.disabled=true; btn.textContent="Saving…";
   const {error}=await sb.from("cr_profiles").update(patch).eq("id",ME.id);
   btn.disabled=false; btn.textContent="Save profile";
@@ -1027,7 +1028,7 @@ function renderClient(){
       ${lg?`<img class="lg" src="${esc(lg)}" alt="logo"/>`:`<div class="lg ph">${esc(initials(ME.company||ME.full_name||ME.username))}</div>`}
       <div>
         <div class="h-name">${esc(ME.company||ME.full_name||ME.username||"Welcome")}</div>
-        <div class="h-sub">Client code <span class="ref">${esc(ME.client_code||"—")}</span> · Notifications to ${esc(ME.notify_email||"—")}</div>
+        <div class="h-sub">Client code <span class="ref">${esc(ME.client_code||"—")}</span> · Notifications to ${esc((ME.notify_emails&&ME.notify_emails.length)?ME.notify_emails.join(", "):(ME.notify_email||"—"))}</div>
       </div>
     </div>
     <div class="stats" id="client-stats"></div>
@@ -1914,7 +1915,7 @@ async function renderAdminClients(){
         <div><label>CR number prefix <span class="req">*</span><span class="hint"> you decide</span></label><input id="cl-prefix" class="inp" placeholder="e.g. CR-BHO" oninput="this.dataset.touched=1;updatePrefixPreview()"/></div>
         <div><label>Username <span class="req">*</span></label><input id="cl-username" class="inp" placeholder="login username"/></div>
         <div><label>Password <span class="req">*</span><span class="hint"> min 6</span></label><input id="cl-pass" class="inp" type="text" placeholder="set a password"/></div>
-        <div><label>Notification email <span class="req">*</span></label><input id="cl-email" class="inp" type="email" placeholder="client@company.com"/></div>
+        <div><label>Notification email(s) <span class="req">*</span><span class="hint"> comma-separated for multiple</span></label><input id="cl-email" class="inp" placeholder="a@x.com, b@y.com"/></div>
         <div><label>Phone</label><input id="cl-phone" class="inp" placeholder="+91…"/></div>
         <div><label>GST / Tax ID</label><input id="cl-gst" class="inp" placeholder="GSTIN / Tax no."/></div>
         <div><label>Website</label><input id="cl-web" class="inp" placeholder="https://…"/></div>
@@ -2050,7 +2051,7 @@ function openClientEdit(id){
         <div class="grid2">
           <div><label>Company</label><input id="e-company" class="inp" value="${esc(c.company||"")}"/></div>
           <div><label>Full name</label><input id="e-name" class="inp" value="${esc(c.full_name||"")}"/></div>
-          <div><label>Notification email</label><input id="e-email" class="inp" value="${esc(c.notify_email||"")}"/></div>
+          <div><label>Notification email(s) <span class="hint">comma-separated</span></label><input id="e-email" class="inp" value="${esc((c.notify_emails&&c.notify_emails.length)?c.notify_emails.join(', '):(c.notify_email||''))}"/></div>
           <div><label>Phone</label><input id="e-phone" class="inp" value="${esc(c.phone||"")}"/></div>
           <div><label>GST / Tax ID</label><input id="e-gst" class="inp" value="${esc(c.gst_no||"")}"/></div>
           <div><label>Website</label><input id="e-web" class="inp" value="${esc(c.website||"")}"/></div>
@@ -2109,9 +2110,10 @@ async function resetClientPw(id){
 async function saveClientEdit(id){
   const btn=$("e-save"); btn.disabled=true; btn.textContent="Saving…";
   try{
+    const emails=emailList($("e-email").value);
     const body={ client_id:id,
-      company:$("e-company").value.trim(), full_name:$("e-name").value.trim(), email:$("e-email").value.trim(),
-      notify_email:$("e-email").value.trim(), phone:$("e-phone").value.trim(), gst_no:$("e-gst").value.trim(),
+      company:$("e-company").value.trim(), full_name:$("e-name").value.trim(),
+      notify_email:emails[0]||null, notify_emails:emails, phone:$("e-phone").value.trim(), gst_no:$("e-gst").value.trim(),
       website:$("e-web").value.trim(), address:$("e-address").value.trim(), cr_prefix:$("e-prefix").value.trim(),
       project_profile:{ stack:($("e-pp-stack")?$("e-pp-stack").value.trim():""), framework:($("e-pp-framework")?$("e-pp-framework").value.trim():""), repo:($("e-pp-repo")?$("e-pp-repo").value.trim():""), site:($("e-pp-site")?$("e-pp-site").value.trim():""), conventions:($("e-pp-conv")?$("e-pp-conv").value.trim():""), notes:($("e-pp-notes")?$("e-pp-notes").value.trim():"") } };
     delete body.email;
@@ -2125,13 +2127,13 @@ async function saveClientEdit(id){
 async function createClient(){
   const name=$("cl-name").value.trim(), company=$("cl-company").value.trim(), code=$("cl-code").value.trim();
   const prefix=$("cl-prefix").value.trim()||("CR-"+codeify(code));
-  const username=$("cl-username").value.trim(), pass=$("cl-pass").value, email=$("cl-email").value.trim();
+  const username=$("cl-username").value.trim(), pass=$("cl-pass").value; const emails=emailList($("cl-email").value); const email=emails[0]||"";
   if(!name||!company||!code||!username||pass.length<6||!email){ toast("Fill name, company, code, username, 6+ char password and email.",true); return; }
   const btn=$("cl-btn"); btn.disabled=true; btn.textContent="Creating…";
   try{
     let logo_base64=null, logo_name=null, logo_type=null;
     if(LOGO_FILE){ logo_base64=await readAsBase64(LOGO_FILE); logo_name=LOGO_FILE.name; logo_type=LOGO_FILE.type||"image/png"; }
-    await callFn("admin-create-client",{ username, password:pass, email, full_name:name,
+    await callFn("admin-create-client",{ username, password:pass, email, notify_emails:emails, full_name:name,
       company, phone:$("cl-phone").value.trim(), address:$("cl-address").value.trim(),
       gst_no:$("cl-gst").value.trim(), website:$("cl-web").value.trim(), client_code:code, cr_prefix:prefix,
       logo_base64, logo_name, logo_type });
