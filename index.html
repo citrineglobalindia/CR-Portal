@@ -15,14 +15,22 @@
 <script>
   if('serviceWorker' in navigator){ window.addEventListener('load',function(){ navigator.serviceWorker.register('/sw.js').catch(function(){}); }); }
   var __deferredPrompt=null;
-  window.addEventListener('beforeinstallprompt', function(e){ e.preventDefault(); __deferredPrompt=e; showInstallBtn(); });
-  window.addEventListener('appinstalled', function(){ __deferredPrompt=null; var b=document.getElementById('pwa-install'); if(b) b.remove(); });
-  function showInstallBtn(){
-    if(document.getElementById('pwa-install')) return;
-    var b=document.createElement('button'); b.id='pwa-install'; b.className='pwa-install'; b.type='button'; b.innerHTML='⬇ Install app';
-    b.onclick=async function(){ if(!__deferredPrompt) return; __deferredPrompt.prompt(); try{ await __deferredPrompt.userChoice; }catch(_){} __deferredPrompt=null; b.remove(); };
-    (document.body||document.documentElement).appendChild(b);
+  function __installed(){ return (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone===true; }
+  function __showHdrInstall(){ var b=document.getElementById('hdr-install'); if(b && !__installed()) b.classList.remove('hidden'); }
+  window.addEventListener('beforeinstallprompt', function(e){ e.preventDefault(); __deferredPrompt=e; __showHdrInstall();
+    var f=document.getElementById('pwa-install'); if(!f){ f=document.createElement('button'); f.id='pwa-install'; f.className='pwa-install'; f.type='button'; f.innerHTML='⬇ Install app'; f.onclick=installApp; (document.body||document.documentElement).appendChild(f); } });
+  window.addEventListener('appinstalled', function(){ __deferredPrompt=null; var b=document.getElementById('pwa-install'); if(b) b.remove(); var h=document.getElementById('hdr-install'); if(h) h.classList.add('hidden'); });
+  async function installApp(){
+    if(__deferredPrompt){ __deferredPrompt.prompt(); try{ await __deferredPrompt.userChoice; }catch(_){} __deferredPrompt=null; var f=document.getElementById('pwa-install'); if(f) f.remove(); return; }
+    var ua=navigator.userAgent||''; var iOS=/iphone|ipad|ipod/i.test(ua); var inApp=/(FBAN|FBAV|Instagram|WhatsApp|Line|Twitter|GSA)/i.test(ua);
+    var steps = inApp ? 'You\'re in an in-app browser. Tap the ⋯ / share menu and choose <b>Open in browser</b> (Chrome or Safari), then use Install / Add to Home Screen.'
+      : iOS ? 'On iPhone/iPad: tap the <b>Share</b> button (□↑) at the bottom, then choose <b>Add to Home Screen</b>.'
+      : 'Open your browser menu (⋮) and choose <b>Install app</b> / <b>Add to Home screen</b>.';
+    var ov=document.createElement('div'); ov.className='overlay'; ov.style.zIndex='200'; ov.onclick=function(ev){ if(ev.target===ov) ov.remove(); };
+    ov.innerHTML='<div class="modal" style="max-width:400px"><div class="mh"><h2 style="margin:0">⬇ Install app</h2><button class="x" onclick="this.closest(\'.overlay\').remove()">×</button></div><div class="mb"><p style="line-height:1.6">'+steps+'</p></div></div>';
+    document.body.appendChild(ov);
   }
+  window.addEventListener('load', function(){ if(!__installed()) { var b=document.getElementById('hdr-install'); if(b) b.classList.remove('hidden'); } });
 </script>
 <style>
   :root{
@@ -599,6 +607,7 @@
     .lc-time{font-size:28px}
     .welcome .w-hi{font-size:16px}
   }
+  .hdr-install{background:linear-gradient(135deg,var(--brand),var(--brand2))!important;color:#fff!important;border:0!important}
   .pwa-install{position:fixed;left:16px;bottom:16px;z-index:80;background:linear-gradient(135deg,var(--brand,#6c5ce7),var(--brand2,#8e7cff));color:#fff;border:0;border-radius:12px;padding:11px 16px;font-weight:700;font-size:14px;box-shadow:0 10px 26px var(--g1,rgba(108,92,231,.3)),0 6px 16px rgba(0,0,0,.4);cursor:pointer;animation:cr-fade-up .4s both}
   .pwa-install:hover{transform:translateY(-2px)}
   @media(max-width:640px){.pwa-install{left:12px;bottom:12px;font-size:13px;padding:10px 14px}}
@@ -686,6 +695,7 @@
     </div>
     <div class="who">
       <div class="theme-wrap">
+<button class="bell hdr-install hidden" id="hdr-install" onclick="installApp()" title="Install app">⬇</button>
         <button class="bell" id="theme-btn" onclick="toggleThemeMenu(event)" title="Colour theme">🎨</button>
         <div id="theme-menu" class="menu theme-menu hidden">
           <div class="mh3">Colour theme</div>
