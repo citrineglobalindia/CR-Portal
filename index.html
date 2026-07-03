@@ -1555,6 +1555,8 @@ function openAdminCRForm(){
         <input id="ac-tags" class="inp" placeholder="e.g. urgent, billing"/>
         <label style="margin-top:12px">Description <span class="req">*</span></label>
         ${richEditor("ac-desc","Explain what is expected…  Use the toolbar for bold, lists, etc.")}
+        <label style="margin-top:12px">Before — current state <span class="hint">(optional)</span></label>
+        <textarea id="ac-before" class="inp" rows="3" placeholder="Describe the current state before the change…"></textarea>
         ${recorderUI("admin","arec-btn","arec-player")}
         <div id="ac-preview" class="photo-grid" style="margin-top:10px"></div>
         <button class="btn" style="max-width:260px" id="ac-btn" onclick="adminCreateCR()">Create change request</button>
@@ -1570,6 +1572,7 @@ async function adminCreateCR(){
   try{
     const res=await callFn("admin-create-cr",{ client_id, title, description:desc,
       area:$("ac-area").value, type:$("ac-type").value, priority:$("ac-priority").value, due_date:$("ac-due").value||null, tags:parseTags($("ac-tags").value) });
+    if(res && res.id && $("ac-before") && $("ac-before").value.trim()){ try{ await sb.from("cr_requests").update({before_note:$("ac-before").value.trim()}).eq("id",res.id); }catch(_){} }
     for(const f of $("ac-files").files){ await uploadAttachment(res.id,f); }
     await uploadRecording("admin",res.id);
     toast("Change request "+res.ref_no+" created.");
