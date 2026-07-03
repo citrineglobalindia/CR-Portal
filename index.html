@@ -640,6 +640,16 @@
   .insights{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}
   .insights .ins{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:11px 13px;font-size:13px;color:var(--muted)}
   .insights .ins b{color:var(--txt)}
+  /* before/after toggle */
+  .ba-tabs{display:inline-flex;background:var(--panel2);border:1px solid var(--line);border-radius:12px;overflow:hidden;margin:2px 0 12px}
+  .ba-tab{background:transparent;border:0;color:var(--muted);padding:9px 20px;font-size:13.5px;font-weight:700;cursor:pointer}
+  .ba-tab.on{color:#fff}
+  #ba-tab-before.on{background:linear-gradient(135deg,#ffb020,#ff9f45)}
+  #ba-tab-after.on{background:linear-gradient(135deg,#22c55e,#00d2a8)}
+  .ba-panel{animation:cr-fade-up .3s ease both}
+  .ba-note{white-space:pre-wrap;font-size:14px;line-height:1.55;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:11px 13px;margin-bottom:10px}
+  .ba-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+  .ba-actions label.btn{margin:0;display:inline-flex;align-items:center}
 </style>
 </head>
 <body>
@@ -2695,6 +2705,12 @@ async function saveNote(id){
   if(error){toast(error.message,true);return;}
   toast("Note updated."); await fetchNotes(); renderNotes();
 }
+function baShow(which){ const b=$("ba-before-panel"),a=$("ba-after-panel"),tb=$("ba-tab-before"),ta=$("ba-tab-after"); if(!b||!a)return; const af=which==="after"; a.classList.toggle("hidden",!af); b.classList.toggle("hidden",af); if(ta)ta.classList.toggle("on",af); if(tb)tb.classList.toggle("on",!af); }
+async function baUpload(id,which,inp){ if(!inp||!inp.files||!inp.files.length)return; toast("Uploading…"); for(const f of inp.files){ await uploadAttachment(id,f, which==="after"?"after":null); } toast("Uploaded."); await openDetail(id); baShow(which); }
+function baEditNote(id,which){ const r=CACHE.find(x=>x.id===id); if(!r)return; const cur=which==="after"?(r.after_note||""):(r.before_note||""); const lbl=which==="after"?"After — result / verification":"Before — current state";
+  $("modal-root").innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()"><div class="modal" style="max-width:480px"><div class="mh"><h2 style="margin:0">${lbl}</h2><button class="x" onclick="openDetail('${id}')">×</button></div><div class="mb"><textarea id="ba-note-edit" class="inp" rows="5" placeholder="Type here…">${esc(cur)}</textarea><div class="row" style="margin-top:14px"><button class="btn btn-sm btn-ok" onclick="baSaveNote('${id}','${which}')">Save</button><button class="btn btn-sm btn-ghost" onclick="openDetail('${id}')">Cancel</button></div></div></div></div>`; }
+async function baSaveNote(id,which){ const v=($("ba-note-edit").value||"").trim(); const col=which==="after"?"after_note":"before_note"; const patch={updated_at:new Date().toISOString()}; patch[col]=v||null; const {error}=await sb.from("cr_requests").update(patch).eq("id",id); const r=CACHE.find(x=>x.id===id); if(r&&!error) r[col]=v||null; toast(error?"Saved photos; note save pending.":"Saved."); await openDetail(id); baShow(which); }
+async function baComment(id){ const inp=$("ba-comment"); const body=(inp.value||"").trim(); if(!body)return; const {error}=await sb.from("cr_comments").insert({request_id:id,author_id:SESSION.user.id,author_name:ME.full_name||ME.username||ME.email,author_role:ME.role,body}); if(error){toast(error.message,true);return;} toast("Comment added."); await openDetail(id); baShow("after"); }
 function openAfterChange(id){
   const r=CACHE.find(x=>x.id===id); if(!r)return;
   $("modal-root").innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()"><div class="modal">
@@ -2841,7 +2857,7 @@ async function openDetail(id){
         </div>
         <div><div class="k" style="color:var(--muted);font-size:13px;margin-bottom:4px">Description</div>
           <div style="font-size:14px;line-height:1.55">${renderDesc(r.description)}</div></div>
-        ${r.before_note?`<div style="margin-top:10px"><div class="k" style="color:var(--muted);font-size:13px;margin-bottom:4px">🟡 Before — current state</div><div style="white-space:pre-wrap;font-size:14px;line-height:1.5">${esc(r.before_note)}</div></div>`:""}
+
         ${tagChips(r.tags)}
         ${(isAdmin || isOwner)?`<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-sm btn-ghost" onclick="openCREdit('${r.id}')">✏️ Edit request</button><button class="btn btn-sm btn-ghost" onclick="exportBeforeAfter('${r.id}')">⬇ Before/After PDF</button></div>`:""}
         ${isAdmin?`<div class="section-title">Assign to</div>
@@ -2849,7 +2865,20 @@ async function openDetail(id){
           <option value="">Unassigned</option>
           ${ADMINS.map(a=>`<option value="${a.id}" ${r.assigned_to===a.id?"selected":""}>${esc(a.full_name||a.username||a.email)}</option>`).join("")}
         </select>`:""}
-        ${imgs.length?`<div class="section-title">Photos (${imgs.length})</div><div class="photo-grid" id="photo-grid"></div>`:""}
+        <div class="section-title">Before / After</div>
+        <div class="ba-tabs"><button class="ba-tab on" id="ba-tab-before" onclick="baShow('before')">🟡 Before</button><button class="ba-tab" id="ba-tab-after" onclick="baShow('after')">🟢 After</button></div>
+        <div id="ba-before-panel" class="ba-panel">
+          ${r.before_note?`<div class="ba-note">${esc(r.before_note)}</div>`:""}
+          ${imgs.length?`<div class="photo-grid" id="before-grid"></div>`:`<div class="hint">No before images.</div>`}
+          ${(isAdmin||isOwner)?`<div class="ba-actions"><label class="btn btn-sm btn-ghost">＋ Add before images<input type="file" accept="image/*" multiple onchange="baUpload('${r.id}','before',this)" hidden></label><button class="btn btn-sm btn-ghost" onclick="baEditNote('${r.id}','before')">✎ Edit before note</button></div>`:""}
+        </div>
+        <div id="ba-after-panel" class="ba-panel hidden">
+          ${r.after_note?`<div class="ba-note">${esc(r.after_note)}</div>`:`<div class="hint">Upload the resolved / verified changes here.</div>`}
+          ${afterImgs.length?`<div class="photo-grid" id="after-grid"></div>`:""}
+          ${afterFiles.length?`<div>${afterFiles.map(a=>`<div class="att"><span>🟢</span><span class="name">${esc(a.file_name)}</span> <button class="btn btn-sm btn-ghost" onclick="downloadAtt('${esc(a.file_path)}','${esc(a.file_name)}')">Download</button></div>`).join("")}</div>`:""}
+          ${(isAdmin||isOwner)?`<div class="ba-actions"><label class="btn btn-sm btn-ok">⬆ Upload after images<input type="file" accept="image/*" multiple onchange="baUpload('${r.id}','after',this)" hidden></label><button class="btn btn-sm btn-ghost" onclick="baEditNote('${r.id}','after')">✎ Edit after note</button></div>
+          <div class="row" style="margin-top:8px"><input id="ba-comment" class="inp" placeholder="Add a verification comment…" style="flex:1" onkeydown="if(event.key===\'Enter\')baComment(\'${r.id}\')"/><button class="btn btn-sm" onclick="baComment('${r.id}')">Comment</button></div>`:""}
+        </div>
         ${audios.length?`<div class="section-title">Voice notes (${audios.length})</div><div id="audio-list"></div>`:""}
         ${isAdmin?`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">
           <button class="btn btn-sm" style="background:linear-gradient(135deg,#6c5ce7,#8e7cff)" onclick="genCRPrompt('${r.id}')">✨ Generate implementation prompt</button>
@@ -2876,12 +2905,6 @@ async function openDetail(id){
         ${isAdmin?`<div class="paste-zone" id="d-confirm-paste" tabindex="0" onpaste="confirmPaste(event)">📋 Click here and paste a screenshot (Ctrl/Cmd + V)</div>
         <div id="d-confirm-prev" class="hidden" style="margin-top:8px"></div>
         <div class="row" style="margin-top:8px"><input id="d-confirm-file" class="inp" type="file" accept="image/*,application/pdf" multiple style="flex:1"/><button class="btn btn-sm btn-ok" id="d-confirm-btn" onclick="submitConfirmation('${r.id}')">⬆ Upload confirmation</button></div><div class="hint">Attach a file confirming the change was made — paste a screenshot above or choose a file. The client is notified and can download it.</div>`:""}
-        <div class="section-title">After the change${afterAtts.length?` (${afterAtts.length})`:""}</div>
-        ${r.after_note?`<div style="white-space:pre-wrap;font-size:14px;line-height:1.5;margin-bottom:8px">${esc(r.after_note)}</div>`:""}
-        ${afterImgs.length?`<div class="photo-grid" id="after-grid"></div>`:""}
-        ${afterFiles.length?`<div>${afterFiles.map(a=>`<div class="att"><span>🟢</span><span class="name">${esc(a.file_name)}</span> <button class="btn btn-sm btn-ghost" onclick="downloadAtt('${esc(a.file_path)}','${esc(a.file_name)}')">Download</button></div>`).join("")}</div>`:""}
-        ${(!r.after_note && !afterAtts.length)?`<div class="hint">${r.status==="Done"?"Add what changed after completion (result + photos).":"Available once the CR is completed."}</div>`:""}
-        ${((isAdmin||isOwner) && r.status==="Done")?`<button class="btn btn-sm btn-ok" style="margin-top:8px" onclick="openAfterChange('${r.id}')">✎ Add / update after-change</button>`:""}
         <div class="section-title">GitHub commits${commitsArr.length?` (${commitsArr.length})`:""}</div>
         <div id="cr-commits">${renderCommits(commitsArr,crRepo,isAdmin,r.id)}</div>
         ${isAdmin?`<div class="row" style="margin-top:8px">
@@ -2899,7 +2922,7 @@ async function openDetail(id){
     </div>
   </div>`;
   if(imgs.length){
-    const g=$("photo-grid");
+    const g=$("before-grid"); if(g)
     for(const a of imgs){
       const {data}=await sb.storage.from("cr-attachments").createSignedUrl(a.file_path,600);
       if(data&&data.signedUrl){ const wrap=document.createElement("a"); wrap.href=data.signedUrl; wrap.target="_blank"; wrap.rel="noopener";
