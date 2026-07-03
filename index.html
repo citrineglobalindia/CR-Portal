@@ -2744,50 +2744,75 @@ async function saveAfterChange(id){
   openDetail(id);
 }
 function _brandRGB(){ const c=(getComputedStyle(document.documentElement).getPropertyValue("--brand")||"#6c5ce7").trim(); const m=c.match(/^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i); return m?[parseInt(m[1],16),parseInt(m[2],16),parseInt(m[3],16)]:[108,92,231]; }
+function _pdfSafe(x){ return String(x==null?"":x)
+  .replace(/→|➔|➤|➜|➙|⇒|⮕|⭢/g,"-> ")
+  .replace(/[‘’‚‛]/g,"'")
+  .replace(/[“”„]/g,'"')
+  .replace(/[–—−]/g,"-")
+  .replace(/…/g,"...").replace(/ /g," ")
+  .replace(/[●▪◦⁃∙]/g,"•")
+  .replace(/[^\r\n\x20-\xFF•]/g,""); }
+async function _fetchDataURL(url){ try{ const res=await fetch(url); if(!res.ok)return null; const blob=await res.blob(); return await new Promise(rs=>{const fr=new FileReader();fr.onload=()=>rs(fr.result);fr.onerror=()=>rs(null);fr.readAsDataURL(blob);}); }catch(_){ return null; } }
 async function exportBeforeAfter(id){
-  const r=CACHE.find(x=>x.id===id); if(!r)return; toast("Building report…");
+  const r=CACHE.find(x=>x.id===id); if(!r)return; prepStart("Preparing CR report…");
+  try{
   const {data:atts}=await sb.from("cr_attachments").select("*").eq("request_id",id).order("created_at");
+  const {data:cp}=await sb.from("cr_profiles").select("logo_path,company,full_name").eq("id",r.created_by).maybeSingle();
   const beforeImgs=(atts||[]).filter(a=>(a.mime_type||"").startsWith("image/")&&a.kind!=="after"&&a.kind!=="confirmation").slice(0,8);
   const afterI=(atts||[]).filter(a=>(a.mime_type||"").startsWith("image/")&&a.kind==="after").slice(0,8);
-  const toDataURL=async(path)=>{ try{ const {data}=await sb.storage.from("cr-attachments").createSignedUrl(path,300); if(!data||!data.signedUrl)return null; const res=await fetch(data.signedUrl); const blob=await res.blob(); return await new Promise(rs=>{const fr=new FileReader();fr.onload=()=>rs(fr.result);fr.onerror=()=>rs(null);fr.readAsDataURL(blob);}); }catch(_){ return null; } };
-  const fmtFull=d=>d?new Date(d).toLocaleString("en-GB",{year:"numeric",month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"}):"—";
+  const toDataURL=async(path)=>{ try{ const {data}=await sb.storage.from("cr-attachments").createSignedUrl(path,300); if(!data||!data.signedUrl)return null; return await _fetchDataURL(data.signedUrl); }catch(_){ return null; } };
+  const ssLogo=await _fetchDataURL(location.origin+"/icons/icon-512.png");
+  let clLogo=null; try{ if(cp&&cp.logo_path) clLogo=await _fetchDataURL(logoUrl(cp.logo_path)); }catch(_){}
+  const fmtFull=d=>d?new Date(d).toLocaleString("en-GB",{year:"numeric",month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"}):"-";
   const SC={New:[154,160,189],"In Review":[255,176,32],Approved:[142,124,255],"In Progress":[0,210,168],Done:[34,197,94],Rejected:[255,107,107]};
   const {jsPDF}=window.jspdf; const doc=new jsPDF({unit:"mm",format:"a4"}); const W=210,M=14; let y=0; const brand=_brandRGB();
-  doc.setFillColor(brand[0],brand[1],brand[2]); doc.rect(0,0,W,30,"F");
-  doc.setFillColor(255,255,255); doc.roundedRect(M,8,14,14,3,3,"F"); doc.setTextColor(brand[0],brand[1],brand[2]); doc.setFont("helvetica","bold"); doc.setFontSize(13); doc.text("S",M+7,17.6,{align:"center"});
-  doc.setTextColor(255,255,255); doc.setFont("helvetica","bold"); doc.setFontSize(16); doc.text("Stepstones Global India",M+20,15);
-  doc.setFont("helvetica","normal"); doc.setFontSize(10); doc.text("Change Request Report",M+20,22);
-  const sc=SC[r.status]||[120,120,120]; const stTxt=String(r.status||"").toUpperCase(); doc.setFont("helvetica","bold"); doc.setFontSize(9); const stW=doc.getTextWidth(stTxt)+8; doc.setFillColor(255,255,255); doc.roundedRect(W-M-stW,10,stW,7,2,2,"F"); doc.setTextColor(sc[0],sc[1],sc[2]); doc.text(stTxt,W-M-stW/2,15,{align:"center"});
-  y=40; doc.setTextColor(25,25,30); doc.setFont("helvetica","bold"); doc.setFontSize(15);
-  const tl=doc.splitTextToSize(String((r.ref_no||"")+"  ·  "+(r.title||"")),W-2*M); doc.text(tl,M,y); y+=tl.length*7+2;
-  doc.autoTable({ startY:y, theme:"plain", styles:{fontSize:10,cellPadding:1.9}, columnStyles:{0:{fontStyle:"bold",textColor:[120,120,128],cellWidth:48}}, body:[
-      ["Client", String(r.client_name||"—")],
+  // header band
+  doc.setFillColor(brand[0],brand[1],brand[2]); doc.rect(0,0,W,34,"F");
+  doc.setFillColor(255,255,255); doc.roundedRect(M,7,20,20,4,4,"F");
+  if(ssLogo){ try{ doc.addImage(ssLogo,"PNG",M+2,9,16,16); }catch(_){ } } else { doc.setTextColor(brand[0],brand[1],brand[2]); doc.setFont("helvetica","bold"); doc.setFontSize(14); doc.text("S",M+10,20,{align:"center"}); }
+  doc.setTextColor(255,255,255); doc.setFont("helvetica","bold"); doc.setFontSize(17); doc.text("Stepstones Global India",M+26,16);
+  doc.setFont("helvetica","normal"); doc.setFontSize(10); doc.text("Change Request Report",M+26,23.5);
+  // client logo (right, white chip)
+  if(clLogo){ doc.setFillColor(255,255,255); doc.roundedRect(W-M-20,7,20,20,4,4,"F"); try{ doc.addImage(clLogo,"PNG",W-M-18,9,16,16); }catch(_){ } }
+  // title
+  y=44; doc.setTextColor(25,25,30); doc.setFont("helvetica","bold"); doc.setFontSize(15);
+  const tl=doc.splitTextToSize(_pdfSafe((r.ref_no||"")+"  -  "+(r.title||"")),W-2*M); doc.text(tl,M,y); y+=tl.length*7+1;
+  // status pill
+  const sc=SC[r.status]||[120,120,120]; const stTxt=String(r.status||"").toUpperCase(); doc.setFont("helvetica","bold"); doc.setFontSize(8.5); const stW=doc.getTextWidth(stTxt)+8; doc.setFillColor(sc[0],sc[1],sc[2]); doc.roundedRect(M,y-3,stW,6.5,2,2,"F"); doc.setTextColor(255,255,255); doc.text(stTxt,M+stW/2,y+1.4,{align:"center"}); y+=9;
+  // details table
+  doc.autoTable({ startY:y, theme:"plain", styles:{fontSize:10,cellPadding:1.9,textColor:[45,45,50]}, columnStyles:{0:{fontStyle:"bold",textColor:[120,120,128],cellWidth:50}}, body:[
+      ["Client", _pdfSafe(r.client_name||"-")],
       ["Service provider", "Stepstones Global India"],
-      ["Reference", String(r.ref_no||"—")],
-      ["Status", String(r.status||"—")],
-      ["Priority / Type", String((r.priority||"—")+" / "+(r.type||"—"))],
+      ["Reference", String(r.ref_no||"-")],
+      ["Status", String(r.status||"-")],
+      ["Priority / Type", String((r.priority||"-")+" / "+(r.type||"-"))],
       ["Raised on (date & time)", fmtFull(r.created_at)],
       ["Last updated (date & time)", fmtFull(r.updated_at)],
       (r.status==="Done"?["Completed on", fmtFull(r.updated_at)]:null),
       (r.due_date?["Needed by", fmtDay(r.due_date)]:null),
     ].filter(Boolean), margin:{left:M,right:M} });
-  y=doc.lastAutoTable.finalY+6;
-  doc.setFont("helvetica","bold"); doc.setFontSize(11); doc.setTextColor(25,25,30); doc.text("Description",M,y); y+=2;
-  doc.autoTable({ startY:y, theme:"grid", styles:{fontSize:10,cellPadding:3,textColor:[45,45,50],lineColor:[225,225,232]}, body:[[htmlToText(r.description)||"—"]], margin:{left:M,right:M} });
   y=doc.lastAutoTable.finalY+7;
+  // description
+  doc.setFillColor(brand[0],brand[1],brand[2]); doc.roundedRect(M,y-4,W-2*M,8,1.5,1.5,"F"); doc.setTextColor(255,255,255); doc.setFont("helvetica","bold"); doc.setFontSize(11); doc.text("DESCRIPTION",M+4,y+1.6); y+=12;
+  doc.setTextColor(35,35,40); doc.setFont("helvetica","normal"); doc.setFontSize(10);
+  const dlines=doc.splitTextToSize(_pdfSafe(htmlToText(r.description))||"-", W-2*M);
+  for(const ln of dlines){ if(y>282){doc.addPage();y=20;} doc.text(ln,M,y); y+=5.2; }
+  y+=4;
   async function section(title,color,text,imgs){
-    if(y>245){doc.addPage();y=20;}
+    if(y>250){doc.addPage();y=20;}
     doc.setFillColor(color[0],color[1],color[2]); doc.roundedRect(M,y-4,W-2*M,9,1.5,1.5,"F"); doc.setTextColor(255,255,255); doc.setFont("helvetica","bold"); doc.setFontSize(11.5); doc.text(title,M+4,y+2); y+=13;
     doc.setTextColor(40,40,45); doc.setFont("helvetica","normal"); doc.setFontSize(10);
-    const lines=doc.splitTextToSize(String(text||"—"),W-2*M); if(y+lines.length*5>285){doc.addPage();y=20;} doc.text(lines,M,y); y+=lines.length*5+4;
-    if(!imgs.length){ doc.setTextColor(150,150,156); doc.setFontSize(9); doc.text("No images attached.",M,y); y+=6; }
-    for(const a of imgs){ const du=await toDataURL(a.file_path); if(!du)continue; const iw=W-2*M, ih=iw*0.56; if(y+ih>285){doc.addPage();y=20;} const fmt=(a.mime_type||"").includes("png")?"PNG":"JPEG"; try{ doc.addImage(du,fmt,M,y,iw,ih); doc.setDrawColor(220,220,226); doc.rect(M,y,iw,ih); }catch(_){ } y+=ih+5; }
+    const lines=doc.splitTextToSize(_pdfSafe(text)||"-",W-2*M); for(const ln of lines){ if(y>285){doc.addPage();y=20;} doc.text(ln,M,y); y+=5.2; } y+=2;
+    if(!imgs.length){ doc.setTextColor(150,150,156); doc.setFontSize(9); doc.text("No images attached.",M,y); y+=7; }
+    for(const a of imgs){ const du=await toDataURL(a.file_path); if(!du)continue; const iw=W-2*M, ih=iw*0.56; if(y+ih>286){doc.addPage();y=20;} const fmt=(a.mime_type||"").includes("png")?"PNG":"JPEG"; try{ doc.addImage(du,fmt,M,y,iw,ih); doc.setDrawColor(210,210,218); doc.rect(M,y,iw,ih); }catch(_){ } y+=ih+5; }
     y+=3;
   }
-  await section("BEFORE  ·  as raised",[255,176,32], (r.before_note?htmlToText(r.before_note):"The images below show the state before the change."), beforeImgs);
-  await section("AFTER  ·  the change",[34,197,94], (r.after_note?htmlToText(r.after_note):(r.status==="Done"?"(no after-notes added)":"Not completed yet.")), afterI);
-  const pages=doc.internal.getNumberOfPages(); for(let i=1;i<=pages;i++){ doc.setPage(i); doc.setDrawColor(225,225,232); doc.line(M,288,W-M,288); doc.setFont("helvetica","normal"); doc.setFontSize(8); doc.setTextColor(150,150,156); doc.text("Stepstones Global India · Generated "+fmtFull(new Date()),M,293); doc.text("Page "+i+" of "+pages,W-M,293,{align:"right"}); }
+  await section("BEFORE  -  as raised",[255,176,32], (r.before_note?htmlToText(r.before_note):"The images below show the state before the change."), beforeImgs);
+  await section("AFTER  -  the change",[34,197,94], (r.after_note?htmlToText(r.after_note):(r.status==="Done"?"(no after-notes added)":"Not completed yet.")), afterI);
+  const pages=doc.internal.getNumberOfPages(); for(let p=1;p<=pages;p++){ doc.setPage(p); doc.setDrawColor(225,225,232); doc.line(M,289,W-M,289); doc.setFont("helvetica","normal"); doc.setFontSize(8); doc.setTextColor(150,150,156); doc.text("Stepstones Global India  -  Generated "+fmtFull(new Date()),M,294); doc.text("Page "+p+" of "+pages,W-M,294,{align:"right"}); }
   doc.save(String(r.ref_no||"CR")+"_report.pdf"); toast("Report downloaded.");
+  }catch(e){ toast((e&&e.message)||"Could not build report.",true); }
+  prepEnd();
 }
 async function openVault(clientId){
   VAULT_CLIENT=clientId;
