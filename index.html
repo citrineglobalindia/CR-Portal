@@ -1298,12 +1298,12 @@ async function submitCR(){
   toast("Change request "+data.ref_no+" submitted.");
   loadAndRenderClient();
 }
-async function uploadAttachment(reqId,file){
+async function uploadAttachment(reqId,file,kind){
   const path=`${reqId}/${Date.now()}_${file.name.replace(/[^\w.\-]/g,"_")}`;
   const {error}=await sb.storage.from("cr-attachments").upload(path,file);
   if(error){toast("Upload failed: "+error.message,true);return;}
   await sb.from("cr_attachments").insert({request_id:reqId,file_name:file.name,file_path:path,
-    file_size:file.size,mime_type:file.type,uploaded_by:SESSION.user.id});
+    file_size:file.size,mime_type:file.type,uploaded_by:SESSION.user.id,kind:kind||null});
 }
 async function uploadConfirmation(reqId,file){
   const path=`${reqId}/confirm_${Date.now()}_${file.name.replace(/[^\w.\-]/g,"_")}`;
@@ -2689,6 +2689,53 @@ async function saveNote(id){
   if(error){toast(error.message,true);return;}
   toast("Note updated."); await fetchNotes(); renderNotes();
 }
+function openAfterChange(id){
+  const r=CACHE.find(x=>x.id===id); if(!r)return;
+  $("modal-root").innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()"><div class="modal">
+    <div class="mh"><div><h2 style="margin:0">After the change</h2><div class="hint">${esc(r.ref_no)} — describe & show the result</div></div><button class="x" onclick="openDetail('${id}')">×</button></div>
+    <div class="mb">
+      <label>What changed / result</label>
+      <textarea id="af-note" class="inp" rows="4" placeholder="Explain what was changed and the outcome…">${esc(r.after_note||"")}</textarea>
+      <label style="margin-top:12px">After photos <span class="hint">(optional)</span></label>
+      <input id="af-files" class="inp" type="file" accept="image/*" multiple onchange="previewInto('af-files','af-prev')"/>
+      <div id="af-prev" class="photo-grid" style="margin-top:8px"></div>
+      <div class="row" style="margin-top:16px"><button class="btn btn-sm btn-ok" id="af-save" onclick="saveAfterChange('${id}')">Save after-change</button><button class="btn btn-sm btn-ghost" onclick="openDetail('${id}')">Cancel</button></div>
+    </div></div></div>`;
+}
+async function saveAfterChange(id){
+  const note=($("af-note").value||"").trim();
+  const btn=$("af-save"); if(btn){btn.disabled=true;btn.textContent="Saving…";}
+  const {error}=await sb.from("cr_requests").update({after_note:note||null,updated_at:new Date().toISOString()}).eq("id",id);
+  if(error){ if(btn){btn.disabled=false;btn.textContent="Save after-change";} toast(error.message||"Could not save.",true); return; }
+  const inp=$("af-files"); if(inp&&inp.files){ for(const f of inp.files){ await uploadAttachment(id,f,"after"); } }
+  const r=CACHE.find(x=>x.id===id); if(r) r.after_note=note||null;
+  toast("After-change saved."); openDetail(id);
+}
+function _brandRGB(){ const c=(getComputedStyle(document.documentElement).getPropertyValue("--brand")||"#6c5ce7").trim(); const m=c.match(/^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i); return m?[parseInt(m[1],16),parseInt(m[2],16),parseInt(m[3],16)]:[108,92,231]; }
+async function exportBeforeAfter(id){
+  const r=CACHE.find(x=>x.id===id); if(!r)return; toast("Building report…");
+  const {data:atts}=await sb.from("cr_attachments").select("*").eq("request_id",id).order("created_at");
+  const beforeImgs=(atts||[]).filter(a=>(a.mime_type||"").startsWith("image/")&&a.kind!=="after"&&a.kind!=="confirmation").slice(0,6);
+  const afterI=(atts||[]).filter(a=>(a.mime_type||"").startsWith("image/")&&a.kind==="after").slice(0,6);
+  const toDataURL=async(path)=>{ try{ const {data}=await sb.storage.from("cr-attachments").createSignedUrl(path,300); if(!data||!data.signedUrl)return null; const res=await fetch(data.signedUrl); const blob=await res.blob(); return await new Promise(rs=>{const fr=new FileReader();fr.onload=()=>rs(fr.result);fr.onerror=()=>rs(null);fr.readAsDataURL(blob);}); }catch(_){ return null; } };
+  const {jsPDF}=window.jspdf; const doc=new jsPDF({unit:"mm",format:"a4"}); const W=210,M=14; let y=0;
+  doc.setFillColor.apply(doc,_brandRGB()); doc.rect(0,0,W,24,"F"); doc.setTextColor(255,255,255); doc.setFont("helvetica","bold"); doc.setFontSize(15); doc.text("Stepstones — Before / After Report",M,15);
+  doc.setTextColor(20,20,20); y=34; doc.setFontSize(13); doc.setFont("helvetica","bold"); doc.text(String((r.ref_no||"")+"  ·  "+(r.title||"")),M,y); y+=7;
+  doc.setFont("helvetica","normal"); doc.setFontSize(10); doc.setTextColor(90,90,90);
+  doc.text("Client: "+(r.client_name||"-")+"    Status: "+r.status+"    Raised: "+fmtDay(r.created_at),M,y); y+=9;
+  async function section(title,color,text,imgs){
+    if(y>250){doc.addPage();y=20;}
+    doc.setFillColor(color[0],color[1],color[2]); doc.rect(M,y-4,W-2*M,8,"F"); doc.setTextColor(255,255,255); doc.setFont("helvetica","bold"); doc.setFontSize(11); doc.text(title,M+3,y+1.6); y+=11;
+    doc.setTextColor(30,30,30); doc.setFont("helvetica","normal"); doc.setFontSize(10);
+    const lines=doc.splitTextToSize(String(text||"—"),W-2*M); if(y+lines.length*5>285){doc.addPage();y=20;} doc.text(lines,M,y); y+=lines.length*5+5;
+    for(const a of imgs){ const du=await toDataURL(a.file_path); if(!du)continue; const iw=W-2*M, ih=iw*0.58; if(y+ih>285){doc.addPage();y=20;} const fmt=(a.mime_type||"").includes("png")?"PNG":"JPEG"; try{ doc.addImage(du,fmt,M,y,iw,ih); }catch(_){ } y+=ih+5; }
+    y+=3;
+  }
+  await section("BEFORE — as raised",[255,176,32], htmlToText(r.before_note||r.description), beforeImgs);
+  await section("AFTER — the change",[34,197,94], r.after_note||(r.status==="Done"?"(no notes added)":"Not completed yet"), afterI);
+  const pages=doc.internal.getNumberOfPages(); for(let i=1;i<=pages;i++){ doc.setPage(i); doc.setFontSize(8); doc.setTextColor(150,150,150); doc.text("Generated "+fmtDay(new Date())+" · Stepstones Global India",M,292); }
+  doc.save(String(r.ref_no||"CR")+"_before_after.pdf"); toast("Report downloaded.");
+}
 async function openVault(clientId){
   VAULT_CLIENT=clientId;
   const c=CLIENTS.find(x=>x.id===clientId);
@@ -2754,13 +2801,15 @@ async function openDetail(id){
     sb.from("cr_commits").select("*").eq("request_id",id).order("created_at")
   ]);
   const isAdmin=ME.role==="admin";
+  const isOwner=(SESSION&&SESSION.user&&r.created_by===SESSION.user.id);
+  const afterAtts=(atts||[]).filter(a=>a.kind==="after"); const afterImgs=afterAtts.filter(a=>(a.mime_type||"").startsWith("image/")); const afterFiles=afterAtts.filter(a=>!(a.mime_type||"").startsWith("image/"));
   const _crClient=CLIENTS.find(x=>x.id===r.created_by);
   const crRepo=(_crClient&&_crClient.project_profile&&_crClient.project_profile.repo)||"";
   const commitsArr=commitRows||[];
   const confirms=(atts||[]).filter(a=>a.kind==="confirmation");
   const confirmImgs=confirms.filter(a=>(a.mime_type||"").startsWith("image/"));
   const confirmFiles=confirms.filter(a=>!(a.mime_type||"").startsWith("image/"));
-  const normal=(atts||[]).filter(a=>a.kind!=="confirmation");
+  const normal=(atts||[]).filter(a=>a.kind!=="confirmation" && a.kind!=="after");
   const imgs=normal.filter(a=>(a.mime_type||"").startsWith("image/"));
   const audios=normal.filter(a=>(a.mime_type||"").startsWith("audio/"));
   const files=normal.filter(a=>{const m=a.mime_type||"";return !m.startsWith("image/")&&!m.startsWith("audio/");});
@@ -2786,7 +2835,7 @@ async function openDetail(id){
         <div><div class="k" style="color:var(--muted);font-size:13px;margin-bottom:4px">Description</div>
           <div style="font-size:14px;line-height:1.55">${renderDesc(r.description)}</div></div>
         ${tagChips(r.tags)}
-        ${(isAdmin || (SESSION&&SESSION.user&&r.created_by===SESSION.user.id))?`<div style="margin-top:10px"><button class="btn btn-sm btn-ghost" onclick="openCREdit('${r.id}')">✏️ Edit request</button></div>`:""}
+        ${(isAdmin || isOwner)?`<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-sm btn-ghost" onclick="openCREdit('${r.id}')">✏️ Edit request</button><button class="btn btn-sm btn-ghost" onclick="exportBeforeAfter('${r.id}')">⬇ Before/After PDF</button></div>`:""}
         ${isAdmin?`<div class="section-title">Assign to</div>
         <select class="inp" style="max-width:280px" onchange="assignCR('${r.id}',this.value)">
           <option value="">Unassigned</option>
@@ -2819,6 +2868,12 @@ async function openDetail(id){
         ${isAdmin?`<div class="paste-zone" id="d-confirm-paste" tabindex="0" onpaste="confirmPaste(event)">📋 Click here and paste a screenshot (Ctrl/Cmd + V)</div>
         <div id="d-confirm-prev" class="hidden" style="margin-top:8px"></div>
         <div class="row" style="margin-top:8px"><input id="d-confirm-file" class="inp" type="file" accept="image/*,application/pdf" multiple style="flex:1"/><button class="btn btn-sm btn-ok" id="d-confirm-btn" onclick="submitConfirmation('${r.id}')">⬆ Upload confirmation</button></div><div class="hint">Attach a file confirming the change was made — paste a screenshot above or choose a file. The client is notified and can download it.</div>`:""}
+        <div class="section-title">After the change${afterAtts.length?` (${afterAtts.length})`:""}</div>
+        ${r.after_note?`<div style="white-space:pre-wrap;font-size:14px;line-height:1.5;margin-bottom:8px">${esc(r.after_note)}</div>`:""}
+        ${afterImgs.length?`<div class="photo-grid" id="after-grid"></div>`:""}
+        ${afterFiles.length?`<div>${afterFiles.map(a=>`<div class="att"><span>🟢</span><span class="name">${esc(a.file_name)}</span> <button class="btn btn-sm btn-ghost" onclick="downloadAtt('${esc(a.file_path)}','${esc(a.file_name)}')">Download</button></div>`).join("")}</div>`:""}
+        ${(!r.after_note && !afterAtts.length)?`<div class="hint">${r.status==="Done"?"Add what changed after completion (result + photos).":"Available once the CR is completed."}</div>`:""}
+        ${((isAdmin||isOwner) && r.status==="Done")?`<button class="btn btn-sm btn-ok" style="margin-top:8px" onclick="openAfterChange('${r.id}')">✎ Add / update after-change</button>`:""}
         <div class="section-title">GitHub commits${commitsArr.length?` (${commitsArr.length})`:""}</div>
         <div id="cr-commits">${renderCommits(commitsArr,crRepo,isAdmin,r.id)}</div>
         ${isAdmin?`<div class="row" style="margin-top:8px">
@@ -2846,6 +2901,14 @@ async function openDetail(id){
   if(confirmImgs.length){
     const g=$("confirm-grid");
     if(g) for(const a of confirmImgs){
+      const {data}=await sb.storage.from("cr-attachments").createSignedUrl(a.file_path,600);
+      if(data&&data.signedUrl){ const wrap=document.createElement("a"); wrap.href=data.signedUrl; wrap.target="_blank"; wrap.rel="noopener";
+        const im=document.createElement("img"); im.src=data.signedUrl; im.alt=a.file_name; wrap.appendChild(im); g.appendChild(wrap); }
+    }
+  }
+  if(afterImgs.length){
+    const g=$("after-grid");
+    if(g) for(const a of afterImgs){
       const {data}=await sb.storage.from("cr-attachments").createSignedUrl(a.file_path,600);
       if(data&&data.signedUrl){ const wrap=document.createElement("a"); wrap.href=data.signedUrl; wrap.target="_blank"; wrap.rel="noopener";
         const im=document.createElement("img"); im.src=data.signedUrl; im.alt=a.file_name; wrap.appendChild(im); g.appendChild(wrap); }
