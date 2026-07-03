@@ -1230,6 +1230,8 @@ function renderClient(){
       <input id="f-tags" class="inp" placeholder="e.g. urgent, billing, mobile"/>
       <label style="margin-top:12px">Description <span class="req">*</span></label>
       ${richEditor("f-desc","Explain what is expected, affected screens, expected behaviour…  Use the toolbar for bold, lists, etc.")}
+      <label style="margin-top:12px">Before — current state <span class="hint">(optional: how it looks / works now)</span></label>
+      <textarea id="f-before" class="inp" rows="3" placeholder="Describe the current state before the change (the photos above serve as the ‘before’)…"></textarea>
       ${recorderUI("client","rec-btn","rec-player")}
       <div id="file-preview" class="photo-grid" style="margin-top:10px"></div>
       <button class="btn" style="max-width:240px" id="submit-cr" onclick="submitCR()">Submit Change Request</button>
@@ -1287,6 +1289,7 @@ async function submitCR(){
     item_count:1, description:desc, due_date:$("f-due").value||null, tags:parseTags($("f-tags").value),
     created_by:SESSION.user.id, client_name:ME.company||ME.full_name||ME.username, status:"New" };
   const {data,error}=await sb.from("cr_requests").insert(payload).select().single();
+  if(!error && data && $("f-before") && $("f-before").value.trim()){ try{ await sb.from("cr_requests").update({before_note:$("f-before").value.trim()}).eq("id",data.id); }catch(_){} }
   if(error){btn.disabled=false;btn.textContent="Submit Change Request";toast(error.message,true);return;}
   for(const f of $("f-files").files){ await uploadAttachment(data.id,f); }
   await uploadRecording("client",data.id);
@@ -1294,7 +1297,7 @@ async function submitCR(){
     changed_by:SESSION.user.id,changed_by_name:ME.full_name||ME.username,note:"Request submitted"});
   notify("new_cr",data.id).catch(()=>{});
   btn.disabled=false; btn.textContent="Submit Change Request";
-  $("f-title").value="";richClear("f-desc");$("f-files").value="";$("file-preview").innerHTML="";$("f-due").value="";$("f-tags").value="";
+  $("f-title").value="";richClear("f-desc");if($("f-before"))$("f-before").value="";$("f-files").value="";$("file-preview").innerHTML="";$("f-due").value="";$("f-tags").value="";
   toast("Change request "+data.ref_no+" submitted.");
   loadAndRenderClient();
 }
@@ -2835,6 +2838,7 @@ async function openDetail(id){
         </div>
         <div><div class="k" style="color:var(--muted);font-size:13px;margin-bottom:4px">Description</div>
           <div style="font-size:14px;line-height:1.55">${renderDesc(r.description)}</div></div>
+        ${r.before_note?`<div style="margin-top:10px"><div class="k" style="color:var(--muted);font-size:13px;margin-bottom:4px">🟡 Before — current state</div><div style="white-space:pre-wrap;font-size:14px;line-height:1.5">${esc(r.before_note)}</div></div>`:""}
         ${tagChips(r.tags)}
         ${(isAdmin || isOwner)?`<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-sm btn-ghost" onclick="openCREdit('${r.id}')">✏️ Edit request</button><button class="btn btn-sm btn-ghost" onclick="exportBeforeAfter('${r.id}')">⬇ Before/After PDF</button></div>`:""}
         ${isAdmin?`<div class="section-title">Assign to</div>
