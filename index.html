@@ -2705,11 +2705,12 @@ function openAfterChange(id){
 async function saveAfterChange(id){
   const note=($("af-note").value||"").trim();
   const btn=$("af-save"); if(btn){btn.disabled=true;btn.textContent="Saving…";}
-  const {error}=await sb.from("cr_requests").update({after_note:note||null,updated_at:new Date().toISOString()}).eq("id",id);
-  if(error){ if(btn){btn.disabled=false;btn.textContent="Save after-change";} toast(error.message||"Could not save.",true); return; }
   const inp=$("af-files"); if(inp&&inp.files){ for(const f of inp.files){ await uploadAttachment(id,f,"after"); } }
-  const r=CACHE.find(x=>x.id===id); if(r) r.after_note=note||null;
-  toast("After-change saved."); openDetail(id);
+  const {error}=await sb.from("cr_requests").update({after_note:note||null,updated_at:new Date().toISOString()}).eq("id",id);
+  const r=CACHE.find(x=>x.id===id); if(r&&!error) r.after_note=note||null;
+  if(error&&note){ toast("Photos saved. The note will save once the DB update is applied.",true); }
+  else { toast("After-change saved."); }
+  openDetail(id);
 }
 function _brandRGB(){ const c=(getComputedStyle(document.documentElement).getPropertyValue("--brand")||"#6c5ce7").trim(); const m=c.match(/^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i); return m?[parseInt(m[1],16),parseInt(m[2],16),parseInt(m[3],16)]:[108,92,231]; }
 async function exportBeforeAfter(id){
