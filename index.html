@@ -650,6 +650,15 @@
   .ba-note{white-space:pre-wrap;font-size:14px;line-height:1.55;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:11px 13px;margin-bottom:10px}
   .ba-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
   .ba-actions label.btn{margin:0;display:inline-flex;align-items:center}
+  .prep-fx{position:fixed;inset:0;z-index:200;display:grid;place-items:center;background:rgba(6,8,15,.72);backdrop-filter:blur(4px);animation:cr-overlay-in .2s ease both}
+  .prep-fx.hidden{display:none}
+  .prep-card{display:flex;flex-direction:column;align-items:center;gap:15px;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:28px 36px;box-shadow:0 24px 60px rgba(0,0,0,.55),0 0 30px var(--g1)}
+  .prep-spin{position:relative;width:64px;height:64px;display:grid;place-items:center}
+  .prep-spin::before{content:"";position:absolute;inset:0;border-radius:50%;border:4px solid var(--line);border-top-color:var(--brand);border-right-color:var(--brand2);animation:gpspin .8s linear infinite}
+  .prep-spin span{font-size:24px;animation:cr-pulse 1.4s ease-in-out infinite}
+  .prep-msg{font-weight:700;font-size:14px}
+  .prep-bar{width:190px;height:6px;border-radius:999px;background:var(--panel2);overflow:hidden;position:relative}
+  .prep-bar i{position:absolute;top:0;height:100%;width:40%;border-radius:999px;background:linear-gradient(90deg,var(--brand),var(--accent));animation:ldr-slide 1.1s cubic-bezier(.65,0,.35,1) infinite}
 </style>
 </head>
 <body>
@@ -3070,38 +3079,49 @@ function exportData(){
     Status:r.status, Description:htmlToText(r.description), Submitted:fmtDay(r.created_at), Updated:fmtDay(r.updated_at)
   }));
 }
-function exportExcel(){
+function prepStart(msg){ let o=document.getElementById("prep-fx"); if(!o){ o=document.createElement("div"); o.id="prep-fx"; o.className="prep-fx"; document.body.appendChild(o);} o.innerHTML=`<div class="prep-card"><div class="prep-spin"><span>📄</span></div><div class="prep-msg">${esc(msg||"Preparing export…")}</div><div class="prep-bar"><i></i></div></div>`; o.classList.remove("hidden"); }
+function prepEnd(){ const o=document.getElementById("prep-fx"); if(o) o.classList.add("hidden"); }
+function withPrep(msg,fn){ prepStart(msg); requestAnimationFrame(()=>setTimeout(async()=>{ try{ await fn(); }catch(e){ toast((e&&e.message)||"Export failed",true); } prepEnd(); }, 560)); }
+function exportExcel(){ withPrep("Preparing Excel…", _exportExcel); }
+function exportCSV(){ withPrep("Preparing CSV…", _exportCSV); }
+function exportPDF(){ withPrep("Preparing PDF report…", _exportPDF); }
+function exportWord(){ withPrep("Preparing Word document…", _exportWord); }
+function _exportExcel(){
   const ws=XLSX.utils.json_to_sheet(exportData());
   ws["!cols"]=[{wch:16},{wch:34},{wch:20},{wch:9},{wch:12},{wch:50},{wch:13},{wch:13}];
   const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,"Change Requests");
   XLSX.writeFile(wb,`Change_Requests_${new Date().toISOString().slice(0,10)}.xlsx`); toast("Excel exported.");
 }
-function exportCSV(){
+function _exportCSV(){
   const rows=exportData(); const head=Object.keys(rows[0]||{Ref:"",Heading:"",Client:"",Priority:"",Status:"",Description:"",Submitted:"",Updated:""});
   const csv=[head.join(","),...rows.map(r=>head.map(h=>`"${String(r[h]).replace(/"/g,'""')}"`).join(","))].join("\n");
   dl(new Blob([csv],{type:"text/csv"}),`Change_Requests_${new Date().toISOString().slice(0,10)}.csv`); toast("CSV exported.");
 }
-function exportPDF(){
-  const {jsPDF}=window.jspdf; const doc=new jsPDF({orientation:"landscape"});
-  doc.setFontSize(16); doc.text("Software Change Requests — Stepstones",14,16);
-  doc.setFontSize(10); doc.setTextColor(120);
-  doc.text(`Stepstones Global India · Generated ${fmtDay(new Date())} · ${exportRows().length} items`,14,23);
-  doc.autoTable({ startY:28, styles:{fontSize:8,cellPadding:2}, headStyles:{fillColor:[108,92,231]},
-    head:[["Ref","Heading","Client","Pri.","Status","Submitted"]],
-    body:exportRows().map(r=>[r.ref_no,r.title,r.client_name||"",r.priority,r.status,fmtDay(r.created_at)]),
-    columnStyles:{1:{cellWidth:70}} });
+function _exportPDF(){
+  const rows=exportRows(); const {jsPDF}=window.jspdf; const doc=new jsPDF({orientation:"landscape",unit:"mm",format:"a4"}); const W=297,M=12; const brand=_brandRGB();
+  doc.setFillColor(brand[0],brand[1],brand[2]); doc.rect(0,0,W,22,"F");
+  doc.setFillColor(255,255,255); doc.roundedRect(M,5,12,12,3,3,"F"); doc.setTextColor(brand[0],brand[1],brand[2]); doc.setFont("helvetica","bold"); doc.setFontSize(11); doc.text("S",M+6,13.2,{align:"center"});
+  doc.setTextColor(255,255,255); doc.setFont("helvetica","bold"); doc.setFontSize(15); doc.text("Stepstones Global India — Change Requests Report",M+18,11);
+  doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.text("Generated "+fmtDay(new Date())+"   ·   "+rows.length+" change requests"+(ME.role==="admin"?"  (current filters)":""), M+18, 17.5);
+  const by={}; rows.forEach(r=>{const k=r.status||"—";by[k]=(by[k]||0)+1;});
+  doc.setTextColor(90,90,96); doc.setFontSize(9); doc.text(Object.entries(by).map(([k,v])=>k+": "+v).join("     "), M, 29);
+  doc.autoTable({ startY:33, styles:{fontSize:8,cellPadding:2,overflow:"linebreak"}, headStyles:{fillColor:brand,textColor:255}, alternateRowStyles:{fillColor:[245,245,250]},
+    head:[["Ref","Heading","Client","Priority","Status","Raised","Updated"]],
+    body:rows.map(r=>[r.ref_no,r.title,r.client_name||"",r.priority||"",r.status||"",fmtDay(r.created_at),fmtDay(r.updated_at)]),
+    columnStyles:{0:{cellWidth:26},1:{cellWidth:82},2:{cellWidth:44}}, margin:{left:M,right:M} });
+  const pages=doc.internal.getNumberOfPages(); for(let i=1;i<=pages;i++){ doc.setPage(i); doc.setDrawColor(225,225,232); doc.line(M,200,W-M,200); doc.setFont("helvetica","normal"); doc.setFontSize(8); doc.setTextColor(150,150,156); doc.text("Stepstones Global India",M,205); doc.text("Page "+i+" of "+pages,W-M,205,{align:"right"}); }
   doc.save(`Change_Requests_${new Date().toISOString().slice(0,10)}.pdf`); toast("PDF exported.");
 }
-function exportWord(){
+function _exportWord(){
   const rows=exportRows();
   const cells=rows.map(r=>`<tr><td>${esc(r.ref_no)}</td><td>${esc(r.title)}</td><td>${esc(r.client_name||"")}</td>
-    <td>${esc(r.priority)}</td><td>${esc(r.status)}</td><td>${fmtDay(r.created_at)}</td><td>${esc(htmlToText(r.description)).replace(/\n/g,"<br>")}</td></tr>`).join("");
+    <td>${esc(r.priority)}</td><td>${esc(r.status)}</td><td>${fmtDay(r.created_at)}</td><td>${fmtDay(r.updated_at)}</td><td>${esc(htmlToText(r.description)).replace(/\n/g,"<br>")}</td></tr>`).join("");
   const html=`<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word'><head><meta charset='utf-8'>
   <style>body{font-family:Calibri,Arial} h1{color:#4b2bd6} table{border-collapse:collapse;width:100%;font-size:10pt}
   th,td{border:1px solid #999;padding:5px;vertical-align:top} th{background:#6c5ce7;color:#fff;text-align:left}</style></head>
-  <body><h1>Software Change Requests — Stepstones</h1>
-  <p><b>Stepstones Global India</b> · Generated ${fmtDay(new Date())} · ${rows.length} change requests</p>
-  <table><thead><tr><th>Ref</th><th>Heading</th><th>Client</th><th>Priority</th><th>Status</th><th>Submitted</th><th>Description</th></tr></thead>
+  <body><h1>Stepstones Global India — Change Requests Report</h1>
+  <p>Generated ${fmtDay(new Date())} · ${rows.length} change requests</p>
+  <table><thead><tr><th>Ref</th><th>Heading</th><th>Client</th><th>Priority</th><th>Status</th><th>Raised</th><th>Updated</th><th>Description</th></tr></thead>
   <tbody>${cells}</tbody></table></body></html>`;
   dl(new Blob(["﻿"+html],{type:"application/msword"}),`Change_Requests_${new Date().toISOString().slice(0,10)}.doc`); toast("Word exported.");
 }
