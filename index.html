@@ -1542,7 +1542,7 @@ function renderAdminTable(){
           ${STATUSES.map(s=>`<option ${s===r.status?"selected":""}>${s}</option>`).join("")}</select></td>
       <td style="white-space:nowrap"><div>${fmtDay(r.created_at)}</div><div style="color:var(--muted);font-size:11px">${fmtTime(r.created_at)}</div></td>
       <td style="white-space:nowrap">${r.status==="Done"?`<div style="color:#22c55e;font-weight:600">${fmtDay(COMPLETED_AT[r.id]||r.updated_at)}</div><div style="color:var(--muted);font-size:11px">${fmtTime(COMPLETED_AT[r.id]||r.updated_at)}</div>`:`<span style="color:var(--muted)">—</span>`}</td>
-      <td style="white-space:nowrap">${r.status!=="Done"?`<button class="btn btn-sm btn-ok" onclick="quickStatus('${r.id}','Done')">✓ Complete</button> `:""}<button class="link-btn" onclick="openDetail('${r.id}')">Open</button> <button class="link-btn" style="color:#ff7b7b" title="Delete change request" onclick="deleteCR('${r.id}')">🗑</button></td>
+      <td style="white-space:nowrap">${r.status!=="Done"?`<button class="btn btn-sm btn-ok" onclick="quickStatus('${r.id}','Done')">✓ Complete</button> `:""}<button class="link-btn" onclick="openDetail('${r.id}')">Open</button> <button class="link-btn" title="Download this CR (PDF)" onclick="event.stopPropagation();exportBeforeAfter('${r.id}')">⬇</button> <button class="link-btn" style="color:#ff7b7b" title="Delete change request" onclick="deleteCR('${r.id}')">🗑</button></td>
     </tr>`).join("")}</tbody></table>`:`<div class="empty">No change requests match the current filters.</div>`;
 }
 function openAdminCRForm(){
