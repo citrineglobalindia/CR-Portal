@@ -659,6 +659,9 @@
   .prep-msg{font-weight:700;font-size:14px}
   .prep-bar{width:190px;height:6px;border-radius:999px;background:var(--panel2);overflow:hidden;position:relative}
   .prep-bar i{position:absolute;top:0;height:100%;width:40%;border-radius:999px;background:linear-gradient(90deg,var(--brand),var(--accent));animation:ldr-slide 1.1s cubic-bezier(.65,0,.35,1) infinite}
+  .cr-clogo{width:46px;height:46px;border-radius:11px;background:#fff;flex:none;display:grid;place-items:center;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,.25)}
+  .cr-clogo img{max-width:100%;max-height:100%;object-fit:contain;display:block}
+  .cc-logo-sm{width:24px;height:24px;border-radius:6px;object-fit:contain;background:#fff;flex:none}
 </style>
 </head>
 <body>
@@ -1544,7 +1547,7 @@ function renderAdminTable(){
     <tbody>${rows.map(r=>`<tr>
       <td><span class="ref">${esc(r.ref_no)}</span></td>
       <td>${esc(r.title)}${(r.tags&&r.tags.length)?` <span style="color:var(--muted);font-size:11px">#${esc(r.tags[0])}${r.tags.length>1?"+"+(r.tags.length-1):""}</span>`:""}${COMMIT_COUNTS[r.id]?` <span class="cm-badge" title="${COMMIT_COUNTS[r.id]} commit(s) linked">🔗 ${COMMIT_COUNTS[r.id]}</span>`:""}${r.resent_count?` <span class="cm-badge resent" title="Re-sent by client ${r.resent_count} time(s)">↩ Re-Sent${r.resent_count>1?" ×"+r.resent_count:""}</span>`:""}</td>
-      <td>${esc(r.client_name||"—")}</td>
+      <td><span style="display:inline-flex;align-items:center;gap:7px;min-width:0">${(()=>{const _c=(CLIENTS||[]).find(x=>x.id===r.created_by);const _l=_c?logoUrl(_c.logo_path):"";return _l?`<img class="cc-logo-sm" src="${esc(_l)}" alt="">`:"";})()}<span>${esc(r.client_name||"—")}</span></span></td>
       <td>${esc(r.assigned_name||"—")}</td>
       <td class="pr-${r.priority}">${esc(r.priority)}</td>
       <td><select class="inp" style="padding:5px 6px;font-size:12px" onchange="quickStatus('${r.id}',this.value)">
@@ -2880,6 +2883,7 @@ async function openDetail(id){
   ]);
   const isAdmin=ME.role==="admin";
   const isOwner=(SESSION&&SESSION.user&&r.created_by===SESSION.user.id);
+  let _clogo=""; try{ const _cpf=(typeof CLIENTS!=="undefined"&&CLIENTS)?CLIENTS.find(c=>c.id===r.created_by):null; if(_cpf&&_cpf.logo_path) _clogo=logoUrl(_cpf.logo_path); else if(ME&&ME.id===r.created_by&&ME.logo_path) _clogo=logoUrl(ME.logo_path); }catch(_){}
   const afterAtts=(atts||[]).filter(a=>a.kind==="after"); const afterImgs=afterAtts.filter(a=>(a.mime_type||"").startsWith("image/")); const afterFiles=afterAtts.filter(a=>!(a.mime_type||"").startsWith("image/"));
   const _crClient=CLIENTS.find(x=>x.id===r.created_by);
   const crRepo=(_crClient&&_crClient.project_profile&&_crClient.project_profile.repo)||"";
@@ -2895,8 +2899,10 @@ async function openDetail(id){
   <div class="overlay" onclick="if(event.target===this)closeModal()">
     <div class="modal">
       <div class="mh">
-        <div><div class="ref" style="font-size:15px">${esc(r.ref_no)}</div>
-          <h2 style="margin:4px 0 0">${esc(r.title)}</h2></div>
+        <div style="display:flex;gap:12px;align-items:center;min-width:0">
+          ${_clogo?`<div class="cr-clogo"><img src="${esc(_clogo)}" alt=""></div>`:""}
+          <div style="min-width:0"><div class="ref" style="font-size:15px">${esc(r.ref_no)}</div><h2 style="margin:3px 0 0">${esc(r.title)}</h2>${r.client_name?`<div class="hint" style="margin-top:2px">${esc(r.client_name)}</div>`:""}</div>
+        </div>
         <button class="x" onclick="closeModal()">×</button>
       </div>
       <div class="mb">
