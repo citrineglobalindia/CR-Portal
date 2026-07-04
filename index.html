@@ -1224,6 +1224,7 @@ function setClientTab(t){ CLIENT_TAB=t;
   if(bl) bl.classList.toggle("on",t!=="create");
 }
 function renderClient(){
+  RAISE_PASTES.f=[];
   const lg=logoUrl(ME.logo_path);
   $("app-body").innerHTML=`
     <div class="hero">
@@ -1255,6 +1256,8 @@ function renderClient(){
       <label style="margin-top:12px">Before — current state <span class="hint">(optional: how it looks / works now)</span></label>
       <textarea id="f-before" class="inp" rows="3" placeholder="Describe the current state before the change (the photos above serve as the ‘before’)…"></textarea>
       ${recorderUI("client","rec-btn","rec-player")}
+      <div class="paste-zone" tabindex="0" onpaste="crPaste(event,'f')" style="margin-top:12px">📋 Or click here and paste a screenshot (Ctrl / Cmd + V)</div>
+      <div id="f-paste-prev" class="photo-grid hidden" style="margin-top:8px"></div>
       <div id="file-preview" class="photo-grid" style="margin-top:10px"></div>
       <button class="btn" style="max-width:240px" id="submit-cr" onclick="submitCR()">Submit Change Request</button>
     </div>
@@ -1303,6 +1306,18 @@ function renderClientTable(){
       <td style="white-space:nowrap">${r.status==="Done"?`<button class="btn btn-sm btn-ghost" onclick="openReopen('${r.id}')">↺ Not completed</button> `:""}<button class="link-btn" onclick="openDetail('${r.id}')">View</button> <button class="link-btn" title="Download this CR (PDF)" onclick="event.stopPropagation();exportBeforeAfter('${r.id}')">⬇</button></td>
     </tr>`).join("")}</tbody></table>`:`<div class="empty">No change requests yet. Submit your first one above.</div>`;
 }
+let RAISE_PASTES={f:[],ac:[]};
+function crPaste(e,key){
+  const items=(e.clipboardData&&e.clipboardData.items)||[]; let n=0;
+  for(const it of items){ if(it.type&&it.type.indexOf("image")===0){ const f=it.getAsFile(); if(f){ const ext=(f.type.split("/")[1]||"png"); RAISE_PASTES[key].push(new File([f],`pasted-${Date.now()}-${RAISE_PASTES[key].length+1}.${ext}`,{type:f.type||"image/png"})); n++; } } }
+  if(n){ e.preventDefault(); crRenderPaste(key); toast(n+" image"+(n>1?"s":"")+" pasted."); }
+}
+function crRenderPaste(key){
+  const box=$(key+"-paste-prev"); if(!box)return; const arr=RAISE_PASTES[key]||[];
+  if(arr.length){ box.classList.remove("hidden"); box.innerHTML=arr.map((f,i)=>{const u=URL.createObjectURL(f);return `<div class="paste-thumb"><img src="${u}" alt=""><button class="paste-x" title="Remove" onclick="crRemovePaste('${key}',${i})">×</button></div>`;}).join(""); }
+  else { box.classList.add("hidden"); box.innerHTML=""; }
+}
+function crRemovePaste(key,i){ (RAISE_PASTES[key]||[]).splice(i,1); crRenderPaste(key); }
 async function submitCR(){
   const title=$("f-title").value.trim(), desc=richHTML("f-desc"), descText=richText("f-desc");
   if(!title||!descText){toast("Heading and description are required.",true);return;}
@@ -1313,7 +1328,9 @@ async function submitCR(){
   const {data,error}=await sb.from("cr_requests").insert(payload).select().single();
   if(!error && data && $("f-before") && $("f-before").value.trim()){ try{ await sb.from("cr_requests").update({before_note:$("f-before").value.trim()}).eq("id",data.id); }catch(_){} }
   if(error){btn.disabled=false;btn.textContent="Submit Change Request";toast(error.message,true);return;}
-  for(const f of $("f-files").files){ await uploadAttachment(data.id,f); }
+  const _cphotos=[...(RAISE_PASTES.f||[])]; if($("f-files")&&$("f-files").files){ for(const f of $("f-files").files) _cphotos.push(f); }
+  for(const f of _cphotos){ await uploadAttachment(data.id,f); }
+  RAISE_PASTES.f=[];
   await uploadRecording("client",data.id);
   await sb.from("cr_status_history").insert({request_id:data.id,old_status:null,new_status:"New",
     changed_by:SESSION.user.id,changed_by_name:ME.full_name||ME.username,note:"Request submitted"});
@@ -1558,6 +1575,7 @@ function renderAdminTable(){
     </tr>`).join("")}</tbody></table>`:`<div class="empty">No change requests match the current filters.</div>`;
 }
 function openAdminCRForm(){
+  RAISE_PASTES.ac=[];
   $("modal-root").innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()">
     <div class="modal">
       <div class="mh"><div><h2 style="margin:0">Raise a Change Request</h2><div class="hint">On behalf of a client — numbered with their prefix.</div></div>
@@ -1580,6 +1598,8 @@ function openAdminCRForm(){
         <label style="margin-top:12px">Before — current state <span class="hint">(optional)</span></label>
         <textarea id="ac-before" class="inp" rows="3" placeholder="Describe the current state before the change…"></textarea>
         ${recorderUI("admin","arec-btn","arec-player")}
+        <div class="paste-zone" tabindex="0" onpaste="crPaste(event,'ac')" style="margin-top:10px">📋 Or click here and paste a screenshot (Ctrl / Cmd + V)</div>
+        <div id="ac-paste-prev" class="photo-grid hidden" style="margin-top:8px"></div>
         <div id="ac-preview" class="photo-grid" style="margin-top:10px"></div>
         <button class="btn" style="max-width:260px" id="ac-btn" onclick="adminCreateCR()">Create change request</button>
       </div>
@@ -1595,7 +1615,9 @@ async function adminCreateCR(){
     const res=await callFn("admin-create-cr",{ client_id, title, description:desc,
       area:$("ac-area").value, type:$("ac-type").value, priority:$("ac-priority").value, due_date:$("ac-due").value||null, tags:parseTags($("ac-tags").value) });
     if(res && res.id && $("ac-before") && $("ac-before").value.trim()){ try{ await sb.from("cr_requests").update({before_note:$("ac-before").value.trim()}).eq("id",res.id); }catch(_){} }
-    for(const f of $("ac-files").files){ await uploadAttachment(res.id,f); }
+    const _aphotos=[...(RAISE_PASTES.ac||[])]; if($("ac-files")&&$("ac-files").files){ for(const f of $("ac-files").files) _aphotos.push(f); }
+    for(const f of _aphotos){ await uploadAttachment(res.id,f); }
+    RAISE_PASTES.ac=[];
     await uploadRecording("admin",res.id);
     toast("Change request "+res.ref_no+" created.");
     closeModal(); await loadAndRenderAdmin();
