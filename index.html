@@ -859,6 +859,7 @@ function deleteFx(){
     document.body.appendChild(o); setTimeout(()=>{try{o.remove();}catch(_){}} ,950);
   }catch(_){ }
 }
+function _safeUrl(u){ u=String(u||"").trim(); if(!u)return"#"; if(/^javascript:/i.test(u))return"#"; if(/^https?:\/\//i.test(u))return u; return "https://"+u.replace(/^\/+/,""); }
 function emailList(x){ return [...new Set(String(x||"").split(/[\n,;]+/).map(v=>v.trim()).filter(v=>v.includes("@")))]; }
 const parseTags = s => { const a=String(s||"").split(",").map(t=>t.trim()).filter(Boolean); return a.length?a:null; };
 // ----- Voice recording (MediaRecorder) -----
@@ -1251,6 +1252,8 @@ function renderClient(){
       </div>
       <label style="margin-top:12px">Tags <span class="hint">comma-separated (optional)</span></label>
       <input id="f-tags" class="inp" placeholder="e.g. urgent, billing, mobile"/>
+      <label style="margin-top:12px">Page / Screen link <span class="hint">(optional — URL of the page or screen)</span></label>
+      <input id="f-page" class="inp" placeholder="https://… the page/screen this CR is about"/>
       <label style="margin-top:12px">Description <span class="req">*</span></label>
       ${richEditor("f-desc","Explain what is expected, affected screens, expected behaviour…  Use the toolbar for bold, lists, etc.")}
       <label style="margin-top:12px">Before — current state <span class="hint">(optional: how it looks / works now)</span></label>
@@ -1322,7 +1325,7 @@ async function submitCR(){
   const title=$("f-title").value.trim(), desc=richHTML("f-desc"), descText=richText("f-desc");
   if(!title||!descText){toast("Heading and description are required.",true);return;}
   const btn=$("submit-cr"); btn.disabled=true; btn.textContent="Submitting…";
-  const payload={ title, area:$("f-area").value, type:$("f-type").value, priority:$("f-priority").value,
+  const payload={ title, area:$("f-area").value, type:$("f-type").value, priority:$("f-priority").value, page:($("f-page")?$("f-page").value.trim():"")||null,
     item_count:1, description:desc, due_date:$("f-due").value||null, tags:parseTags($("f-tags").value),
     created_by:SESSION.user.id, client_name:ME.company||ME.full_name||ME.username, status:"New" };
   const {data,error}=await sb.from("cr_requests").insert(payload).select().single();
@@ -1593,6 +1596,8 @@ function openAdminCRForm(){
         <input id="ac-title" class="inp" placeholder="Short summary of the change"/>
         <label style="margin-top:12px">Tags <span class="hint">comma-separated (optional)</span></label>
         <input id="ac-tags" class="inp" placeholder="e.g. urgent, billing"/>
+        <label style="margin-top:12px">Page / Screen link <span class="hint">(optional)</span></label>
+        <input id="ac-page" class="inp" placeholder="https://…"/>
         <label style="margin-top:12px">Description <span class="req">*</span></label>
         ${richEditor("ac-desc","Explain what is expected…  Use the toolbar for bold, lists, etc.")}
         <label style="margin-top:12px">Before — current state <span class="hint">(optional)</span></label>
@@ -1615,6 +1620,7 @@ async function adminCreateCR(){
     const res=await callFn("admin-create-cr",{ client_id, title, description:desc,
       area:$("ac-area").value, type:$("ac-type").value, priority:$("ac-priority").value, due_date:$("ac-due").value||null, tags:parseTags($("ac-tags").value) });
     if(res && res.id && $("ac-before") && $("ac-before").value.trim()){ try{ await sb.from("cr_requests").update({before_note:$("ac-before").value.trim()}).eq("id",res.id); }catch(_){} }
+    if(res && res.id && $("ac-page") && $("ac-page").value.trim()){ try{ await sb.from("cr_requests").update({page:$("ac-page").value.trim()}).eq("id",res.id); }catch(_){} }
     const _aphotos=[...(RAISE_PASTES.ac||[])]; if($("ac-files")&&$("ac-files").files){ for(const f of $("ac-files").files) _aphotos.push(f); }
     for(const f of _aphotos){ await uploadAttachment(res.id,f); }
     RAISE_PASTES.ac=[];
@@ -2633,6 +2639,8 @@ function openCREdit(id){
         </div>
         <label style="margin-top:12px">Tags <span class="hint">comma-separated</span></label>
         <input id="ed-tags" class="inp" value="${esc((r.tags||[]).join(', '))}" placeholder="e.g. urgent, billing"/>
+        <label style="margin-top:12px">Page / Screen link</label>
+        <input id="ed-page" class="inp" value="${esc(r.page||'')}" placeholder="https://…"/>
         <label style="margin-top:12px">Add photos <span class="hint">(optional)</span></label>
         <input id="ed-files" class="inp" type="file" accept="image/*" multiple onchange="previewInto('ed-files','ed-prev')"/>
         <div id="ed-prev" class="photo-grid" style="margin-top:8px"></div>
@@ -2651,7 +2659,7 @@ async function saveCREdit(id){
   if(!title){toast("Heading is required.",true);return;}
   if(!descText){toast("Description is required.",true);return;}
   const btn=$("ed-save"); if(btn){btn.disabled=true;btn.textContent="Saving…";}
-  const patch={ title, description:richHTML("ed-desc"), priority:$("ed-priority").value, type:$("ed-type").value, area:$("ed-area").value, due_date:$("ed-due").value||null, tags:parseTags($("ed-tags").value), updated_at:new Date().toISOString() };
+  const patch={ title, description:richHTML("ed-desc"), priority:$("ed-priority").value, type:$("ed-type").value, area:$("ed-area").value, due_date:$("ed-due").value||null, tags:parseTags($("ed-tags").value), page:($("ed-page")?$("ed-page").value.trim():"")||null, updated_at:new Date().toISOString() };
   const {error}=await sb.from("cr_requests").update(patch).eq("id",id);
   if(btn){btn.disabled=false;btn.textContent="Save changes";}
   if(error){toast(error.message||"Could not save changes.",true);return;}
@@ -2937,6 +2945,7 @@ async function openDetail(id){
           <div class="k">Submitted</div><div>${fmtDate(r.created_at)}</div>
           <div class="k">Needed by</div><div>${r.due_date?fmtDay(r.due_date):"—"}</div>
           <div class="k">Assigned to</div><div>${esc(r.assigned_name||"Unassigned")}</div>
+          ${r.page?`<div class="k">🔗 Page / Screen</div><div><a href="${esc(_safeUrl(r.page))}" target="_blank" rel="noopener" style="color:var(--brand2);word-break:break-all">${esc(r.page)}</a></div>`:""}
         </div>
         <div><div class="k" style="color:var(--muted);font-size:13px;margin-bottom:4px">Description</div>
           <div style="font-size:14px;line-height:1.55">${renderDesc(r.description)}</div></div>
