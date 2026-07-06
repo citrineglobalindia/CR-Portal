@@ -1299,16 +1299,16 @@ function renderClientStats(){
 }
 function renderClientTable(){
   const term=($("c-search").value||"").toLowerCase(), st=$("c-status").value;
-  const rows=CACHE.filter(r=>!r.deleted_at&&(!st||r.status===st)&&(!term||((r.title||"")+(r.ref_no||"")+htmlToText(r.description)).toLowerCase().includes(term)));
+  const rows=CACHE.filter(r=>(!st||r.status===st)&&(!term||((r.title||"")+(r.ref_no||"")+htmlToText(r.description)).toLowerCase().includes(term)));
   $("c-table").innerHTML=rows.length?`<table>
     <thead><tr><th>Ref</th><th>Heading</th><th>Priority</th><th>Status</th><th>Submitted</th><th></th></tr></thead>
-    <tbody>${rows.map(r=>`<tr>
+    <tbody>${rows.map(r=>`<tr${r.deleted_at?' style="opacity:.6"':''}>
       <td><span class="ref">${esc(r.ref_no)}</span></td>
       <td>${esc(r.title)}</td>
       <td class="pr-${r.priority}">${esc(r.priority)}</td>
-      <td><span class="badge ${badgeClass(r.status)}">${esc(r.status)}</span></td>
+      <td>${r.deleted_at?`<span class="badge" style="background:rgba(255,107,107,.15);color:#ff8a8a;border:1px solid rgba(255,107,107,.4)">🗑 Deleted</span>`:`<span class="badge ${badgeClass(r.status)}">${esc(r.status)}</span>`}</td>
       <td>${fmtDay(r.created_at)}</td>
-      <td style="white-space:nowrap">${r.status==="Done"?`<button class="btn btn-sm btn-ghost" onclick="openReopen('${r.id}')">↺ Not completed</button> `:""}<button class="link-btn" onclick="openDetail('${r.id}')">View</button> <button class="link-btn" title="Download this CR (PDF)" onclick="event.stopPropagation();exportBeforeAfter('${r.id}')">⬇</button></td>
+      <td style="white-space:nowrap">${(!r.deleted_at&&r.status==="Done")?`<button class="btn btn-sm btn-ghost" onclick="openReopen('${r.id}')">↺ Not completed</button> `:""}<button class="link-btn" onclick="openDetail('${r.id}')">View</button> <button class="link-btn" title="Download this CR (PDF)" onclick="event.stopPropagation();exportBeforeAfter('${r.id}')">⬇</button></td>
     </tr>`).join("")}</tbody></table>`:`<div class="empty">No change requests yet. Submit your first one above.</div>`;
 }
 let RAISE_PASTES={f:[],ac:[]};
@@ -1655,7 +1655,7 @@ async function restoreCR(id){
   const {error}=await sb.from("cr_requests").update({deleted_at:null,deleted_by:null,deleted_by_name:null,deleted_note:null,updated_at:new Date().toISOString()}).eq("id",id);
   if(error){toast(error.message,true);return;}
   const r=CACHE.find(x=>x.id===id); if(r){r.deleted_at=null;r.deleted_by_name=null;r.deleted_note=null;}
-  toast("Request restored."); openDetail(id); if(typeof loadAndRenderAdmin==="function") loadAndRenderAdmin();
+  toast("Request restored."); openDetail(id); if(ME.role==="admin"){ if(typeof loadAndRenderAdmin==="function") loadAndRenderAdmin(); } else { if(typeof loadAndRenderClient==="function") loadAndRenderClient(); }
 }
 function deleteCR(id){
   const r=CACHE.find(x=>x.id===id); if(!r)return;
@@ -2963,7 +2963,7 @@ async function openDetail(id){
         <button class="x" onclick="closeModal()">×</button>
       </div>
       <div class="mb">
-        ${(isAdmin && r.deleted_at)?`<div class="del-banner">🗑 <b>Deleted by ${esc(r.deleted_by_name||"client")}</b> on ${esc(fmtDate(r.deleted_at))}${r.deleted_note?`<div style="margin-top:5px">Reason: ${esc(r.deleted_note)}</div>`:""}<div style="margin-top:8px"><button class="btn btn-sm btn-ghost" onclick="restoreCR('${r.id}')">↩ Restore request</button></div></div>`:""}
+        ${((isAdmin||isOwner) && r.deleted_at)?`<div class="del-banner">🗑 <b>Deleted by ${esc(r.deleted_by_name||"client")}</b> on ${esc(fmtDate(r.deleted_at))}${r.deleted_note?`<div style="margin-top:5px">Reason: ${esc(r.deleted_note)}</div>`:""}<div style="margin-top:8px"><button class="btn btn-sm btn-ghost" onclick="restoreCR('${r.id}')">↩ Restore request</button></div></div>`:""}
         <div class="kv">
           <div class="k">Client</div><div>${esc(r.client_name||"—")}</div>
           <div class="k">Type</div><div>${esc(r.type||"—")}</div>
