@@ -662,6 +662,7 @@
   .cr-clogo{width:46px;height:46px;border-radius:11px;background:#fff;flex:none;display:grid;place-items:center;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,.25)}
   .cr-clogo img{max-width:100%;max-height:100%;object-fit:contain;display:block}
   .cc-logo-sm{width:24px;height:24px;border-radius:6px;object-fit:contain;background:#fff;flex:none}
+  .del-banner{background:rgba(255,107,107,.12);border:1px solid rgba(255,107,107,.4);color:#ffb4b4;border-radius:12px;padding:12px 14px;margin-bottom:12px;font-size:13.5px;line-height:1.5}
 </style>
 </head>
 <body>
@@ -1288,16 +1289,17 @@ function previewInto(inputId,containerId){
 function previewFiles(){ previewInto("f-files","file-preview"); }
 async function loadAndRenderClient(){ await loadRequests(); renderClientStats(); renderClientTable(); }
 function renderClientStats(){
-  const by=s=>CACHE.filter(r=>r.status===s).length;
+  const AL=CACHE.filter(r=>!r.deleted_at);
+  const by=s=>AL.filter(r=>r.status===s).length;
   $("client-stats").innerHTML=
-    statCard("📋","#8e7cff",CACHE.length,"Total CRs")+
+    statCard("📋","#8e7cff",AL.length,"Total CRs")+
     statCard("🕒","#ffb020",by("New")+by("In Review"),"New / In Review")+
     statCard("⚙️","#00d2a8",by("Approved")+by("In Progress"),"In Progress")+
     statCard("✅","#22c55e",by("Done"),"Completed");
 }
 function renderClientTable(){
   const term=($("c-search").value||"").toLowerCase(), st=$("c-status").value;
-  const rows=CACHE.filter(r=>(!st||r.status===st)&&(!term||((r.title||"")+(r.ref_no||"")+htmlToText(r.description)).toLowerCase().includes(term)));
+  const rows=CACHE.filter(r=>!r.deleted_at&&(!st||r.status===st)&&(!term||((r.title||"")+(r.ref_no||"")+htmlToText(r.description)).toLowerCase().includes(term)));
   $("c-table").innerHTML=rows.length?`<table>
     <thead><tr><th>Ref</th><th>Heading</th><th>Priority</th><th>Status</th><th>Submitted</th><th></th></tr></thead>
     <tbody>${rows.map(r=>`<tr>
@@ -1410,7 +1412,7 @@ function renderAdmin(){
 function setAdminTab(t){ ADMIN_TAB=t; renderAdmin(); }
 
 let ADMIN_QUICK="pending";
-function setAdminQuick(v){ ADMIN_QUICK=v; document.querySelectorAll('#a-quick button').forEach((b,i)=>b.classList.toggle('on',['pending','all','completed','overdue'][i]===v)); renderAdminTable(); }
+function setAdminQuick(v){ ADMIN_QUICK=v; document.querySelectorAll('#a-quick button').forEach((b,i)=>b.classList.toggle('on',['pending','all','completed','overdue','deleted'][i]===v)); renderAdminTable(); }
 function renderAdminDash(){
   $("admin-pane").innerHTML=`
     <div class="welcome">
@@ -1428,6 +1430,7 @@ function renderAdminDash(){
         <button class="${ADMIN_QUICK==='all'?'on':''}" onclick="setAdminQuick('all')">All</button>
         <button class="${ADMIN_QUICK==='completed'?'on':''}" onclick="setAdminQuick('completed')">✅ Completed</button>
         <button class="${ADMIN_QUICK==='overdue'?'on':''}" onclick="setAdminQuick('overdue')">⚠️ Overdue</button>
+        <button class="${ADMIN_QUICK==='deleted'?'on':''}" onclick="setAdminQuick('deleted')">🗑 Deleted</button>
       </div><span class="hint" id="a-quick-count"></span></div>
       <div class="toolbar">
         <input id="a-search" class="inp" placeholder="🔍 Search everything — ref, heading, client, description, tags, comments…" oninput="renderAdminTable()" style="min-width:300px;flex:1"/>
@@ -1530,6 +1533,7 @@ function filteredAdmin(){
   const fromT=from?new Date(from+"T00:00:00").getTime():null;
   const toT=to?new Date(to+"T23:59:59").getTime():null;
   return CACHE.filter(r=>{
+    if(ADMIN_QUICK==="deleted"){ if(!r.deleted_at) return false; } else if(r.deleted_at) return false;
     if(ADMIN_QUICK==="pending" && (r.status==="Done"||r.status==="Rejected")) return false;
     if(ADMIN_QUICK==="completed" && r.status!=="Done") return false;
     if(ADMIN_QUICK==="overdue" && !(r.due_date && r.status!=="Done" && r.status!=="Rejected" && new Date(r.due_date)<new Date())) return false;
@@ -1555,9 +1559,10 @@ function filteredAdmin(){
 }
 function renderAdminTable(){
   const rows=filteredAdmin();
-  const by=s=>CACHE.filter(r=>r.status===s).length;
+  const AL=CACHE.filter(r=>!r.deleted_at);
+  const by=s=>AL.filter(r=>r.status===s).length;
   $("admin-stats").innerHTML=
-    statCard("📋","#8e7cff",CACHE.length,"Total CRs")+
+    statCard("📋","#8e7cff",AL.length,"Total CRs")+
     statCard("🕒","#ffb020",by("New")+by("In Review"),"New / In Review")+
     statCard("⚙️","#00d2a8",by("Approved")+by("In Progress"),"In Progress")+
     statCard("✅","#22c55e",by("Done"),"Completed")+
@@ -1568,7 +1573,7 @@ function renderAdminTable(){
     <thead><tr><th>Ref</th><th>Heading</th><th>Client</th><th>Owner</th><th>Pri.</th><th>Status</th><th>Raised</th><th>Completed</th><th></th></tr></thead>
     <tbody>${rows.map(r=>`<tr>
       <td><span class="ref">${esc(r.ref_no)}</span></td>
-      <td>${esc(r.title)}${(r.tags&&r.tags.length)?` <span style="color:var(--muted);font-size:11px">#${esc(r.tags[0])}${r.tags.length>1?"+"+(r.tags.length-1):""}</span>`:""}${COMMIT_COUNTS[r.id]?` <span class="cm-badge" title="${COMMIT_COUNTS[r.id]} commit(s) linked">🔗 ${COMMIT_COUNTS[r.id]}</span>`:""}${r.resent_count?` <span class="cm-badge resent" title="Re-sent by client ${r.resent_count} time(s)">↩ Re-Sent${r.resent_count>1?" ×"+r.resent_count:""}</span>`:""}</td>
+      <td>${esc(r.title)}${(r.tags&&r.tags.length)?` <span style="color:var(--muted);font-size:11px">#${esc(r.tags[0])}${r.tags.length>1?"+"+(r.tags.length-1):""}</span>`:""}${COMMIT_COUNTS[r.id]?` <span class="cm-badge" title="${COMMIT_COUNTS[r.id]} commit(s) linked">🔗 ${COMMIT_COUNTS[r.id]}</span>`:""}${r.resent_count?` <span class="cm-badge resent" title="Re-sent by client ${r.resent_count} time(s)">↩ Re-Sent${r.resent_count>1?" ×"+r.resent_count:""}</span>`:""}${r.deleted_at?` <span class="cm-badge resent" title="Deleted by ${esc(r.deleted_by_name||'client')}">🗑 Deleted</span>`:""}</td>
       <td><span style="display:inline-flex;align-items:center;gap:7px;min-width:0">${(()=>{const _c=(CLIENTS||[]).find(x=>x.id===r.created_by);const _l=_c?logoUrl(_c.logo_path):"";return _l?`<img class="cc-logo-sm" src="${esc(_l)}" alt="">`:"";})()}<span>${esc(r.client_name||"—")}</span></span></td>
       <td>${esc(r.assigned_name||"—")}</td>
       <td class="pr-${r.priority}">${esc(r.priority)}</td>
@@ -1632,6 +1637,26 @@ async function adminCreateCR(){
   }catch(e){ toast(e.message||"Could not create CR.",true); if($("ac-btn")){btn.disabled=false; btn.textContent="Create change request";} }
 }
 async function completeCR(id){ await quickStatus(id,'Done'); closeModal(); }
+function clientDeleteCR(id){
+  const r=CACHE.find(x=>x.id===id); if(!r)return;
+  $("modal-root").innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()"><div class="modal" style="max-width:470px"><div class="mh"><h2 style="margin:0;color:#ffb4b4">Delete request</h2><button class="x" onclick="openDetail('${id}')">×</button></div><div class="mb"><p style="line-height:1.55">Remove <b>${esc(r.ref_no)}</b> from your list? Add a short reason — the admin will still see this request with your note and the time it was deleted.</p><textarea id="cd-note" class="inp" rows="3" placeholder="Reason for deleting (remark)…"></textarea><div class="row" style="margin-top:14px"><button class="btn btn-sm btn-danger" id="cd-btn" onclick="confirmClientDelete('${id}')">Delete request</button><button class="btn btn-sm btn-ghost" onclick="openDetail('${id}')">Cancel</button></div></div></div></div>`;
+}
+async function confirmClientDelete(id){
+  const note=($("cd-note").value||"").trim();
+  const btn=$("cd-btn"); if(btn){btn.disabled=true;btn.textContent="Deleting…";}
+  const patch={ deleted_at:new Date().toISOString(), deleted_by:(SESSION&&SESSION.user)?SESSION.user.id:null, deleted_by_name:ME.full_name||ME.company||ME.username||"Client", deleted_note:note||null, updated_at:new Date().toISOString() };
+  const {error}=await sb.from("cr_requests").update(patch).eq("id",id);
+  if(error){ if(btn){btn.disabled=false;btn.textContent="Delete request";} toast(error.message||"Could not delete.",true); return; }
+  const r=CACHE.find(x=>x.id===id); if(r) Object.assign(r,patch);
+  deleteFx(); toast("Request deleted — the admin can still see it with your note."); closeModal();
+  if(ME.role==="admin"){ await loadAndRenderAdmin(); } else { await loadAndRenderClient(); }
+}
+async function restoreCR(id){
+  const {error}=await sb.from("cr_requests").update({deleted_at:null,deleted_by:null,deleted_by_name:null,deleted_note:null,updated_at:new Date().toISOString()}).eq("id",id);
+  if(error){toast(error.message,true);return;}
+  const r=CACHE.find(x=>x.id===id); if(r){r.deleted_at=null;r.deleted_by_name=null;r.deleted_note=null;}
+  toast("Request restored."); openDetail(id); if(typeof loadAndRenderAdmin==="function") loadAndRenderAdmin();
+}
 function deleteCR(id){
   const r=CACHE.find(x=>x.id===id); if(!r)return;
   $("modal-root").innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()">
@@ -1999,7 +2024,7 @@ async function renderAdminHome(){
   drawHome();
 }
 function drawHome(){
-  const C=CACHE;
+  const C=CACHE.filter(r=>!r.deleted_at);
   const BR=(getComputedStyle(document.documentElement).getPropertyValue("--brand")||"#8e7cff").trim();
   const open=C.filter(r=>r.status!=="Done"&&r.status!=="Rejected");
   const done=C.filter(r=>r.status==="Done");
@@ -2938,6 +2963,7 @@ async function openDetail(id){
         <button class="x" onclick="closeModal()">×</button>
       </div>
       <div class="mb">
+        ${(isAdmin && r.deleted_at)?`<div class="del-banner">🗑 <b>Deleted by ${esc(r.deleted_by_name||"client")}</b> on ${esc(fmtDate(r.deleted_at))}${r.deleted_note?`<div style="margin-top:5px">Reason: ${esc(r.deleted_note)}</div>`:""}<div style="margin-top:8px"><button class="btn btn-sm btn-ghost" onclick="restoreCR('${r.id}')">↩ Restore request</button></div></div>`:""}
         <div class="kv">
           <div class="k">Client</div><div>${esc(r.client_name||"—")}</div>
           <div class="k">Type</div><div>${esc(r.type||"—")}</div>
@@ -2989,6 +3015,7 @@ async function openDetail(id){
         ${(!isAdmin && r.status==="Done")?`<div class="section-title">Not completed?</div>
         <button class="btn btn-sm btn-ghost" onclick="openReopen('${r.id}')">↺ Mark as not completed (reopen)</button>
         <div class="hint">This reopens the request and notifies the team to look again.</div>`:""}
+        ${(isOwner && !isAdmin && !r.deleted_at)?`<div style="margin-top:10px"><button class="btn btn-sm btn-danger" onclick="clientDeleteCR('${r.id}')">🗑 Delete this request</button></div>`:""}
         ${files.length?`<div class="section-title">Attachments (${files.length})</div>
         <div>${files.map(a=>`<div class="att"><span>📎</span><span class="name">${esc(a.file_name)}</span>
           <button class="btn btn-sm btn-ghost" onclick="downloadAtt('${esc(a.file_path)}','${esc(a.file_name)}')">Download</button></div>`).join("")}</div>`:""}
