@@ -1422,7 +1422,8 @@ function renderAdminDash(){
     </div>
     <div class="stats" id="admin-stats"></div>
     <div class="card">
-      <div class="lead-bar" style="margin:0 0 12px"><div class="seg" id="a-quick">
+      <style>#a-quick-count{background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:5px 12px;font-size:12.5px;color:var(--muted)}#a-quick-count b{color:var(--brand2);font-weight:800}</style>
+  <div class="lead-bar" style="margin:0 0 12px"><div class="seg" id="a-quick">
         <button class="${ADMIN_QUICK==='pending'?'on':''}" onclick="setAdminQuick('pending')">🕒 Pending</button>
         <button class="${ADMIN_QUICK==='all'?'on':''}" onclick="setAdminQuick('all')">All</button>
         <button class="${ADMIN_QUICK==='completed'?'on':''}" onclick="setAdminQuick('completed')">✅ Completed</button>
@@ -1561,7 +1562,8 @@ function renderAdminTable(){
     statCard("⚙️","#00d2a8",by("Approved")+by("In Progress"),"In Progress")+
     statCard("✅","#22c55e",by("Done"),"Completed")+
     statCard("👥","#6c5ce7",CLIENTS.length,"Clients");
-  $("export-note").textContent=`${rows.length} of ${CACHE.length} shown — export uses current filters`;
+  if($("export-note")) $("export-note").textContent=`${rows.length} of ${CACHE.length} shown — export uses current filters`;
+  if($("a-quick-count")){ const lbl={pending:"pending",all:"total",completed:"completed",overdue:"overdue"}[ADMIN_QUICK]||""; $("a-quick-count").innerHTML=`<b>${rows.length}</b> ${rows.length===1?"result":"results"}${lbl?` · ${lbl}`:""}`; }
   $("a-table").innerHTML=rows.length?`<table>
     <thead><tr><th>Ref</th><th>Heading</th><th>Client</th><th>Owner</th><th>Pri.</th><th>Status</th><th>Raised</th><th>Completed</th><th></th></tr></thead>
     <tbody>${rows.map(r=>`<tr>
