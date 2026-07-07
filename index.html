@@ -787,6 +787,7 @@
         <button type="button" class="pw-eye" onclick="togglePw('li-pass',this)" aria-label="Show password">👁</button>
       </div>
       <button class="btn" id="li-btn" onclick="doLogin()">Log in</button>
+      <button class="btn btn-ghost" id="li-passkey" onclick="loginWithPasskey()" style="width:100%;margin-top:10px">👆 Sign in with fingerprint / passkey</button>
     </div>
 
     <div id="form-setup" class="hidden">
@@ -848,6 +849,9 @@
 
 <div id="modal-root"></div>
 <div id="toast" class="toast"></div>
+<script type="module">
+  try{ const m=await import("https://esm.sh/@simplewebauthn/browser@9.0.1"); window.SWA={startRegistration:m.startRegistration,startAuthentication:m.startAuthentication}; }catch(e){ console.warn("passkey lib load failed",e); }
+</script>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -1283,58 +1287,48 @@ async function ensureProfile(){
   ME=prof;
 }
 
-function bioSupported(){ return !!(window.PublicKeyCredential && navigator.credentials && navigator.credentials.create && window.isSecureContext); }
-function bioEnabled(){ try{ return !!localStorage.getItem("cr_bio_cred"); }catch(_){ return false; } }
-function b64uEnc(buf){ const b=new Uint8Array(buf); let s=""; for(let i=0;i<b.length;i++)s+=String.fromCharCode(b[i]); return btoa(s).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,""); }
-function b64uDec(str){ str=String(str).replace(/-/g,"+").replace(/_/g,"/"); while(str.length%4)str+="="; const bin=atob(str); const b=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++)b[i]=bin.charCodeAt(i); return b.buffer; }
-async function registerBio(){
-  if(!bioSupported()){ toast("This device/browser doesn't support fingerprint unlock.",true); return; }
+function bioSupported(){ return !!(window.PublicKeyCredential && navigator.credentials && window.isSecureContext); }
+function passkeyHas(){ try{ return localStorage.getItem("cr_bio_has")==="1"; }catch(_){ return false; } }
+async function registerPasskey(){
+  if(!bioSupported()){ toast("This device/browser doesn't support passkeys.",true); return; }
+  if(!window.SWA){ toast("Passkey library still loading \u2014 try again in a moment.",true); return; }
   try{
-    const challenge=crypto.getRandomValues(new Uint8Array(32));
-    const uidSrc=(SESSION&&SESSION.user&&SESSION.user.id)?SESSION.user.id:(ME&&ME.email)||"admin";
-    const uid=new TextEncoder().encode(uidSrc).slice(0,32);
-    const cred=await navigator.credentials.create({publicKey:{
-      challenge:challenge, rp:{name:"CR Portal", id:location.hostname},
-      user:{id:uid, name:(ME&&ME.email)||"admin", displayName:(ME&&(ME.full_name||ME.email))||"Admin"},
-      pubKeyCredParams:[{alg:-7,type:"public-key"},{alg:-257,type:"public-key"}],
-      authenticatorSelection:{authenticatorAttachment:"platform",userVerification:"required",residentKey:"preferred"},
-      timeout:60000, attestation:"none"
-    }});
-    if(!cred) throw new Error("cancelled");
-    localStorage.setItem("cr_bio_cred", b64uEnc(cred.rawId));
-    localStorage.setItem("cr_bio_user", (ME&&ME.email)||"");
-    localStorage.setItem("cr_bio_lock","1");
-    toast("Fingerprint unlock enabled on this device ✓");
+    const j1=await callFn("webauthn",{action:"reg-options"});
+    const att=await window.SWA.startRegistration(j1.options);
+    await callFn("webauthn",{action:"reg-verify",att:att,label:((navigator.userAgentData&&navigator.userAgentData.platform)||navigator.platform||"Device")});
+    try{ localStorage.setItem("cr_bio_has","1"); localStorage.setItem("cr_bio_user",(ME&&ME.email)||""); }catch(_){ }
+    toast("Passkey registered \u2713 You can now sign in with your fingerprint.");
     openBioSetup();
-  }catch(err){ toast("Could not enable: "+((err&&err.message)||err),true); }
+  }catch(e){ toast("Could not register passkey: "+((e&&e.message)||e),true); }
 }
-function disableBio(){ try{localStorage.removeItem("cr_bio_cred");localStorage.removeItem("cr_bio_user");localStorage.removeItem("cr_bio_lock");}catch(_){ } toast("Fingerprint unlock disabled on this device."); closeModal(); }
-async function bioUnlock(){
-  const idb=localStorage.getItem("cr_bio_cred"); if(!idb) throw new Error("not set");
-  const challenge=crypto.getRandomValues(new Uint8Array(32));
-  const cred=await navigator.credentials.get({publicKey:{challenge:challenge,timeout:60000,userVerification:"required",rpId:location.hostname,allowCredentials:[{id:b64uDec(idb),type:"public-key",transports:["internal"]}]}});
-  if(!cred) throw new Error("cancelled");
-  return true;
+async function disablePasskey(){
+  try{ await callFn("webauthn",{action:"reg-del"}); }catch(e){ toast("Could not remove: "+((e&&e.message)||e),true); return; }
+  try{ localStorage.removeItem("cr_bio_has"); localStorage.removeItem("cr_bio_user"); }catch(_){ }
+  toast("Passkey removed from your account."); closeModal();
+}
+async function loginWithPasskey(){
+  if(!bioSupported()){ authMsg("This device/browser doesn't support passkeys."); return; }
+  if(!window.SWA){ authMsg("Passkey not ready \u2014 try again in a moment."); return; }
+  const btn=$("li-passkey"); if(btn){btn.disabled=true;btn.textContent="Waiting for fingerprint\u2026";}
+  try{
+    const j1=await callFn("webauthn",{action:"auth-options"});
+    const assertion=await window.SWA.startAuthentication(j1.options);
+    const j2=await callFn("webauthn",{action:"auth-verify",challengeId:j1.challengeId,assertion:assertion});
+    const {error}=await sb.auth.verifyOtp({token_hash:j2.token_hash,type:"magiclink"});
+    if(error) throw error;
+    location.reload();
+  }catch(e){ authMsg("Passkey sign-in failed: "+((e&&e.message)||e)); if(btn){btn.disabled=false;btn.textContent="\ud83d\udc46 Sign in with fingerprint / passkey";} }
 }
 function openBioSetup(){
   const pm=$("profile-menu"); if(pm)pm.classList.add("hidden");
-  const sup=bioSupported(), on=bioEnabled();
-  $("modal-root").innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()"><div class="modal" style="max-width:440px"><div class="mh"><h2 style="margin:0">🔒 Fingerprint unlock</h2><button class="x" onclick="closeModal()">×</button></div><div class="mb">`+
-    (!sup?`<div class="ba-note">This browser/device doesn't support biometric unlock. Use a device with Touch ID, Face ID, Windows Hello, or a fingerprint sensor (and an https connection).</div><div class="row" style="margin-top:14px"><button class="btn btn-sm btn-ghost" style="width:auto" onclick="closeModal()">Close</button></div>`:
-    on?`<div class="ba-note" style="border-color:#22c55e55">✅ Fingerprint unlock is <b>enabled</b> on this device`+ (localStorage.getItem("cr_bio_user")?` for <b>${esc(localStorage.getItem("cr_bio_user"))}</b>`:"") +`. You'll verify your fingerprint each time you open the portal here.</div><div class="row" style="margin-top:14px"><button class="btn btn-sm btn-ghost" style="width:auto" onclick="bioTest()">👆 Test unlock</button><button class="btn btn-sm btn-danger" style="width:auto" onclick="disableBio()">Disable on this device</button></div>`:
-    `<p style="line-height:1.55">Use your device's <b>fingerprint / Face ID / Windows Hello</b> to lock and open the admin portal on <b>this device</b>. Your email &amp; password still work as a fallback.</p><div class="row" style="margin-top:14px"><button class="btn btn-sm btn-ok" style="width:auto" onclick="registerBio()">👆 Enable on this device</button><button class="btn btn-sm btn-ghost" style="width:auto" onclick="closeModal()">Cancel</button></div>`)+
-    `<div class="hint" style="margin-top:12px">Tied to this browser/device — enable it on each device you use. Secures opening the portal on this device.</div></div></div></div>`;
+  const sup=bioSupported(), on=passkeyHas();
+  $("modal-root").innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()"><div class="modal" style="max-width:460px"><div class="mh"><h2 style="margin:0">\ud83d\udc46 Passkey / fingerprint sign-in</h2><button class="x" onclick="closeModal()">\u00d7</button></div><div class="mb">`+
+    (!sup?`<div class="ba-note">This browser/device doesn't support passkeys. Use a device with Touch ID, Face ID, Windows Hello or a fingerprint sensor over https.</div><div class="row" style="margin-top:14px"><button class="btn btn-sm btn-ghost" style="width:auto" onclick="closeModal()">Close</button></div>`:
+    on?`<div class="ba-note" style="border-color:#22c55e55">\u2705 A passkey is registered on this device. On the login screen tap <b>Sign in with fingerprint</b> \u2014 no password needed.</div><div class="row" style="margin-top:14px"><button class="btn btn-sm btn-ok" style="width:auto" onclick="registerPasskey()">\u2795 Add another device</button><button class="btn btn-sm btn-danger" style="width:auto" onclick="disablePasskey()">Remove passkeys</button></div>`:
+    `<p style="line-height:1.55">Register a <b>passkey</b> to sign in with your device's <b>fingerprint / Face ID / Windows Hello</b> \u2014 no password. Verified securely on the server; your password still works as a backup.</p><div class="row" style="margin-top:14px"><button class="btn btn-sm btn-ok" style="width:auto" onclick="registerPasskey()">\ud83d\udc46 Register passkey on this device</button><button class="btn btn-sm btn-ghost" style="width:auto" onclick="closeModal()">Cancel</button></div>`)+
+    `<div class="hint" style="margin-top:12px">Register on each device you want to use. Removing passkeys affects all your devices.</div></div></div></div>`;
 }
-async function bioTest(){ try{ await bioUnlock(); toast("Fingerprint verified ✓"); }catch(_){ toast("Verification failed or cancelled.",true); } }
-function maybeBioLock(){ try{ if(localStorage.getItem("cr_bio_lock")==="1" && localStorage.getItem("cr_bio_cred") && bioSupported()){ showBioLock(); } }catch(_){ } }
-function showBioLock(){
-  if(document.getElementById("bio-lock"))return;
-  const ov=document.createElement("div"); ov.id="bio-lock"; ov.className="bio-lock";
-  ov.innerHTML=`<div class="bio-card"><div class="bio-ico">🔒</div><div class="bio-t">Portal locked</div><div class="bio-s">Verify your fingerprint to open the admin portal on this device.</div><button class="btn" style="width:auto" onclick="bioTryUnlock()">👆 Unlock with fingerprint</button><button class="btn btn-ghost btn-sm" style="width:auto;margin-top:10px" onclick="doLogout()">Sign out instead</button><div id="bio-err" class="hint" style="color:#ff8a8a;margin-top:10px"></div></div>`;
-  document.body.appendChild(ov);
-  setTimeout(bioTryUnlock,300);
-}
-async function bioTryUnlock(){ const e=document.getElementById("bio-err"); if(e)e.textContent=""; try{ await bioUnlock(); const o=document.getElementById("bio-lock"); if(o)o.remove(); toast("Unlocked ✓"); }catch(err){ if(e)e.textContent="Verification failed or cancelled — try again."; } }
+function maybeBioLock(){ /* passwordless passkey now handles sign-in; no device lock needed */ }
 async function boot(){
   if(!CONFIGURED){ showConfigWarning(); return; }
   const {data:{session}}=await sb.auth.getSession();
