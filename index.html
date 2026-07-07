@@ -1076,7 +1076,7 @@ function renderThemeMenu(){
         <button class="${THEME_STATE.mode==='light'?'on':''}" onclick="setMode('light')">☀️ Light</button>
       </div></div>
     <div class="tm-block"><span class="tm-lab">3D background</span>
-      <div class="bg-opts">${[["knot","Knot"],["globe","Globe"],["rings","Rings"],["waves","Waves"],["crystal","Crystal"],["particles","Stars"],["off","Off"]].map(function(o){return '<button class="bg-opt '+(BG_STYLE===o[0]?'on':'')+'" onclick="setBg(\''+o[0]+'\')">'+o[1]+'</button>';}).join("")}</div>
+      <div class="bg-opts">${[["space","Space"],["knot","Knot"],["globe","Globe"],["rings","Rings"],["waves","Waves"],["crystal","Crystal"],["particles","Stars"],["off","Off"]].map(function(o){return '<button class="bg-opt '+(BG_STYLE===o[0]?'on':'')+'" onclick="setBg(\''+o[0]+'\')">'+o[1]+'</button>';}).join("")}</div>
     </div>
     ${isAdmin?`<button class="theme-act" onclick="openThemeStudio()">🎛️ Advanced theme studio</button>
     <button class="theme-act primary" onclick="saveGlobalDefault()">💾 Save as portal default</button>`:""}
@@ -3438,6 +3438,7 @@ function init3D(){
     else if(st==="rings"){ addWire(new THREE.TorusGeometry(2.6,.5,14,80),b,.4,{x:.001,y:.002}); const t2=addWire(new THREE.TorusGeometry(1.75,.34,12,60),a,.3,{x:-.0016,y:.0024}); t2.rotation.x=Math.PI/3; addPoints(520,.05,b,.6); }
     else if(st==="waves"){ wavesMesh=addWire(new THREE.PlaneGeometry(18,18,44,44),b,.34,{x:0,y:.0009}); wavesMesh.rotation.x=-Math.PI/2.4; addPoints(420,.05,a,.5); }
     else if(st==="crystal"){ addWire(new THREE.OctahedronGeometry(2.8,0),b,.46,{x:.0012,y:.0018}); addWire(new THREE.OctahedronGeometry(1.7,0),a,.32,{x:-.0016,y:.0022}); addWire(new THREE.DodecahedronGeometry(3.7,0),b,.15,{x:.0006,y:-.001}); addPoints(500,.05,b,.6); }
+    else if(st==="space"){ const mk=(n,size,color,op)=>{ const p=new Float32Array(n*3); for(let i=0;i<n;i++){ p[i*3]=(Math.random()-0.5)*42; p[i*3+1]=(Math.random()-0.5)*30; p[i*3+2]=-Math.random()*60+8; } const g=new THREE.BufferGeometry(); g.setAttribute("position",new THREE.BufferAttribute(p,3)); const mm=new THREE.PointsMaterial({color:color,size:size,transparent:true,opacity:op,blending:THREE.AdditiveBlending,depthWrite:false,sizeAttenuation:true}); const pt=new THREE.Points(g,mm); pt.userData.space=true; pt.userData.rot={x:0,y:0}; scene.add(pt); objs.push(pt); }; mk(1300,.10,b,.95); mk(650,.15,a,.8); mk(1700,.05,b,.6); }
     else { addWire(new THREE.IcosahedronGeometry(2.9,1),b,.4); addPoints(650,.06,b,.7); }
   }
   build();
@@ -3447,7 +3448,7 @@ function init3D(){
   const _t0=Date.now();
   (function tick(){ requestAnimationFrame(tick);
     if(typeof BG_STYLE==="undefined"||BG_STYLE!=="off"){
-      objs.forEach(x=>{ const r=x.userData.rot||{}; x.rotation.x+=r.x||0; x.rotation.y+=r.y||0; });
+      objs.forEach(x=>{ const r=x.userData.rot||{}; x.rotation.x+=r.x||0; x.rotation.y+=r.y||0; if(x.userData.space){ const ps=x.geometry.attributes.position; for(let i=0;i<ps.count;i++){ let z=ps.getZ(i)+0.16; if(z>9){ z-=68; ps.setX(i,(Math.random()-0.5)*42); ps.setY(i,(Math.random()-0.5)*30); } ps.setZ(i,z); } ps.needsUpdate=true; } });
       if(wavesMesh){ const t=(Date.now()-_t0)/1000; const ps=wavesMesh.geometry.attributes.position; for(let i=0;i<ps.count;i++){ const x=ps.getX(i), y=ps.getY(i); ps.setZ(i, Math.sin(x*0.5+t)*0.6+Math.cos(y*0.5+t*.8)*0.6); } ps.needsUpdate=true; }
       camera.position.x+=(mx*1.6-camera.position.x)*.04; camera.position.y+=(-my*1.6-camera.position.y)*.04; camera.lookAt(0,0,0); renderer.render(scene,camera);
     }
