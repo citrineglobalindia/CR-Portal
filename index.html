@@ -456,6 +456,21 @@
   .sidebar .navside.active>span{background:rgba(255,255,255,.22)}
   .sidebar .navside.active::before{content:"";position:absolute;left:-12px;top:50%;transform:translateY(-50%);width:4px;height:22px;border-radius:0 4px 4px 0;background:var(--accent)}
   .adminmain{flex:1;min-width:0;position:relative}
+  .proj-grid{display:flex;flex-direction:column;gap:16px}
+  .proj-card{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:18px;overflow:hidden;box-shadow:0 14px 40px rgba(0,0,0,.26);transition:transform .18s,box-shadow .2s,border-color .2s}
+  .proj-card:hover{transform:translateY(-2px);box-shadow:0 20px 52px rgba(0,0,0,.36);border-color:var(--brand)}
+  .proj-head{display:flex;align-items:center;gap:14px;padding:15px 18px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .proj-logo{width:46px;height:46px;border-radius:12px;overflow:hidden;background:var(--chip);display:grid;place-items:center;flex:0 0 auto;font-weight:800;color:var(--brand2)}
+  .proj-logo img{width:100%;height:100%;object-fit:cover}
+  .proj-name{font-size:17px;font-weight:800;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .proj-badges{display:flex;align-items:center;gap:10px;flex:0 0 auto}
+  .pstat{text-align:center;background:var(--chip);border:1px solid var(--line);border-radius:10px;padding:5px 12px;min-width:56px}
+  .pstat b{display:block;font-size:16px;color:var(--txt);line-height:1.15}
+  .pstat span{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700}
+  .proj-tasks{padding:12px 18px 16px}
+  .pt-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;font-weight:700;color:var(--txt);flex-wrap:wrap}
+  .pt-table td,.pt-table th{vertical-align:top}
+  @media(max-width:640px){.proj-badges{width:100%;justify-content:flex-start}.pt-head .row{width:100%}}
   .side-head{display:flex;align-items:center;justify-content:space-between;padding:2px 6px 10px;gap:6px}
   .side-collapse{background:var(--chip);border:0;color:var(--muted);width:28px;height:28px;border-radius:8px;cursor:pointer;display:grid;place-items:center;flex:0 0 auto;transition:.18s}
   .side-collapse:hover{color:var(--txt);background:var(--panel2)}
@@ -2144,19 +2159,40 @@ function drawHome(){
 
 
 // ===================== PROJECTS =====================
-let PROJECTS=[], OPTIONS={platform:[],site:[],role:[]}, CUR_PROJECT_ID=null, SCREENS_CACHE=[], SCR_PASTES=[], PROJ_SCREENS={}, TASKS_CACHE=[];
+let PROJECTS=[], OPTIONS={platform:[],site:[],role:[]}, CUR_PROJECT_ID=null, SCREENS_CACHE=[], SCR_PASTES=[], PROJ_SCREENS={}, TASKS_CACHE=[], PROJ_TASKS={};
 const PSC={Pending:"#ffb020","Change requested":"#ff6b6b",Verified:"#00d2a8",Approved:"#22c55e"};
 const PTC={Pending:"#ffb020","In Progress":"#3b82f6",Completed:"#8b5cf6",Approved:"#22c55e"};
 function ptBadge(st){ const c=PTC[st]||"#9aa0bd"; return `<span class="badge" style="background:${c}26;color:${c};border:1px solid ${c}66">${esc(st||"Pending")}</span>`; }
 function psBadge(st){ const c=PSC[st]||"#9aa0bd"; return `<span class="badge" style="background:${c}26;color:${c};border:1px solid ${c}66">${esc(st||"Pending")}</span>`; }
 async function loadOptions(){ try{ const {data}=await sb.from("cr_options").select("kind,value").order("value"); OPTIONS={platform:[],site:[],role:[]}; (data||[]).forEach(o=>{ if(!OPTIONS[o.kind])OPTIONS[o.kind]=[]; OPTIONS[o.kind].push(o.value); }); }catch(_){ } }
 async function loadProjects(){ const {data,error}=await sb.from("cr_projects").select("*").order("created_at",{ascending:false}); if(error){toast(error.message,true);return[];} PROJECTS=data||[]; return PROJECTS; }
-async function renderAdminProjects(){ $("admin-pane").innerHTML=`<div id="proj-pane"><div class="hint">Loading…</div></div>`; await loadClients(); await loadOptions(); await loadProjects(); await loadProjScreenCounts(); drawProjects(); }
+async function renderAdminProjects(){ $("admin-pane").innerHTML=`<div id="proj-pane"><div class="hint">Loading…</div></div>`; await loadClients(); await loadOptions(); await loadProjects(); await loadProjScreenCounts(); await loadProjTasks(); drawProjects(); }
+async function loadProjTasks(){ try{ const {data}=await sb.from("cr_project_tasks").select("*").order("created_at"); PROJ_TASKS={}; (data||[]).forEach(t=>{ (PROJ_TASKS[t.project_id]||(PROJ_TASKS[t.project_id]=[])).push(t); }); }catch(_){ PROJ_TASKS={}; } }
 async function loadProjScreenCounts(){ try{ const {data}=await sb.from("cr_project_screens").select("project_id,status"); PROJ_SCREENS={}; (data||[]).forEach(x=>{ const m=PROJ_SCREENS[x.project_id]||(PROJ_SCREENS[x.project_id]={total:0,approved:0}); m.total++; if(x.status==="Verified") m.approved++; }); }catch(_){ PROJ_SCREENS={}; } }
 function drawProjects(){ const el=$("proj-pane"); if(!el)return;
-  const rows=PROJECTS.map(p=>{ const m=PROJ_SCREENS[p.id]||{total:0,approved:0}; const sc={Active:"#00d2a8","On hold":"#ffb020",Completed:"#22c55e"}[p.status]||"#9aa0bd";
-    return `<tr onclick="openProject('${p.id}')" style="cursor:pointer"><td><b>${esc(p.name)}</b></td><td>${esc(p.client_name||"—")}</td><td class="num">${m.total}${m.total?` <span class="hint">(${m.approved} ✓)</span>`:""}</td><td><span class="badge" style="background:${sc}26;color:${sc};border:1px solid ${sc}66">${esc(p.status||"Active")}</span></td><td>${esc(fmtDay(p.created_at))}</td><td><button class="link-btn" onclick="event.stopPropagation();openProject('${p.id}')">Open</button></td></tr>`; }).join("");
-  el.innerHTML=`<div class="lead-bar"><h2 style="margin:0">Projects <span class="hint" style="font-weight:600">· ${PROJECTS.length}</span></h2><button class="btn btn-sm btn-ok" onclick="openProjectForm()">＋ New project</button></div>${PROJECTS.length?`<div class="table-wrap"><table class="lead-table"><thead><tr><th>Project</th><th>Client</th><th>Screens</th><th>Status</th><th>Created</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`:`<div class="empty">No projects yet. Create one to map screens for a client.</div>`}`;
+  const SC={Active:"#00d2a8","On hold":"#ffb020",Completed:"#22c55e"};
+  const PRC={Low:"#9aa0bd",Normal:"#6b7280",High:"#f59e0b",Urgent:"#ff6b6b"};
+  const cards=PROJECTS.map(p=>{
+    const c=(CLIENTS||[]).find(x=>x.id===p.client_id); const lg=c?logoUrl(c.logo_path):"";
+    const m=PROJ_SCREENS[p.id]||{total:0,approved:0};
+    const tasks=PROJ_TASKS[p.id]||[]; const tAppr=tasks.filter(t=>t.status==="Approved").length;
+    const sc=SC[p.status]||"#9aa0bd";
+    const tbody= tasks.length ? tasks.map(t=>{ const tc=PTC[t.status]||"#9aa0bd"; const pc=PRC[t.priority]||"#8b5cf6";
+      return `<tr onclick="openProject('${p.id}')" style="cursor:pointer"><td><b>${esc(t.title)}</b>${t.description?`<div class="hint" style="white-space:normal;max-width:360px;margin-top:2px">${esc(t.description)}</div>`:""}</td><td><span class="badge" style="background:${pc}22;color:${pc};border:1px solid ${pc}55">${esc(t.priority||"Normal")}</span></td><td><span class="badge" style="background:${tc}22;color:${tc};border:1px solid ${tc}55">${esc(t.status)}</span></td><td>${t.due_date?esc(fmtDay(t.due_date)):"—"}</td><td>${t.approved_at?`✅ <span class="hint">${esc(fmtDay(t.approved_at))}</span>`:`<span class="hint">Pending</span>`}</td></tr>`; }).join("")
+      : `<tr><td colspan="5" style="text-align:center;padding:16px" class="hint">No tasks yet — add the first one.</td></tr>`;
+    return `<div class="proj-card">
+      <div class="proj-head">
+        <div class="proj-logo">${lg?`<img src="${esc(lg)}" alt="">`:`<span>${esc(initials(p.name))}</span>`}</div>
+        <div style="min-width:0;flex:1"><div class="proj-name">${esc(p.name)}</div><div class="hint" style="margin-top:2px">${esc(p.client_name||"—")} · Created ${esc(fmtDay(p.created_at))}</div></div>
+        <div class="proj-badges"><div class="pstat"><b>${m.total}</b><span>Screens</span></div><div class="pstat"><b>${tasks.length}</b><span>Tasks</span></div><span class="badge" style="background:${sc}26;color:${sc};border:1px solid ${sc}66;align-self:center">${esc(p.status||"Active")}</span></div>
+      </div>
+      <div class="proj-tasks">
+        <div class="pt-head"><span>📋 Tasks <span class="hint" style="font-weight:600">· ${tAppr}/${tasks.length} approved</span></span><div class="row" style="margin:0;gap:8px"><button class="btn btn-sm btn-ok" style="width:auto;margin:0" onclick="openTaskForm('${p.id}')">＋ Add task</button><button class="btn btn-sm btn-ghost" style="width:auto;margin:0" onclick="openProject('${p.id}')">Open project →</button></div></div>
+        <div class="table-wrap"><table class="lead-table pt-table"><thead><tr><th>Task</th><th>Priority</th><th>Status</th><th>Due</th><th>Approval</th></tr></thead><tbody>${tbody}</tbody></table></div>
+      </div>
+    </div>`;
+  }).join("");
+  el.innerHTML=`<div class="lead-bar"><h2 style="margin:0">Projects <span class="hint" style="font-weight:600">· ${PROJECTS.length}</span></h2><button class="btn btn-sm btn-ok" onclick="openProjectForm()">＋ New project</button></div>${PROJECTS.length?`<div class="proj-grid">${cards}</div>`:`<div class="empty">No projects yet. Create one to map screens & tasks for a client.</div>`}`;
 }
 function taskRow(t,isAdmin){ const done=t.status==="Approved"; const pr=(t.priority&&t.priority!=="Normal")?`<span class="badge" style="background:#8b5cf626;color:#8b5cf6;border:1px solid #8b5cf666">${esc(t.priority)}</span>`:""; return `<div class="scr-card"><div class="scr-head"><div style="min-width:0"><div class="scr-name">${esc(t.title)}</div>${(t.due_date||t.created_by_name)?`<div class="hint" style="margin-top:3px">${[t.due_date?"📅 Due "+esc(fmtDay(t.due_date)):"",t.created_by_name?"By "+esc(t.created_by_name):""].filter(Boolean).join(" · ")}</div>`:""}</div><div style="display:flex;gap:6px;align-items:center">${pr}${ptBadge(t.status)}</div></div>${t.description?`<div class="scr-desc">${esc(t.description)}</div>`:""}<div class="scr-meta">${t.approved_at?`<span>✅ Approved by ${esc(t.approved_by_name||"client")} on ${esc(fmtDay(t.approved_at))}</span>`:`<span>⏳ Awaiting client approval</span>`}</div><div class="scr-actions">${isAdmin?`<select class="inp" style="width:auto;padding:6px 8px" onchange="setTaskStatus('${t.id}',this.value)">${["Pending","In Progress","Completed","Approved"].map(x=>`<option ${t.status===x?"selected":""}>${x}</option>`).join("")}</select><button class="btn btn-sm btn-ghost" onclick="editTask('${t.id}')">✏️</button><button class="btn btn-sm btn-danger" onclick="deleteTask('${t.id}')">🗑</button>${!done?`<span class="hint" style="align-self:center">Awaiting client approval…</span>`:""}`:`${!done?`<button class="btn btn-sm btn-ok" onclick="approveTask('${t.id}')">✅ Approve task</button>`:`<span class="hint" style="align-self:center">✅ Approved by you</span>`}`}</div></div>`; }
 function openTaskForm(pid,t){ t=t||null; $("modal-root").innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()"><div class="modal"><div class="mh"><h2 style="margin:0">${t?"Edit task":"Add task"}</h2><button class="x" onclick="openProject('${pid}')">×</button></div><div class="mb">
