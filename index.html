@@ -542,11 +542,11 @@
   .analog .hh{stroke-width:4.5} .analog .mm{stroke-width:3}
   .analog .ss{stroke:var(--accent);stroke-width:1.6;stroke-linecap:round;transition:transform .1s}
   .analog .cen{fill:var(--brand)}
-  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
   .cal-dow{text-align:center;font-size:10.5px;color:var(--muted);font-weight:700;padding:2px 0}
-  .cal-cell{position:relative;aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:12.5px;border-radius:9px}
+  .cal-cell{position:relative;height:38px;display:flex;align-items:center;justify-content:center;font-size:13px;border-radius:9px}
   .cal-cell:not(.empty):hover{background:var(--panel2)}
-  .cal-cell.today{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;font-weight:800;box-shadow:0 4px 14px var(--g1)}
+  .cal-cell.today{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;font-weight:800;box-shadow:0 4px 14px var(--g1);border-radius:8px}
   .cal-dot{position:absolute;bottom:4px;left:50%;transform:translateX(-50%);width:6px;height:6px;border-radius:50%;background:var(--muted)}
   .cal-dot.cr{background:var(--warn)} .cal-dot.lead{background:var(--accent)} .cal-dot.cr.lead{background:linear-gradient(90deg,var(--warn),var(--accent))}
   .cal-legend{display:flex;gap:14px;margin-top:10px;font-size:11.5px;color:var(--muted)}
