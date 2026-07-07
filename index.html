@@ -663,6 +663,29 @@
   .cr-clogo img{max-width:100%;max-height:100%;object-fit:contain;display:block}
   .cc-logo-sm{width:24px;height:24px;border-radius:6px;object-fit:contain;background:#fff;flex:none}
   .del-banner{background:rgba(255,107,107,.12);border:1px solid rgba(255,107,107,.4);color:#ffb4b4;border-radius:12px;padding:12px 14px;margin-bottom:12px;font-size:13.5px;line-height:1.5}
+  /* touch devices: keep 3D off for clarity/perf */
+  @media (pointer:coarse){ #bg3d{display:none!important} }
+  /* landscape / rotated phones & short screens */
+  @media (orientation:landscape) and (max-height:600px){
+    .wrap{padding:10px 14px}
+    header.top{padding:8px 14px}
+    .welcome{padding:12px 16px;gap:10px}
+    .welcome .w-hi{font-size:16px}
+    .welcome .w-sub{font-size:12px}
+    .lclock{padding:8px 12px}
+    .lc-time{font-size:30px}
+    .lc-days{font-size:8px}
+    .sidebar{padding:8px}
+    .sidebar .navside{padding:8px 11px;font-size:13px}
+    .card{padding:14px;margin-bottom:14px}
+    .stats{gap:10px}
+    .overlay{padding:10px 12px;align-items:flex-start}
+    .modal{max-height:92vh;display:flex;flex-direction:column;overflow:hidden}
+    .modal .mh{flex:0 0 auto}
+    .modal .mb{overflow-y:auto;-webkit-overflow-scrolling:touch}
+    .ai-panel{height:88vh;bottom:6vh}
+    .clock3d{animation:none}
+  }
 </style>
 </head>
 <body>
