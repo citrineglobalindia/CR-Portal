@@ -1827,17 +1827,27 @@ function deleteCR(id){
     <div class="modal" style="max-width:440px">
       <div class="mh"><h2 style="margin:0;color:#ffb4b4">Delete change request</h2><button class="x" onclick="closeModal()">×</button></div>
       <div class="mb">
-        <p style="color:var(--txt);line-height:1.55">You are about to permanently delete <b>${esc(r.ref_no)}</b> — "${esc(r.title)}". This also removes its comments, status history and attached files.</p>
-        <p style="color:#ffb4b4;font-size:13px;font-weight:600">This action cannot be undone.</p>
-        <div class="row" style="margin-top:16px">
-          <button class="btn btn-sm btn-danger" id="del-btn" onclick="confirmDeleteCR('${id}')">Yes, delete permanently</button>
+        <p style="color:var(--txt);line-height:1.55">Delete <b>${esc(r.ref_no)}</b> — "${esc(r.title)}". Add a short reason. The client will still see it in their list marked <b>Deleted</b> (with your note &amp; the time), and you can restore it anytime.</p>
+        <textarea id="ad-note" class="inp" rows="3" placeholder="Reason for deleting (remark)…"></textarea>
+        <div class="row" style="margin-top:14px">
+          <button class="btn btn-sm btn-danger" id="del-btn" onclick="confirmAdminSoftDelete('${id}')">🗑 Delete (visible to client)</button>
           <button class="btn btn-sm btn-ghost" onclick="closeModal()">Cancel</button>
         </div>
+        <div style="margin-top:12px;border-top:1px solid var(--line);padding-top:10px"><button class="link-btn" style="color:#ff7b7b" onclick="confirmDeleteCR('${id}')">Or delete permanently — removes it for everyone, cannot be undone</button></div>
       </div>
     </div></div>`;
 }
+async function confirmAdminSoftDelete(id){
+  const note=($("ad-note")&&$("ad-note").value||"").trim();
+  const btn=$("del-btn"); if(btn){btn.disabled=true;btn.textContent="Deleting…";}
+  const patch={ deleted_at:new Date().toISOString(), deleted_by:(SESSION&&SESSION.user)?SESSION.user.id:null, deleted_by_name:ME.full_name||ME.company||ME.username||"Admin", deleted_note:note||null, updated_at:new Date().toISOString() };
+  const {error}=await sb.from("cr_requests").update(patch).eq("id",id);
+  if(error){ if(btn){btn.disabled=false;btn.textContent="🗑 Delete (visible to client)";} toast(error.message||"Could not delete.",true); return; }
+  const r=CACHE.find(x=>x.id===id); if(r) Object.assign(r,patch);
+  deleteFx(); toast("Deleted — the client sees it marked Deleted; you can restore it."); closeModal(); await loadAndRenderAdmin();
+}
 async function confirmDeleteCR(id){
-  const btn=$("del-btn"); btn.disabled=true; btn.textContent="Deleting…";
+  const btn=$("del-btn"); if(btn){btn.disabled=true; btn.textContent="Deleting…";}
   try{
     await callFn("admin-delete-cr",{request_id:id});
     deleteFx(); toast("Change request deleted.");
