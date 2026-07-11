@@ -716,6 +716,7 @@
   .cr-clogo{width:46px;height:46px;border-radius:11px;background:#fff;flex:none;display:grid;place-items:center;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,.25)}
   .cr-clogo img{max-width:100%;max-height:100%;object-fit:contain;display:block}
   .cc-logo-sm{width:24px;height:24px;border-radius:6px;object-fit:contain;background:#fff;flex:none}
+  .clar-banner{background:rgba(255,176,32,.12);border:1px solid rgba(255,176,32,.45);color:#ffd8a0;border-radius:12px;padding:12px 14px;margin-bottom:12px;font-size:13.5px;line-height:1.5}
   .del-banner{background:rgba(255,107,107,.12);border:1px solid rgba(255,107,107,.4);color:#ffb4b4;border-radius:12px;padding:12px 14px;margin-bottom:12px;font-size:13.5px;line-height:1.5}
   /* touch devices: keep 3D off for clarity/perf */
   @media (pointer:coarse){ #bg3d{display:none!important} }
@@ -1467,7 +1468,7 @@ function renderClientTable(){
     <thead><tr><th>Ref</th><th>Heading</th><th>Priority</th><th>Status</th><th>Submitted</th><th></th></tr></thead>
     <tbody>${rows.map(r=>`<tr${r.deleted_at?' style="opacity:.6"':''}>
       <td><span class="ref">${esc(r.ref_no)}</span></td>
-      <td>${esc(r.title)}</td>
+      <td>${esc(r.title)}${r.needs_clarification?` <span class="cm-badge" style="color:#ffd27a;background:rgba(255,176,32,.14);border-color:rgba(255,176,32,.45)">❓ Needs clarification</span>`:""}</td>
       <td class="pr-${r.priority}">${esc(r.priority)}</td>
       <td>${r.deleted_at?`<span class="badge" style="background:rgba(255,107,107,.15);color:#ff8a8a;border:1px solid rgba(255,107,107,.4)">🗑 Deleted</span>`:`<span class="badge ${badgeClass(r.status)}">${esc(r.status)}</span>`}</td>
       <td>${fmtDay(r.created_at)}</td>
@@ -1740,7 +1741,7 @@ function renderAdminTable(){
     <thead><tr><th>Ref</th><th>Heading</th><th>Client</th><th>Pri.</th><th>Raised</th><th>Completed</th><th></th></tr></thead>
     <tbody>${rows.map(r=>`<tr>
       <td><span class="ref">${esc(r.ref_no)}</span></td>
-      <td>${esc(r.title)}${(r.tags&&r.tags.length)?` <span style="color:var(--muted);font-size:11px">#${esc(r.tags[0])}${r.tags.length>1?"+"+(r.tags.length-1):""}</span>`:""}${COMMIT_COUNTS[r.id]?` <span class="cm-badge" title="${COMMIT_COUNTS[r.id]} commit(s) linked">🔗 ${COMMIT_COUNTS[r.id]}</span>`:""}${r.resent_count?` <span class="cm-badge resent" title="Re-sent by client ${r.resent_count} time(s)">↩ Re-Sent${r.resent_count>1?" ×"+r.resent_count:""}</span>`:""}${r.deleted_at?` <span class="cm-badge resent" title="Deleted by ${esc(r.deleted_by_name||'client')}">🗑 Deleted</span>`:""}${r.is_paid?` <span class="cm-badge" style="color:#ffd591;background:rgba(255,176,32,.14);border-color:rgba(255,176,32,.4)">💲 Paid</span>`:""}</td>
+      <td>${esc(r.title)}${(r.tags&&r.tags.length)?` <span style="color:var(--muted);font-size:11px">#${esc(r.tags[0])}${r.tags.length>1?"+"+(r.tags.length-1):""}</span>`:""}${COMMIT_COUNTS[r.id]?` <span class="cm-badge" title="${COMMIT_COUNTS[r.id]} commit(s) linked">🔗 ${COMMIT_COUNTS[r.id]}</span>`:""}${r.resent_count?` <span class="cm-badge resent" title="Re-sent by client ${r.resent_count} time(s)">↩ Re-Sent${r.resent_count>1?" ×"+r.resent_count:""}</span>`:""}${r.deleted_at?` <span class="cm-badge resent" title="Deleted by ${esc(r.deleted_by_name||'client')}">🗑 Deleted</span>`:""}${r.needs_clarification?` <span class="cm-badge" style="color:#ffd27a;background:rgba(255,176,32,.14);border-color:rgba(255,176,32,.45)" title="Awaiting client clarification">❓ Clarify</span>`:""}${r.is_paid?` <span class="cm-badge" style="color:#ffd591;background:rgba(255,176,32,.14);border-color:rgba(255,176,32,.4)">💲 Paid</span>`:""}</td>
       <td>${(()=>{const _c=(CLIENTS||[]).find(x=>x.id===r.created_by);const _l=_c?logoUrl(_c.logo_path):"";return _l?`<img class="cc-logo-sm" src="${esc(_l)}" alt="${esc(r.client_name||'')}" title="${esc(r.client_name||'')}">`:`<span class="cc-logo-sm cli-ph" title="${esc(r.client_name||'')}">${esc(initials(r.client_name||"?"))}</span>`;})()}</td>
       <td class="pr-${r.priority}">${esc(r.priority)}</td>
       <td style="white-space:nowrap"><div>${fmtDay(r.created_at)}</div><div style="color:var(--muted);font-size:11px">${fmtTime(r.created_at)}</div></td>
@@ -3224,6 +3225,7 @@ async function openDetail(id){
       </div>
       <div class="mb">
         ${((isAdmin||isOwner) && r.deleted_at)?`<div class="del-banner">🗑 <b>Deleted by ${esc(r.deleted_by_name||"client")}</b> on ${esc(fmtDate(r.deleted_at))}${r.deleted_note?`<div style="margin-top:5px">Reason: ${esc(r.deleted_note)}</div>`:""}<div style="margin-top:8px"><button class="btn btn-sm btn-ghost" onclick="restoreCR('${r.id}')">↩ Restore request</button></div></div>`:""}
+        ${r.needs_clarification?`<div class="clar-banner">❓ <b>Clarification requested${r.clarification_by_name?` by ${esc(r.clarification_by_name)}`:""}</b>${r.clarification_at?` · ${esc(fmtDate(r.clarification_at))}`:""}${r.clarification_note?`<div style="margin-top:5px">${esc(r.clarification_note)}</div>`:""}<div style="margin-top:8px">${isAdmin?`<button class="btn btn-sm btn-ghost" onclick="resolveClarification('${r.id}')">✓ Mark clarified</button>`:`<button class="btn btn-sm btn-ok" onclick="focusReply()">↳ Reply in comments</button>`}</div></div>`:""}
         <div class="kv">
           <div class="k">Client</div><div>${esc(r.client_name||"—")}</div>
           <div class="k">Type</div><div>${esc(r.type||"—")}</div>
@@ -3265,6 +3267,10 @@ async function openDetail(id){
           <button class="btn btn-sm btn-ghost" onclick="exportCRPdf('${r.id}')">⬇ Export this CR (PDF)</button>
           <button class="btn btn-sm btn-danger" onclick="deleteCR('${r.id}')">🗑 Delete CR</button>
         </div>
+        <div class="section-title">Clarification</div>
+        <textarea id="d-clar-note" class="inp" rows="2" placeholder="What do you need the client to clarify?">${esc(r.clarification_note||"")}</textarea>
+        <div class="row" style="margin-top:8px"><button class="btn btn-sm" onclick="requestClarification('${r.id}')">❓ ${r.needs_clarification?"Update clarification request":"Request clarification"}</button>${r.needs_clarification?`<button class="btn btn-sm btn-ghost" onclick="resolveClarification('${r.id}')">✓ Mark clarified</button>`:""}</div>
+        <div class="hint">The client sees this at the top of the request and can reply in the comments.</div>
         <div class="section-title">Update status</div>
         ${r.status!=="Done"?`<button class="btn btn-sm btn-ok" style="margin-bottom:10px" onclick="completeCR('${r.id}')">✓ Mark as Completed</button>`:""}
         <div class="row">
@@ -3353,6 +3359,24 @@ async function saveStatus(id){
   toast("Saved."); openDetail(id);
   ME.role==="admin"?renderAdminTable():renderClientTable();
 }
+async function requestClarification(id){
+  const note=(($("d-clar-note")&&$("d-clar-note").value)||"").trim();
+  if(!note){ toast("Enter what needs clarification.",true); return; }
+  const patch={needs_clarification:true,clarification_note:note,clarification_by:(SESSION&&SESSION.user)?SESSION.user.id:null,clarification_by_name:ME.full_name||ME.company||ME.username||"Admin",clarification_at:new Date().toISOString(),updated_at:new Date().toISOString()};
+  const {error}=await sb.from("cr_requests").update(patch).eq("id",id);
+  if(error){toast(error.message,true);return;}
+  const r=CACHE.find(x=>x.id===id); if(r)Object.assign(r,patch);
+  try{ await sb.from("cr_comments").insert({request_id:id,author_id:SESSION.user.id,author_name:ME.full_name||ME.username||ME.email,author_role:ME.role,body:"❓ Clarification requested: "+note}); }catch(_){ }
+  toast("Clarification requested — the client can now respond."); await openDetail(id);
+}
+async function resolveClarification(id){
+  const patch={needs_clarification:false,updated_at:new Date().toISOString()};
+  const {error}=await sb.from("cr_requests").update(patch).eq("id",id);
+  if(error){toast(error.message,true);return;}
+  const r=CACHE.find(x=>x.id===id); if(r)Object.assign(r,patch);
+  toast("Marked as clarified."); await openDetail(id);
+}
+function focusReply(){ const e=document.getElementById("d-comment"); if(e){ try{e.scrollIntoView({behavior:"smooth",block:"center"});}catch(_){ } setTimeout(function(){try{e.focus();}catch(_){ }},300); } }
 async function addComment(id){
   const text=richText("d-comment"); if(!text)return;
   const body=richHTML("d-comment");
