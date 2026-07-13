@@ -2431,6 +2431,219 @@ function drawProjects(){ const el=$("proj-pane"); if(!el)return;
   }).join("");
   el.innerHTML=`<div class="lead-bar"><h2 style="margin:0">Projects <span class="hint" style="font-weight:600">· ${PROJECTS.length}</span></h2><button class="btn btn-sm btn-ok" onclick="openProjectForm()">＋ New project</button></div>${PROJECTS.length?`<div class="fold-grid">${cards}</div>`:`<div class="empty">No projects yet. Create one to start adding folders for a client.</div>`}`;
 }
+let FOLDERS=[], CUR_FOLDER=null, MOD_PASTES=[];
+function modKind(f){ const t=(f.type||"").toLowerCase(); if(t.indexOf("video/")===0)return "video"; if(t.indexOf("audio/")===0)return "voice"; return "photo"; }
+function folderChain(fid){ const out=[]; let g=FOLDERS.find(x=>x.id===fid); let guard=0; while(g&&guard++<20){ out.unshift(g); g=g.parent_id?FOLDERS.find(x=>x.id===g.parent_id):null; } return out; }
+async function renderFolders(pid,isAdmin){
+  isAdmin=!!isAdmin;
+  const el=$("pmod-pane"); if(!el)return;
+  const {data:fds}=await sb.from("cr_project_folders").select("*").eq("project_id",pid).order("name");
+  FOLDERS=fds||[];
+  if(CUR_FOLDER && !FOLDERS.find(f=>f.id===CUR_FOLDER)) CUR_FOLDER=null;
+  const proj=(PROJECTS||[]).find(x=>x.id===pid);
+  const chain=CUR_FOLDER?folderChain(CUR_FOLDER):[];
+  const cur=CUR_FOLDER?FOLDERS.find(f=>f.id===CUR_FOLDER):null;
+  const crumb=`<div class="fold-crumb"><button onclick="goFolder('${pid}',${isAdmin},null)">📁 ${esc(proj?proj.name:"Project")}</button>${chain.map((f,i)=>`<span>›</span>${i===chain.length-1?`<button class="on">📂 ${esc(f.name)}</button>`:`<button onclick="goFolder('${pid}',${isAdmin},'${f.id}')">📂 ${esc(f.name)}</button>`}`).join("")}</div>`;
+
+  const subs=FOLDERS.filter(f=>(f.parent_id||null)===(CUR_FOLDER||null));
+  const subCards=subs.map(f=>{
+    const kids=FOLDERS.filter(x=>x.parent_id===f.id).length;
+    return `<div class="fold-card" onclick="goFolder('${pid}',${isAdmin},'${f.id}')"><div class="fold-ic">${kids?"🗂":"📂"}</div><div class="fold-nm">${esc(f.name)}</div><div class="fold-mt">${kids?kids+" folder"+(kids===1?"":"s"):"Open"}</div><div style="margin-top:7px">${psBadge(f.status)}</div>${isAdmin?`<button class="fold-x" title="Delete folder" onclick="event.stopPropagation();deleteFolder('${f.id}','${pid}')">🗑</button>`:""}</div>`;
+  }).join("");
+  const addCard=isAdmin?`<div class="fold-card add" onclick="newFolder('${pid}',${CUR_FOLDER?`'${CUR_FOLDER}'`:"null"})"><div class="fold-ic">➕</div><div class="fold-nm">New folder</div><div class="fold-mt">Inside ${esc(cur?cur.name:(proj?proj.name:"project"))}</div></div>`:"";
+
+  if(!cur){
+    el.innerHTML=crumb+`<div class="fold-grid">${subCards}${addCard}</div>`+(subs.length?"":`<div class="hint" style="margin-top:8px">No folders yet.${isAdmin?" Create one to start.":""}</div>`);
+    return;
+  }
+
+  const [{data:its},{data:tks}]=await Promise.all([
+    sb.from("cr_module_items").select("*").eq("folder_id",cur.id).order("created_at"),
+    sb.from("cr_project_tasks").select("*").eq("folder_id",cur.id).order("created_at")
+  ]);
+  const items=its||[]; TASKS_CACHE=tks||[];
+  const canAppr=(typeof ME!=="undefined"&&ME&&ME.can_approve);
+  const tAppr=TASKS_CACHE.filter(t=>t.status==="Approved").length;
+
+  el.innerHTML=crumb+`
+  <div class="mod-head"><div style="min-width:0"><div class="scr-name">📂 ${esc(cur.name)}</div>${cur.description?`<div class="hint" style="margin-top:3px">${esc(cur.description)}</div>`:""}<div class="hint" style="margin-top:6px">${cur.verified_at?`✅ Approved &amp; verified by ${esc(cur.verified_by_name||"client")} on ${esc(fmtDay(cur.verified_at))}`:"⏳ Not yet approved by the client"}</div></div>${psBadge(cur.status)}</div>
+  <div class="scr-actions" style="margin:10px 0 14px">${isAdmin
+    ? `<button class="btn btn-sm btn-ghost" onclick="newFolder('${pid}','${cur.id}')">＋ Sub-folder</button>
+       <button class="btn btn-sm btn-ok" onclick="openUploadForm('${pid}','${cur.id}')">⬆ Upload</button>
+       <button class="btn btn-sm btn-ok" onclick="openTaskForm('${pid}','${cur.id}')">＋ Add task</button>
+       <button class="btn btn-sm btn-ghost" onclick="renameFolder('${cur.id}','${pid}')">✏️ Rename</button>
+       <button class="btn btn-sm btn-danger" onclick="deleteFolder('${cur.id}','${pid}')">🗑 Delete folder</button>`
+    : `${cur.status!=="Verified"?(canAppr?`<button class="btn btn-sm btn-ok" onclick="verifyFolder('${cur.id}','${pid}')">✅ Approve this folder</button>`:`<span class="hint" style="align-self:center">⏳ Awaiting your account's approval user</span>`):`<span class="hint" style="align-self:center">✅ Approved by you</span>`}
+       <button class="btn btn-sm btn-ghost" onclick="requestFolderChange('${cur.id}','${pid}')">✎ Request change (Paid)</button>`}</div>
+  ${subs.length||isAdmin?`<div class="section-title" style="margin-top:4px">Folders</div><div class="fold-grid">${subCards}${addCard}</div>`:""}
+  <div class="section-title">Uploads (${items.length})</div>
+  <div class="up-grid">${items.length?items.map(i=>uploadCard(i,isAdmin,pid)).join(""):`<div class="hint">No uploads yet.</div>`}</div>
+  <div class="section-title">Tasks (${TASKS_CACHE.length}) <span class="hint" style="font-weight:600">· ${tAppr} approved</span></div>
+  <div>${TASKS_CACHE.length?TASKS_CACHE.map(t=>taskRow(t,isAdmin)).join(""):`<div class="hint">No tasks in this folder yet.</div>`}</div>`;
+
+  for(const it of items){ if(!it.file_path)continue; try{ const {data}=await sb.storage.from("cr-attachments").createSignedUrl(it.file_path,3600); const e=document.getElementById("mi-"+it.id); if(data&&data.signedUrl&&e) e.src=data.signedUrl; }catch(_){ } }
+}
+function goFolder(pid,isAdmin,fid){ CUR_FOLDER=fid||null; renderFolders(pid,isAdmin); }
+function uploadCard(i,isAdmin,pid){
+  const g=isAdmin?"":' controlsList="nodownload noremoteplayback" disablePictureInPicture oncontextmenu="return false"';
+  const nm=(i.file_name||"").replace(/'/g,"");
+  let body="";
+  if(i.kind==="photo") body=`<img id="mi-${i.id}" class="thumb up-media" alt="${esc(i.file_name||"photo")}" style="cursor:zoom-in"${isAdmin?"":' draggable="false" oncontextmenu="return false"'}>`;
+  else if(i.kind==="video") body=`<div class="up-vwrap"><video id="mi-${i.id}" class="up-media" controls preload="metadata" playsinline${g}></video><button class="up-expand" title="Play full screen" onclick="expandMedia('mi-${i.id}','video','${esc(nm)}')">⛶</button></div>`;
+  else if(i.kind==="voice") body=`<div class="up-audio"><div class="up-ic">🎙</div><audio id="mi-${i.id}" controls${g} style="width:100%"></audio></div>`;
+  else body=`<div class="up-note">📝 ${esc(i.description||"")}</div>`;
+  return `<div class="up-card">${body}<div class="up-meta"><span class="up-name" title="${esc(i.file_name||"Note")}">${esc(i.file_name||"Note")}</span><span class="hint">${esc(fmtDay(i.created_at))}</span></div>${isAdmin?`<button class="up-del" title="Delete" onclick="deleteFolderItem('${i.id}','${pid}')">🗑</button>`:""}</div>`;
+}
+async function newFolder(pid,parentId){
+  const name=(prompt("Folder name")||"").trim(); if(!name)return;
+  const {data,error}=await sb.from("cr_project_folders").insert({project_id:pid,parent_id:parentId||null,name,status:"Pending",created_by:(SESSION&&SESSION.user)?SESSION.user.id:null,created_by_name:(ME&&(ME.full_name||ME.username||ME.email))||null}).select().single();
+  if(error){toast(error.message,true);return;}
+  CUR_FOLDER=data.id; toast("Folder created."); renderFolders(pid,true);
+}
+async function renameFolder(fid,pid){
+  const f=FOLDERS.find(x=>x.id===fid); if(!f)return;
+  const name=(prompt("Folder name",f.name)||"").trim(); if(!name)return;
+  const {error}=await sb.from("cr_project_folders").update({name,updated_at:new Date().toISOString()}).eq("id",fid);
+  if(error){toast(error.message,true);return;}
+  toast("Renamed."); renderFolders(pid,true);
+}
+async function deleteFolder(fid,pid){
+  if(!confirm("Delete this folder with everything inside it (sub-folders, uploads, tasks)?"))return;
+  const f=FOLDERS.find(x=>x.id===fid);
+  const {error}=await sb.from("cr_project_folders").delete().eq("id",fid);
+  if(error){toast(error.message,true);return;}
+  CUR_FOLDER=(f&&f.parent_id)?f.parent_id:null;
+  toast("Folder deleted."); renderFolders(pid,true);
+}
+function openUploadForm(pid,fid){
+  MOD_PASTES=[];
+  $("modal-root").innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()"><div class="modal"><div class="mh"><h2 style="margin:0">⬆ Upload to this folder</h2><button class="x" onclick="openProject('${pid}')">×</button></div><div class="mb">
+    <label>Photos / Videos / Audio <span class="hint">(multiple)</span></label>
+    <input id="fu-files" class="inp" type="file" accept="image/*,video/*,audio/*" multiple/>
+    <div class="paste-zone" tabindex="0" onpaste="modPaste(event)" style="margin-top:8px">📋 Or paste screenshots (Ctrl / Cmd + V)</div>
+    <div id="md-paste-prev" class="photo-grid hidden" style="margin-top:8px"></div>
+    ${recorderUI("mod","fu-rec-btn","fu-rec-player")}
+    <label style="margin-top:12px">Note / information <span class="hint">(optional)</span></label>
+    <textarea id="fu-note" class="inp" rows="2" placeholder="Describe this upload…"></textarea>
+    <div class="row" style="margin-top:14px"><button class="btn btn-sm btn-ok" id="fu-btn" onclick="saveUploads('${pid}','${fid}')">⬆ Upload</button><button class="btn btn-sm btn-ghost" onclick="openProject('${pid}')">Cancel</button></div>
+  </div></div></div>`;
+}
+function modPaste(e){
+  const items=(e.clipboardData&&e.clipboardData.items)||[]; let got=false;
+  for(const it of items){ if(it.type&&it.type.indexOf("image/")===0){ const f=it.getAsFile(); if(f){ MOD_PASTES.push(f); got=true; } } }
+  if(!got)return; e.preventDefault();
+  const p=$("md-paste-prev"); if(!p)return; p.classList.remove("hidden");
+  p.innerHTML=MOD_PASTES.map(f=>`<img src="${URL.createObjectURL(f)}" style="width:70px;height:70px;object-fit:cover;border-radius:8px">`).join("");
+  toast(MOD_PASTES.length+" image(s) ready.");
+}
+function xhrUpload(bucket,path,file,onProg){
+  return new Promise(function(resolve,reject){
+    sb.auth.getSession().then(function(res){
+      const session=res&&res.data?res.data.session:null;
+      const token=session?session.access_token:SUPABASE_KEY;
+      const xhr=new XMLHttpRequest();
+      const enc=path.split("/").map(encodeURIComponent).join("/");
+      xhr.open("POST", SUPABASE_URL+"/storage/v1/object/"+bucket+"/"+enc, true);
+      xhr.setRequestHeader("Authorization","Bearer "+token);
+      xhr.setRequestHeader("apikey",SUPABASE_KEY);
+      xhr.setRequestHeader("x-upsert","false");
+      xhr.upload.onprogress=function(e){ if(e.lengthComputable&&onProg) onProg(Math.round(e.loaded/e.total*100)); };
+      xhr.onload=function(){ if(xhr.status>=200&&xhr.status<300){ if(onProg)onProg(100); resolve(true); } else { let m=""; try{ const j=JSON.parse(xhr.responseText); m=j.message||j.error||""; }catch(_){ m=xhr.responseText||""; } reject(new Error(m||("Upload failed ("+xhr.status+")"))); } };
+      xhr.onerror=function(){ reject(new Error("Network error during upload")); };
+      const fd=new FormData();
+      fd.append("cacheControl","3600");
+      fd.append("", file, file.name||"file");
+      xhr.send(fd);
+    }).catch(reject);
+  });
+}
+function fmtBytes(b){ if(!b&&b!==0)return ""; const u=["B","KB","MB","GB"]; let i=0; while(b>=1024&&i<u.length-1){b/=1024;i++;} return b.toFixed(b<10&&i>0?1:0)+" "+u[i]; }
+function openUploadProgress(n){
+  $("modal-root").innerHTML=`<div class="overlay"><div class="modal" style="max-width:440px"><div class="mb" style="padding:26px 22px">
+    <div class="up-prog-t">⬆ Uploading <span id="up-i">1</span> of <span id="up-n">${n}</span></div>
+    <div class="hint" id="up-name" style="margin:6px 0 12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Preparing…</div>
+    <div class="up-bar"><div class="up-bar-fill" id="up-fill"></div></div>
+    <div class="up-pct" id="up-pct">0%</div>
+    <div class="hint" style="margin-top:12px">Overall</div>
+    <div class="up-bar"><div class="up-bar-fill alt" id="up-tfill"></div></div>
+    <div class="hint" style="text-align:center;margin-top:12px">Keep this window open until it finishes…</div>
+  </div></div></div>`;
+}
+function setUploadProgress(i,n,name,pct,size){
+  const a=$("up-i"), b=$("up-name"), c=$("up-fill"), d=$("up-pct"), t=$("up-tfill");
+  if(a)a.textContent=i; if(b)b.textContent=(name||"")+(size?" · "+fmtBytes(size):"");
+  if(c)c.style.width=pct+"%"; if(d)d.textContent=pct+"%";
+  if(t)t.style.width=Math.round((((i-1)+pct/100)/Math.max(1,n))*100)+"%";
+}
+function uploadSuccess(msg,sub){
+  $("modal-root").innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()"><div class="modal" style="max-width:380px"><div class="mb" style="text-align:center;padding:30px 22px">
+    <div class="succ-ic">✓</div>
+    <div class="succ-t">${esc(msg||"Uploaded successfully")}</div>
+    ${sub?`<div class="hint" style="margin-top:6px">${esc(sub)}</div>`:""}
+    <button class="btn btn-sm btn-ok" style="width:auto;margin-top:16px" id="succ-btn">Done</button>
+  </div></div></div>`;
+}
+async function uploadFolderItem(fid,file,kind,note,onProg){
+  const path=`folders/${fid}/${Date.now()}_${(file.name||"file").replace(/[^\w.\-]/g,"_")}`;
+  await xhrUpload("cr-attachments",path,file,onProg);
+  const _ins=await sb.from("cr_module_items").insert({folder_id:fid,kind:kind||modKind(file),file_name:file.name||"file",file_path:path,mime_type:file.type||"application/octet-stream",description:note||null,created_by:(SESSION&&SESSION.user)?SESSION.user.id:null,created_by_name:(ME&&(ME.full_name||ME.username||ME.email))||null});
+  if(_ins&&_ins.error) throw new Error(_ins.error.message||"Could not save the file record");
+}
+async function saveUploads(pid,fid){
+  const note=(($("fu-note")&&$("fu-note").value)||"").trim();
+  const fs=[...(MOD_PASTES||[])];
+  if($("fu-files")&&$("fu-files").files){ for(const f of $("fu-files").files) fs.push(f); }
+  if(RECORDED["mod"]) fs.push(new File([RECORDED["mod"]],"voice-note-"+Date.now()+".webm",{type:"audio/webm"}));
+  if(!fs.length && !note){ toast("Nothing to upload.",true); return; }
+  if(!fs.length && note){
+    const {error}=await sb.from("cr_module_items").insert({folder_id:fid,kind:"note",description:note,created_by:(SESSION&&SESSION.user)?SESSION.user.id:null,created_by_name:(ME&&(ME.full_name||ME.username||ME.email))||null});
+    if(error){toast(error.message,true);return;}
+    CUR_FOLDER=fid; toast("Note added."); openProject(pid); return;
+  }
+  const total=fs.length;
+  openUploadProgress(total);
+  let ok=0, bytes=0;
+  for(let i=0;i<total;i++){
+    const f=fs[i];
+    setUploadProgress(i+1,total,f.name||"file",0,f.size);
+    try{
+      await uploadFolderItem(fid,f,(f.name||"").indexOf("voice-note-")===0?"voice":null,note,function(p){ setUploadProgress(i+1,total,f.name||"file",p,f.size); });
+      ok++; bytes+=(f.size||0);
+    }catch(e){
+      closeModal(); toast("Upload failed: "+((e&&e.message)||e),true);
+      MOD_PASTES=[]; CUR_FOLDER=fid; openProject(pid); return;
+    }
+  }
+  delete RECORDED["mod"]; MOD_PASTES=[]; CUR_FOLDER=fid;
+  uploadSuccess(ok+" file"+(ok===1?"":"s")+" uploaded", fmtBytes(bytes)+" added to this folder");
+  const b=$("succ-btn"); if(b) b.onclick=function(){ openProject(pid); };
+  setTimeout(function(){ if($("succ-btn")) openProject(pid); },1800);
+}
+async function deleteFolderItem(id,pid){
+  if(!confirm("Delete this upload?"))return;
+  const {error}=await sb.from("cr_module_items").delete().eq("id",id);
+  if(error){toast(error.message,true);return;}
+  toast("Deleted."); renderFolders(pid,true);
+}
+async function verifyFolder(fid,pid){
+  const {error}=await sb.rpc("cr_folder_verify",{p_folder_id:fid});
+  if(error){toast(error.message||"Could not approve.",true);return;}
+  toast("Folder approved & verified. Thank you!"); renderFolders(pid,ME.role==="admin");
+}
+function requestFolderChange(fid,pid){
+  $("modal-root").innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()"><div class="modal"><div class="mh"><h2 style="margin:0">Request a change (Paid)</h2><button class="x" onclick="openProject('${pid}')">×</button></div><div class="mb">
+    <p style="line-height:1.55">Describe the change you need here. It is raised as a <b>Paid change request</b> to the admin.</p>
+    <textarea id="mc-note" class="inp" rows="3" placeholder="What needs to change…"></textarea>
+    <div class="row" style="margin-top:14px"><button class="btn btn-sm btn-ok" id="mc-btn" onclick="confirmFolderChange('${fid}','${pid}')">Raise paid change request</button><button class="btn btn-sm btn-ghost" onclick="openProject('${pid}')">Cancel</button></div>
+  </div></div></div>`;
+}
+async function confirmFolderChange(fid,pid){
+  const note=($("mc-note").value||"").trim(); if(!note){toast("Describe the change first.",true);return;}
+  const btn=$("mc-btn"); if(btn){btn.disabled=true;btn.textContent="Raising…";}
+  const {error}=await sb.rpc("cr_folder_request_change",{p_folder_id:fid,p_note:note});
+  if(error){ if(btn){btn.disabled=false;btn.textContent="Raise paid change request";} toast(error.message||"Could not raise.",true); return; }
+  toast("Paid change request raised — the admin has it."); openProject(pid);
+}
 function taskRow(t,isAdmin){ const done=t.status==="Approved"; const pr=(t.priority&&t.priority!=="Normal")?`<span class="badge" style="background:#8b5cf626;color:#8b5cf6;border:1px solid #8b5cf666">${esc(t.priority)}</span>`:""; return `<div class="scr-card"><div class="scr-head"><div style="min-width:0"><div class="scr-name">${esc(t.title)}</div>${(t.due_date||t.created_by_name)?`<div class="hint" style="margin-top:3px">${[t.due_date?"📅 Due "+esc(fmtDay(t.due_date)):"",t.created_by_name?"By "+esc(t.created_by_name):""].filter(Boolean).join(" · ")}</div>`:""}</div><div style="display:flex;gap:6px;align-items:center">${pr}${ptBadge(t.status)}</div></div>${t.description?`<div class="scr-desc">${esc(t.description)}</div>`:""}<div class="scr-meta">${t.approved_at?`<span>✅ Approved by ${esc(t.approved_by_name||"client")} on ${esc(fmtDay(t.approved_at))}</span>`:`<span>⏳ Awaiting client approval</span>`}</div><div class="scr-actions">${isAdmin?`<select class="inp" style="width:auto;padding:6px 8px" onchange="setTaskStatus('${t.id}',this.value)">${["Pending","In Progress","Completed","Approved"].map(x=>`<option ${t.status===x?"selected":""}>${x}</option>`).join("")}</select><button class="btn btn-sm btn-ghost" onclick="editTask('${t.id}')">✏️</button><button class="btn btn-sm btn-danger" onclick="deleteTask('${t.id}')">🗑</button>${!done?`<span class="hint" style="align-self:center">Awaiting client approval…</span>`:""}`:`${!done?`<button class="btn btn-sm btn-ok" onclick="approveTask('${t.id}')">✅ Approve task</button>`:`<span class="hint" style="align-self:center">✅ Approved by you</span>`}`}</div></div>`; }
 function openTaskForm(pid,fid,t){ t=t||null; $("modal-root").innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()"><div class="modal"><div class="mh"><h2 style="margin:0">${t?"Edit task":"Add task"}</h2><button class="x" onclick="openProject('${pid}')">×</button></div><div class="mb">
     <label>Task title <span class="req">*</span></label><input id="tk-title" class="inp" value="${t?esc(t.title):""}"/>
