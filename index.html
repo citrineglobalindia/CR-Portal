@@ -3615,6 +3615,7 @@ async function saveStatus(id){
   toast("Saved."); openDetail(id);
   ME.role==="admin"?renderAdminTable():renderClientTable();
 }
+function refreshLists(){ try{ if(ME&&ME.role==="admin"){ if($("a-table")) renderAdminTable(); } else { if($("c-table")){ renderClientStats(); renderClientTable(); } } }catch(_){ } }
 async function requestClarification(id){
   const note=(($("d-clar-note")&&$("d-clar-note").value)||"").trim();
   if(!note){ toast("Enter what needs clarification.",true); return; }
@@ -3623,6 +3624,7 @@ async function requestClarification(id){
   if(error){toast(error.message,true);return;}
   const r=CACHE.find(x=>x.id===id); if(r)Object.assign(r,patch);
   try{ await sb.from("cr_comments").insert({request_id:id,author_id:SESSION.user.id,author_name:ME.full_name||ME.username||ME.email,author_role:ME.role,body:"❓ Clarification requested: "+note}); }catch(_){ }
+  refreshLists();
   toast("Clarification requested — the client can now respond."); await openDetail(id);
 }
 async function answerClarification(id){
@@ -3633,6 +3635,7 @@ async function answerClarification(id){
   if(error){toast(error.message||"Could not send.",true);return;}
   const r=CACHE.find(x=>x.id===id); if(r)Object.assign(r,patch);
   try{ await sb.from("cr_comments").insert({request_id:id,author_id:SESSION.user.id,author_name:ME.full_name||ME.username||ME.email,author_role:ME.role,body:"✅ Clarification provided: "+ans}); }catch(_){ }
+  refreshLists();
   toast("Clarification sent to the admin. Thank you!"); await openDetail(id);
 }
 async function resolveClarification(id){
@@ -3640,6 +3643,7 @@ async function resolveClarification(id){
   const {error}=await sb.from("cr_requests").update(patch).eq("id",id);
   if(error){toast(error.message,true);return;}
   const r=CACHE.find(x=>x.id===id); if(r)Object.assign(r,patch);
+  refreshLists();
   toast("Marked as clarified."); await openDetail(id);
 }
 function focusReply(){ const e=document.getElementById("d-comment"); if(e){ try{e.scrollIntoView({behavior:"smooth",block:"center"});}catch(_){ } setTimeout(function(){try{e.focus();}catch(_){ }},300); } }
