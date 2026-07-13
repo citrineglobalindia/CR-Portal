@@ -788,6 +788,15 @@
   .bg-opt:hover{color:var(--txt);border-color:var(--brand)}
   .bg-opt.on{background:var(--brand);color:#fff;border-color:var(--brand);box-shadow:0 4px 14px var(--g1)}
   .cli-ph{display:inline-grid !important;place-items:center;background:var(--chip);color:var(--brand2);font-weight:800;font-size:11px}
+  .lb-wrap{display:flex;flex-direction:column;align-items:center;gap:10px;max-width:96vw}
+  .lb-media{max-width:94vw;max-height:84vh;border-radius:12px;background:#000;box-shadow:0 24px 70px rgba(0,0,0,.7)}
+  .lb-audio{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:26px 30px;text-align:center}
+  .lb-bar{display:flex;align-items:center;gap:14px;justify-content:space-between;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.14);border-radius:12px;padding:8px 14px;max-width:94vw}
+  .lb-nm{color:#fff;font-size:12.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:50vw}
+  .up-vwrap{position:relative}
+  .up-expand{position:absolute;top:6px;left:6px;background:rgba(0,0,0,.6);border:0;color:#fff;border-radius:8px;width:28px;height:28px;cursor:pointer;font-size:13px;opacity:0;transition:.15s}
+  .up-card:hover .up-expand{opacity:1}
+  .up-media,.thumb,.photo-grid img{-webkit-user-drag:none;user-select:none}
   .lightbox{position:fixed;inset:0;z-index:220;background:rgba(0,0,0,.9);display:grid;place-items:center;padding:20px;cursor:zoom-out;animation:cr-overlay-in .2s ease both}
   .lightbox img{max-width:96vw;max-height:92vh;border-radius:10px;box-shadow:0 24px 70px rgba(0,0,0,.7)}
   .lb-x{position:fixed;top:16px;right:18px;background:rgba(255,255,255,.16);border:0;color:#fff;width:42px;height:42px;border-radius:50%;font-size:22px;cursor:pointer}
@@ -989,8 +998,30 @@ function authMsg(msg,type){ const m=$("auth-msg"); m.textContent=msg; m.classNam
 function statCard(icon,color,num,label){
   return `<div class="stat"><div class="ic" style="background:${color}1f;color:${color}">${icon}</div><div class="n" style="color:${color}">${num}</div><div class="l">${esc(label)}</div></div>`;
 }
-function openLightbox(url){ if(!url)return; const o=document.createElement("div"); o.className="lightbox"; o.onclick=()=>o.remove(); o.innerHTML=`<img src="${url}" alt=""><button class="lb-x" aria-label="Close">×</button>`; document.body.appendChild(o); }
-document.addEventListener("click", function(e){ const im=e.target.closest?e.target.closest(".photo-grid img, img.thumb"):null; if(im&&im.src&&im.src.indexOf("blob:")!==0){ e.preventDefault(); e.stopPropagation(); openLightbox(im.src); } }, true);
+function isAdminUser(){ return !!(typeof ME!=="undefined"&&ME&&ME.role==="admin"); }
+function openLightbox(url){ openMediaViewer("image",url,""); }
+function expandMedia(elId,kind,name){ const e=document.getElementById(elId); if(!e||!e.src){ toast("Still loading…",true); return; } try{ if(e.pause) e.pause(); }catch(_){ } openMediaViewer(kind,e.src,name); }
+function openMediaViewer(kind,url,name){
+  if(!url) return;
+  const adm=isAdminUser();
+  const guard=adm?"":' controlsList="nodownload noremoteplayback" disablePictureInPicture oncontextmenu="return false"';
+  let inner="";
+  if(kind==="video") inner=`<video src="${url}" controls autoplay playsinline${guard} class="lb-media"></video>`;
+  else if(kind==="voice"||kind==="audio") inner=`<div class="lb-audio"><div style="font-size:40px;margin-bottom:10px">🎙</div><audio src="${url}" controls autoplay${guard} style="width:min(88vw,420px)"></audio></div>`;
+  else inner=`<img src="${url}" alt=""${adm?"":' oncontextmenu="return false" draggable="false"'} class="lb-media">`;
+  const o=document.createElement("div"); o.className="lightbox";
+  o.onclick=function(e){ if(e.target===o) o.remove(); };
+  o.innerHTML=`<div class="lb-wrap">${inner}<div class="lb-bar"><span class="lb-nm">${esc(name||"")}</span>${adm?`<a class="btn btn-sm btn-ghost" style="width:auto;margin:0" href="${url}" download>⬇ Download</a>`:`<span class="hint">🔒 View only — downloading is disabled</span>`}</div></div><button class="lb-x" aria-label="Close">×</button>`;
+  const x=o.querySelector(".lb-x"); if(x) x.onclick=function(){ o.remove(); };
+  document.body.appendChild(o);
+}
+document.addEventListener("click", function(e){ const im=e.target.closest?e.target.closest(".photo-grid img, img.thumb"):null; if(im&&im.src&&im.src.indexOf("blob:")!==0){ e.preventDefault(); e.stopPropagation(); openMediaViewer("image",im.src,im.getAttribute("alt")||""); } }, true);
+document.addEventListener("contextmenu", function(e){
+  if(isAdminUser()) return;
+  const t=e.target; if(!t||!t.tagName) return;
+  if(["IMG","VIDEO","AUDIO"].indexOf(t.tagName)>=0){ e.preventDefault(); toast("Saving media is disabled.",true); }
+}, true);
+document.addEventListener("dragstart", function(e){ if(isAdminUser())return; const t=e.target; if(t&&t.tagName&&["IMG","VIDEO"].indexOf(t.tagName)>=0) e.preventDefault(); }, true);
 function deleteFx(){
   try{ const o=document.createElement("div"); o.className="del-fx";
     o.innerHTML='<div class="del-core">🗑️</div>'+Array.from({length:16}).map((_,i)=>`<i style="--a:${Math.round(i/16*360)}deg;--d:${50+Math.round(Math.random()*45)}px"></i>`).join("");
@@ -2444,10 +2475,12 @@ async function renderFolders(pid,isAdmin){
 }
 function goFolder(pid,isAdmin,fid){ CUR_FOLDER=fid||null; renderFolders(pid,isAdmin); }
 function uploadCard(i,isAdmin,pid){
+  const g=isAdmin?"":' controlsList="nodownload noremoteplayback" disablePictureInPicture oncontextmenu="return false"';
+  const nm=(i.file_name||"").replace(/'/g,"");
   let body="";
-  if(i.kind==="photo") body=`<img id="mi-${i.id}" class="thumb up-media" alt="photo" style="cursor:zoom-in">`;
-  else if(i.kind==="video") body=`<video id="mi-${i.id}" class="up-media" controls preload="metadata"></video>`;
-  else if(i.kind==="voice") body=`<div class="up-audio"><div class="up-ic">🎙</div><audio id="mi-${i.id}" controls style="width:100%"></audio></div>`;
+  if(i.kind==="photo") body=`<img id="mi-${i.id}" class="thumb up-media" alt="${esc(i.file_name||"photo")}" style="cursor:zoom-in"${isAdmin?"":' draggable="false" oncontextmenu="return false"'}>`;
+  else if(i.kind==="video") body=`<div class="up-vwrap"><video id="mi-${i.id}" class="up-media" controls preload="metadata" playsinline${g}></video><button class="up-expand" title="Play full screen" onclick="expandMedia('mi-${i.id}','video','${esc(nm)}')">⛶</button></div>`;
+  else if(i.kind==="voice") body=`<div class="up-audio"><div class="up-ic">🎙</div><audio id="mi-${i.id}" controls${g} style="width:100%"></audio></div>`;
   else body=`<div class="up-note">📝 ${esc(i.description||"")}</div>`;
   return `<div class="up-card">${body}<div class="up-meta"><span class="up-name" title="${esc(i.file_name||"Note")}">${esc(i.file_name||"Note")}</span><span class="hint">${esc(fmtDay(i.created_at))}</span></div>${isAdmin?`<button class="up-del" title="Delete" onclick="deleteFolderItem('${i.id}','${pid}')">🗑</button>`:""}</div>`;
 }
