@@ -2364,6 +2364,146 @@ function drawProjects(){ const el=$("proj-pane"); if(!el)return;
   }).join("");
   el.innerHTML=`<div class="lead-bar"><h2 style="margin:0">Projects <span class="hint" style="font-weight:600">· ${PROJECTS.length}</span></h2><button class="btn btn-sm btn-ok" onclick="openProjectForm()">＋ New project</button></div>${PROJECTS.length?`<div class="proj-grid">${cards}</div>`:`<div class="empty">No projects yet. Create one to map screens & tasks for a client.</div>`}`;
 }
+let PROJ_ROLES=[], CUR_ROLE_ID=null, MOD_PASTES=[];
+function modKind(f){ const t=(f.type||"").toLowerCase(); if(t.indexOf("video/")===0)return "video"; if(t.indexOf("audio/")===0)return "voice"; return "photo"; }
+async function renderModules(pid,isAdmin){
+  const el=$("pmod-pane"); if(!el)return;
+  const {data:roles}=await sb.from("cr_project_roles").select("*").eq("project_id",pid).order("name");
+  PROJ_ROLES=roles||[];
+  if(!CUR_ROLE_ID||!PROJ_ROLES.find(r=>r.id===CUR_ROLE_ID)) CUR_ROLE_ID=PROJ_ROLES.length?PROJ_ROLES[0].id:null;
+  const bar=`<div class="row" style="margin:0 0 12px;align-items:center;flex-wrap:wrap">
+    <select id="pm-role" class="inp" style="max-width:240px" onchange="CUR_ROLE_ID=this.value;renderModules('${pid}',${!!isAdmin})">
+      ${PROJ_ROLES.length?PROJ_ROLES.map(r=>`<option value="${r.id}" ${r.id===CUR_ROLE_ID?"selected":""}>👤 ${esc(r.name)}</option>`).join(""):`<option value="">— no roles yet —</option>`}
+    </select>
+    ${isAdmin?`<button class="btn btn-sm btn-ghost" style="width:auto;margin:0" onclick="addRole('${pid}')">＋ Add role</button>`:""}
+    ${isAdmin&&CUR_ROLE_ID?`<button class="btn btn-sm btn-ok" style="width:auto;margin:0" onclick="openModuleForm('${pid}','${CUR_ROLE_ID}')">＋ Add module</button>
+    <button class="link-btn" style="color:#ff7b7b" onclick="deleteRole('${CUR_ROLE_ID}','${pid}')">Delete role</button>`:""}
+  </div>`;
+  if(!CUR_ROLE_ID){ el.innerHTML=bar+`<div class="hint">No roles yet.${isAdmin?" Add a role (e.g. Admin, Retailer, Distributor) to begin.":""}</div>`; return; }
+  const {data:mods}=await sb.from("cr_project_modules").select("*").eq("role_id",CUR_ROLE_ID).order("created_at");
+  const list=mods||[];
+  let items=[];
+  if(list.length){ const {data:it}=await sb.from("cr_module_items").select("*").in("module_id",list.map(m=>m.id)).order("created_at"); items=it||[]; }
+  el.innerHTML=bar+(list.length?list.map(m=>moduleCard(m,items.filter(i=>i.module_id===m.id),isAdmin,pid)).join(""):`<div class="hint">No modules under this role yet.</div>`);
+  for(const it of items){ if(!it.file_path)continue; try{ const {data}=await sb.storage.from("cr-attachments").createSignedUrl(it.file_path,3600); const e=document.getElementById("mi-"+it.id); if(data&&data.signedUrl&&e) e.src=data.signedUrl; }catch(_){ } }
+}
+function moduleCard(m,items,isAdmin,pid){
+  const imgs=items.filter(i=>i.kind==="photo"), vids=items.filter(i=>i.kind==="video"), auds=items.filter(i=>i.kind==="voice"), notes=items.filter(i=>i.kind==="note"&&i.description);
+  const canAppr=(typeof ME!=="undefined"&&ME&&ME.can_approve);
+  return `<div class="scr-card">
+    <div class="scr-head"><div style="min-width:0"><div class="scr-name">🧩 ${esc(m.name)}</div><div class="hint" style="margin-top:2px">${items.length} item${items.length===1?"":"s"}${imgs.length?` · 🖼 ${imgs.length}`:""}${vids.length?` · 🎬 ${vids.length}`:""}${auds.length?` · 🎙 ${auds.length}`:""}</div></div>${psBadge(m.status)}</div>
+    ${m.description?`<div class="scr-desc">${esc(m.description)}</div>`:""}
+    ${imgs.length?`<div class="photo-grid" style="margin:8px 0">${imgs.map(i=>`<img id="mi-${i.id}" class="thumb" alt="photo" style="cursor:zoom-in">`).join("")}</div>`:""}
+    ${vids.length?`<div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0">${vids.map(i=>`<video id="mi-${i.id}" controls preload="metadata" style="max-width:240px;border-radius:10px;background:#000"></video>`).join("")}</div>`:""}
+    ${auds.length?`<div style="margin:8px 0">${auds.map(i=>`<audio id="mi-${i.id}" controls style="width:100%;max-width:340px;display:block;margin-bottom:6px"></audio>`).join("")}</div>`:""}
+    ${notes.length?notes.map(i=>`<div class="ba-note" style="margin-top:6px">📝 ${esc(i.description)}</div>`).join(""):""}
+    <div class="scr-meta">${m.verified_at?`<span>✅ Approved &amp; verified by ${esc(m.verified_by_name||"client")} on ${esc(fmtDay(m.verified_at))}</span>`:`<span>⏳ Not yet approved by the client</span>`}</div>
+    <div class="scr-actions">${isAdmin
+      ? `<label class="btn btn-sm btn-ghost">＋ Photo / Video / Audio<input type="file" accept="image/*,video/*,audio/*" multiple hidden onchange="addModuleMedia('${m.id}','${pid}',this)"></label>
+         <button class="btn btn-sm btn-ghost" onclick="addModuleNote('${m.id}','${pid}')">＋ Note</button>
+         <button class="btn btn-sm btn-ghost" onclick="openModuleForm('${pid}','${m.role_id}','${m.id}')">✏️</button>
+         <button class="btn btn-sm btn-danger" onclick="deleteModule('${m.id}','${pid}')">🗑</button>
+         ${m.status==="Pending"?`<span class="hint" style="align-self:center">Awaiting client approval…</span>`:""}`
+      : `${m.status!=="Verified"?(canAppr?`<button class="btn btn-sm btn-ok" onclick="verifyModule('${m.id}','${pid}')">✅ Approve module</button>`:`<span class="hint" style="align-self:center">⏳ Awaiting your account's approval user</span>`):`<span class="hint" style="align-self:center">✅ Approved by you</span>`}
+         <button class="btn btn-sm btn-ghost" onclick="requestModuleChange('${m.id}','${pid}')">✎ Request change (Paid)</button>`}
+    </div></div>`;
+}
+async function addRole(pid){
+  const name=(prompt("Role name (e.g. Admin, Retailer, Distributor)")||"").trim(); if(!name)return;
+  const {data,error}=await sb.from("cr_project_roles").insert({project_id:pid,name}).select().single();
+  if(error){toast(error.message,true);return;}
+  CUR_ROLE_ID=data.id; toast("Role added."); renderModules(pid,true);
+}
+async function deleteRole(rid,pid){
+  if(!confirm("Delete this role and all of its modules?"))return;
+  const {error}=await sb.from("cr_project_roles").delete().eq("id",rid);
+  if(error){toast(error.message,true);return;}
+  CUR_ROLE_ID=null; toast("Role deleted."); renderModules(pid,true);
+}
+function openModuleForm(pid,roleId,mid){
+  const m=mid?null:null; MOD_PASTES=[];
+  const existing=mid;
+  sb.from("cr_project_modules").select("*").eq("id",mid||"00000000-0000-0000-0000-000000000000").maybeSingle().then(({data:md})=>{
+    $("modal-root").innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()"><div class="modal"><div class="mh"><h2 style="margin:0">${existing?"Edit module":"Add module"}</h2><button class="x" onclick="openProject('${pid}')">×</button></div><div class="mb">
+      <label>Module name <span class="req">*</span></label><input id="md-name" class="inp" value="${md?esc(md.name):""}"/>
+      <label style="margin-top:10px">Description</label><textarea id="md-desc" class="inp" rows="3">${md?esc(md.description||""):""}</textarea>
+      <label style="margin-top:10px">Photos / Videos / Audio <span class="hint">(multiple)</span></label>
+      <input id="md-files" class="inp" type="file" accept="image/*,video/*,audio/*" multiple/>
+      <div class="paste-zone" tabindex="0" onpaste="modPaste(event)" style="margin-top:8px">📋 Or paste screenshots (Ctrl / Cmd + V)</div>
+      <div id="md-paste-prev" class="photo-grid hidden" style="margin-top:8px"></div>
+      ${recorderUI("mod","md-rec-btn","md-rec-player")}
+      <div class="row" style="margin-top:14px"><button class="btn btn-sm btn-ok" id="md-save" onclick="saveModule('${pid}','${roleId}','${existing||""}')">${existing?"Save":"＋ Add module"}</button><button class="btn btn-sm btn-ghost" onclick="openProject('${pid}')">Cancel</button></div>
+    </div></div></div>`;
+  });
+}
+function modPaste(e){
+  const items=(e.clipboardData&&e.clipboardData.items)||[]; let got=false;
+  for(const it of items){ if(it.type&&it.type.indexOf("image/")===0){ const f=it.getAsFile(); if(f){ MOD_PASTES.push(f); got=true; } } }
+  if(!got)return; e.preventDefault();
+  const p=$("md-paste-prev"); if(!p)return; p.classList.remove("hidden");
+  p.innerHTML=MOD_PASTES.map((f,i)=>`<img src="${URL.createObjectURL(f)}" style="width:70px;height:70px;object-fit:cover;border-radius:8px">`).join("");
+  toast(MOD_PASTES.length+" image(s) ready.");
+}
+async function uploadModuleItem(mid,file,kind){
+  const path=`modules/${mid}/${Date.now()}_${(file.name||"file").replace(/[^\w.\-]/g,"_")}`;
+  const {error}=await sb.storage.from("cr-attachments").upload(path,file);
+  if(error){toast(error.message,true);return;}
+  await sb.from("cr_module_items").insert({module_id:mid,kind:kind||modKind(file),file_name:file.name||"file",file_path:path,mime_type:file.type||"application/octet-stream",created_by:(SESSION&&SESSION.user)?SESSION.user.id:null,created_by_name:(ME&&(ME.full_name||ME.username||ME.email))||null});
+}
+async function saveModule(pid,roleId,mid){
+  const name=($("md-name").value||"").trim(); if(!name){toast("Module name is required.",true);return;}
+  const desc=($("md-desc").value||"").trim()||null;
+  const btn=$("md-save"); if(btn){btn.disabled=true;btn.textContent="Saving…";}
+  let id=mid||null;
+  if(id){ const {error}=await sb.from("cr_project_modules").update({name,description:desc,updated_at:new Date().toISOString()}).eq("id",id); if(error){toast(error.message,true); if(btn){btn.disabled=false;btn.textContent="Save";} return;} }
+  else{
+    const {data,error}=await sb.from("cr_project_modules").insert({project_id:pid,role_id:roleId,name,description:desc,status:"Pending",created_by:(SESSION&&SESSION.user)?SESSION.user.id:null,created_by_name:(ME&&(ME.full_name||ME.username||ME.email))||null}).select().single();
+    if(error){toast(error.message,true); if(btn){btn.disabled=false;btn.textContent="＋ Add module";} return;}
+    id=data.id;
+  }
+  const fs=[...(MOD_PASTES||[])];
+  if($("md-files")&&$("md-files").files){ for(const f of $("md-files").files) fs.push(f); }
+  for(const f of fs){ await uploadModuleItem(id,f); }
+  if(RECORDED["mod"]){ const vf=new File([RECORDED["mod"]],"voice-note-"+Date.now()+".webm",{type:"audio/webm"}); await uploadModuleItem(id,vf,"voice"); delete RECORDED["mod"]; }
+  MOD_PASTES=[]; CUR_ROLE_ID=roleId;
+  toast(mid?"Module updated.":"Module added."); openProject(pid);
+}
+async function addModuleMedia(mid,pid,inp){
+  if(!inp||!inp.files||!inp.files.length)return; toast("Uploading…");
+  for(const f of inp.files){ await uploadModuleItem(mid,f); }
+  toast("Uploaded."); renderModules(pid,true);
+}
+async function addModuleNote(mid,pid){
+  const note=(prompt("Add a note / information for this module")||"").trim(); if(!note)return;
+  const {error}=await sb.from("cr_module_items").insert({module_id:mid,kind:"note",description:note,created_by:(SESSION&&SESSION.user)?SESSION.user.id:null,created_by_name:(ME&&(ME.full_name||ME.username||ME.email))||null});
+  if(error){toast(error.message,true);return;}
+  toast("Note added."); renderModules(pid,true);
+}
+async function deleteModule(mid,pid){
+  if(!confirm("Delete this module and all its media?"))return;
+  const {error}=await sb.from("cr_project_modules").delete().eq("id",mid);
+  if(error){toast(error.message,true);return;}
+  toast("Module deleted."); renderModules(pid,true);
+}
+async function verifyModule(mid,pid){
+  const {error}=await sb.rpc("cr_module_verify",{p_module_id:mid});
+  if(error){toast(error.message||"Could not approve.",true);return;}
+  toast("Module approved & verified. Thank you!"); renderModules(pid,false);
+}
+function requestModuleChange(mid,pid){
+  $("modal-root").innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()"><div class="modal"><div class="mh"><h2 style="margin:0">Request a change (Paid)</h2><button class="x" onclick="openProject('${pid}')">×</button></div><div class="mb">
+    <p style="line-height:1.55">Describe the change you need on this module. It is raised as a <b>Paid change request</b> to the admin.</p>
+    <textarea id="mc-note" class="inp" rows="3" placeholder="What needs to change…"></textarea>
+    <div class="row" style="margin-top:14px"><button class="btn btn-sm btn-ok" id="mc-btn" onclick="confirmModuleChange('${mid}','${pid}')">Raise paid change request</button><button class="btn btn-sm btn-ghost" onclick="openProject('${pid}')">Cancel</button></div>
+  </div></div></div>`;
+}
+async function confirmModuleChange(mid,pid){
+  const note=($("mc-note").value||"").trim(); if(!note){toast("Describe the change first.",true);return;}
+  const btn=$("mc-btn"); if(btn){btn.disabled=true;btn.textContent="Raising…";}
+  const {error}=await sb.rpc("cr_module_request_change",{p_module_id:mid,p_note:note});
+  if(error){ if(btn){btn.disabled=false;btn.textContent="Raise paid change request";} toast(error.message||"Could not raise.",true); return; }
+  toast("Paid change request raised — the admin has it."); openProject(pid);
+}
 function taskRow(t,isAdmin){ const done=t.status==="Approved"; const pr=(t.priority&&t.priority!=="Normal")?`<span class="badge" style="background:#8b5cf626;color:#8b5cf6;border:1px solid #8b5cf666">${esc(t.priority)}</span>`:""; return `<div class="scr-card"><div class="scr-head"><div style="min-width:0"><div class="scr-name">${esc(t.title)}</div>${(t.due_date||t.created_by_name)?`<div class="hint" style="margin-top:3px">${[t.due_date?"📅 Due "+esc(fmtDay(t.due_date)):"",t.created_by_name?"By "+esc(t.created_by_name):""].filter(Boolean).join(" · ")}</div>`:""}</div><div style="display:flex;gap:6px;align-items:center">${pr}${ptBadge(t.status)}</div></div>${t.description?`<div class="scr-desc">${esc(t.description)}</div>`:""}<div class="scr-meta">${t.approved_at?`<span>✅ Approved by ${esc(t.approved_by_name||"client")} on ${esc(fmtDay(t.approved_at))}</span>`:`<span>⏳ Awaiting client approval</span>`}</div><div class="scr-actions">${isAdmin?`<select class="inp" style="width:auto;padding:6px 8px" onchange="setTaskStatus('${t.id}',this.value)">${["Pending","In Progress","Completed","Approved"].map(x=>`<option ${t.status===x?"selected":""}>${x}</option>`).join("")}</select><button class="btn btn-sm btn-ghost" onclick="editTask('${t.id}')">✏️</button><button class="btn btn-sm btn-danger" onclick="deleteTask('${t.id}')">🗑</button>${!done?`<span class="hint" style="align-self:center">Awaiting client approval…</span>`:""}`:`${!done?`<button class="btn btn-sm btn-ok" onclick="approveTask('${t.id}')">✅ Approve task</button>`:`<span class="hint" style="align-self:center">✅ Approved by you</span>`}`}</div></div>`; }
 function openTaskForm(pid,t){ t=t||null; $("modal-root").innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()"><div class="modal"><div class="mh"><h2 style="margin:0">${t?"Edit task":"Add task"}</h2><button class="x" onclick="openProject('${pid}')">×</button></div><div class="mb">
     <label>Task title <span class="req">*</span></label><input id="tk-title" class="inp" value="${t?esc(t.title):""}"/>
@@ -2383,7 +2523,8 @@ async function addOption(kind,selId){ const v=prompt("Add "+kind+" option:"); if
 function openProjectForm(id){ const p=id?PROJECTS.find(x=>x.id===id):null; $("modal-root").innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()"><div class="modal"><div class="mh"><h2 style="margin:0">${p?"Edit project":"New project"}</h2><button class="x" onclick="closeModal()">×</button></div><div class="mb"><div class="grid2"><div><label>Project name <span class="req">*</span></label><input id="pr-name" class="inp" value="${p?esc(p.name):""}"/></div><div><label>Client <span class="req">*</span></label><select id="pr-client" class="inp"><option value="">—</option>${(CLIENTS||[]).map(c=>`<option value="${c.id}" ${p&&p.client_id===c.id?"selected":""}>${esc(c.company||c.full_name||c.username)}</option>`).join("")}</select></div></div><div class="row" style="margin-top:16px"><button class="btn btn-sm btn-ok" onclick="saveProject(${p?`'${p.id}'`:"null"})">${p?"Save":"Create project"}</button><button class="btn btn-sm btn-ghost" onclick="closeModal()">Cancel</button></div></div></div></div>`; }
 async function saveProject(id){ const name=($("pr-name").value||"").trim(); const cid=$("pr-client").value; if(!name||!cid){toast("Name and client are required.",true);return;} const c=(CLIENTS||[]).find(x=>x.id===cid); const payload={ name, client_id:cid, client_name:c?(c.company||c.full_name||c.username):null, updated_at:new Date().toISOString() }; let error; if(id){ ({error}=await sb.from("cr_projects").update(payload).eq("id",id)); } else { payload.created_by=SESSION.user.id; payload.created_by_name=ME.full_name||"Admin"; ({error}=await sb.from("cr_projects").insert(payload)); } if(error){toast(error.message,true);return;} toast(id?"Project updated.":"Project created."); closeModal(); await loadProjects(); drawProjects(); }
 async function openProject(id){ CUR_PROJECT_ID=id; const p=PROJECTS.find(x=>x.id===id); if(!p)return; const isAdmin=ME.role==="admin"; const {data:screens}=await sb.from("cr_project_screens").select("*").eq("project_id",id).order("created_at"); SCREENS_CACHE=screens||[]; const {data:tasks}=await sb.from("cr_project_tasks").select("*").eq("project_id",id).order("created_at"); TASKS_CACHE=tasks||[]; const ids=SCREENS_CACHE.map(x=>x.id); let files=[]; if(ids.length){ const {data:f}=await sb.from("cr_screen_files").select("*").in("screen_id",ids); files=f||[]; } SCR_PASTES=[];
-  $("modal-root").innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()"><div class="modal" style="max-width:840px"><div class="mh"><div style="min-width:0"><h2 style="margin:0">${esc(p.name)}</h2><div class="hint">${esc(p.client_name||"")}</div></div><button class="x" onclick="closeModal()">×</button></div><div class="mb">${p.description?`<div class="ba-note">${esc(p.description)}</div>`:""}${isAdmin?`<div class="row" style="margin:0 0 12px"><button class="btn btn-sm btn-ghost" onclick="openProjectForm('${p.id}')">✏️ Edit project</button><button class="btn btn-sm btn-danger" onclick="deleteProject('${p.id}')">🗑 Delete project</button></div>`:""}<div class="section-title" style="display:flex;justify-content:space-between;align-items:center;gap:10px">Screens (${SCREENS_CACHE.length})${isAdmin?`<button class="btn btn-sm btn-ok" style="margin:0" onclick="openScreenForm('${p.id}')">＋ Add screen</button>`:""}</div><div id="scr-list">${SCREENS_CACHE.map(sc=>screenRow(sc,files.filter(f=>f.screen_id===sc.id),isAdmin)).join("")||`<div class="hint">No screens yet.</div>`}</div><div class="section-title" style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:18px">Tasks (${TASKS_CACHE.length})${isAdmin?`<button class="btn btn-sm btn-ok" style="margin:0" onclick="openTaskForm('${p.id}')">＋ Add task</button>`:""}</div><div id="task-list">${TASKS_CACHE.map(t=>taskRow(t,isAdmin)).join("")||`<div class="hint">No tasks yet.</div>`}</div></div></div></div>`;
+  $("modal-root").innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()"><div class="modal" style="max-width:840px"><div class="mh"><div style="min-width:0"><h2 style="margin:0">${esc(p.name)}</h2><div class="hint">${esc(p.client_name||"")}</div></div><button class="x" onclick="closeModal()">×</button></div><div class="mb">${p.description?`<div class="ba-note">${esc(p.description)}</div>`:""}${isAdmin?`<div class="row" style="margin:0 0 12px"><button class="btn btn-sm btn-ghost" onclick="openProjectForm('${p.id}')">✏️ Edit project</button><button class="btn btn-sm btn-danger" onclick="deleteProject('${p.id}')">🗑 Delete project</button></div>`:""}<div class="section-title" style="display:flex;justify-content:space-between;align-items:center;gap:10px">Screens (${SCREENS_CACHE.length})${isAdmin?`<button class="btn btn-sm btn-ok" style="margin:0" onclick="openScreenForm('${p.id}')">＋ Add screen</button>`:""}</div><div id="scr-list">${SCREENS_CACHE.map(sc=>screenRow(sc,files.filter(f=>f.screen_id===sc.id),isAdmin)).join("")||`<div class="hint">No screens yet.</div>`}</div><div class="section-title" style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:18px">Tasks (${TASKS_CACHE.length})${isAdmin?`<button class="btn btn-sm btn-ok" style="margin:0" onclick="openTaskForm('${p.id}')">＋ Add task</button>`:""}</div><div id="task-list">${TASKS_CACHE.map(t=>taskRow(t,isAdmin)).join("")||`<div class="hint">No tasks yet.</div>`}</div><div class="section-title" style="margin-top:18px">🧩 Roles &amp; Modules</div><div id="pmod-pane"><div class="hint">Loading…</div></div></div></div></div>`;
+  renderModules(id,isAdmin);
   for(const f of files){ if((f.mime_type||"").startsWith("image/")){ try{ const {data}=await sb.storage.from("cr-attachments").createSignedUrl(f.file_path,600); const im=document.getElementById("sf-"+f.id); if(data&&data.signedUrl&&im){ im.src=data.signedUrl; } }catch(_){ } } }
 }
 function screenRow(sc,files,isAdmin){ const imgs=files.filter(f=>(f.mime_type||"").startsWith("image/")); return `<div class="scr-card"><div class="scr-head"><div style="min-width:0"><div class="scr-name">${esc(sc.name)}</div>${sc.url?`<a href="${esc(_safeUrl(sc.url))}" target="_blank" rel="noopener" class="hint" style="color:var(--brand2);word-break:break-all">🔗 ${esc(sc.url)}</a>`:""}${(sc.platform||sc.site||sc.role)?`<div class="hint" style="margin-top:3px">${[sc.platform?"🖥 "+esc(sc.platform):"",sc.site?"🌐 "+esc(sc.site):"",sc.role?"👤 "+esc(sc.role):""].filter(Boolean).join(" · ")}</div>`:""}</div>${psBadge(sc.status)}</div>${sc.description?`<div class="scr-desc">${esc(sc.description)}</div>`:""}${imgs.length?`<div class="photo-grid" style="margin:8px 0">${imgs.map(f=>`<img id="sf-${f.id}" class="thumb" alt="screenshot" style="cursor:zoom-in">`).join("")}</div>`:""}<div class="scr-meta">${sc.verified_at?`<span>✅ Verified & confirmed by ${esc(sc.verified_by_name||"client")} on ${esc(fmtDay(sc.verified_at))}</span>`:`<span>⏳ Not yet verified by the client</span>`}</div><div class="scr-actions">${isAdmin?`<label class="btn btn-sm btn-ghost">＋ Screenshots<input type="file" accept="image/*" multiple hidden onchange="addScreenShots('${sc.id}',this)"></label><button class="btn btn-sm btn-ghost" onclick="editScreen('${sc.id}')">✏️</button><button class="btn btn-sm btn-danger" onclick="deleteScreen('${sc.id}')">🗑</button>${sc.status==="Pending"?`<span class="hint" style="align-self:center">Awaiting client verification…</span>`:""}`:`${sc.status!=="Verified"?`<button class="btn btn-sm btn-ok" onclick="verifyScreenClient('${sc.id}')">✅ Verify & confirm</button>`:`<span class="hint" style="align-self:center">✅ Verified by you</span>`}<button class="btn btn-sm btn-ghost" onclick="requestScreenChange('${sc.id}')">✎ Request change (Paid)</button>`}</div></div>`; }
