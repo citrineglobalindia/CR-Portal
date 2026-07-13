@@ -722,6 +722,32 @@
   .stamp.pending{color:#ffb020;background:rgba(255,176,32,.14)}
   .stamp.rejected{color:#ff5b6b;background:rgba(255,91,107,.14)}
   .stamp.clarify{color:#f5a623;background:rgba(245,166,35,.16)}
+  .fold-crumb{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:12px;font-size:13px}
+  .fold-crumb button{background:var(--chip);border:1px solid var(--line);color:var(--muted);border-radius:8px;padding:5px 10px;font-weight:700;font-size:12.5px;cursor:pointer}
+  .fold-crumb button:hover{color:var(--txt);border-color:var(--brand)}
+  .fold-crumb button.on{background:var(--brand);color:#fff;border-color:var(--brand);cursor:default}
+  .fold-crumb span{color:var(--muted)}
+  .fold-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+  .fold-card{position:relative;background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:14px;padding:16px 12px;text-align:center;cursor:pointer;transition:transform .16s,border-color .2s,box-shadow .2s}
+  .fold-card:hover{transform:translateY(-3px);border-color:var(--brand);box-shadow:0 12px 30px rgba(0,0,0,.32)}
+  .fold-card.add{border-style:dashed;opacity:.85}
+  .fold-ic{font-size:34px;line-height:1}
+  .fold-nm{margin-top:8px;font-weight:800;color:var(--txt);font-size:14px;word-break:break-word}
+  .fold-mt{margin-top:3px;font-size:11.5px;color:var(--muted)}
+  .fold-x{position:absolute;top:6px;right:6px;background:transparent;border:0;color:#ff7b7b;cursor:pointer;font-size:13px;opacity:0;transition:.15s}
+  .fold-card:hover .fold-x{opacity:1}
+  .mod-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+  .up-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
+  .up-card{position:relative;background:var(--panel2);border:1px solid var(--line);border-radius:12px;overflow:hidden;transition:border-color .2s}
+  .up-card:hover{border-color:var(--brand)}
+  .up-media{width:100%;height:130px;object-fit:cover;display:block;background:#000}
+  .up-audio{padding:14px 10px;text-align:center}
+  .up-ic{font-size:26px;margin-bottom:6px}
+  .up-note{padding:14px 12px;font-size:13px;color:var(--txt);line-height:1.5;min-height:100px}
+  .up-meta{display:flex;justify-content:space-between;align-items:center;gap:6px;padding:7px 9px;border-top:1px solid var(--line)}
+  .up-name{font-size:11.5px;color:var(--txt);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:95px}
+  .up-del{position:absolute;top:6px;right:6px;background:rgba(0,0,0,.6);border:0;color:#ff9b9b;border-radius:8px;width:26px;height:26px;cursor:pointer;opacity:0;transition:.15s}
+  .up-card:hover .up-del{opacity:1}
   .appr-banner{background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.45);color:#bff2d4;border-radius:12px;padding:12px 14px;margin-bottom:10px;font-size:13.5px;line-height:1.5}
   .clar-answer{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.35);color:#bff2d4;border-radius:10px;padding:9px 11px;margin-top:8px}
   .del-banner{background:rgba(255,107,107,.12);border:1px solid rgba(255,107,107,.4);color:#ffb4b4;border-radius:12px;padding:12px 14px;margin-bottom:12px;font-size:13.5px;line-height:1.5}
@@ -2364,61 +2390,71 @@ function drawProjects(){ const el=$("proj-pane"); if(!el)return;
   }).join("");
   el.innerHTML=`<div class="lead-bar"><h2 style="margin:0">Projects <span class="hint" style="font-weight:600">· ${PROJECTS.length}</span></h2><button class="btn btn-sm btn-ok" onclick="openProjectForm()">＋ New project</button></div>${PROJECTS.length?`<div class="proj-grid">${cards}</div>`:`<div class="empty">No projects yet. Create one to map screens & tasks for a client.</div>`}`;
 }
-let PROJ_ROLES=[], CUR_ROLE_ID=null, MOD_PASTES=[];
+let PROJ_ROLES=[], CUR_ROLE_ID=null, MOD_PASTES=[], MOD_NAV={role:null,module:null};
 function modKind(f){ const t=(f.type||"").toLowerCase(); if(t.indexOf("video/")===0)return "video"; if(t.indexOf("audio/")===0)return "voice"; return "photo"; }
 async function renderModules(pid,isAdmin){
+  isAdmin=!!isAdmin;
   const el=$("pmod-pane"); if(!el)return;
   const {data:roles}=await sb.from("cr_project_roles").select("*").eq("project_id",pid).order("name");
   PROJ_ROLES=roles||[];
-  if(!CUR_ROLE_ID||!PROJ_ROLES.find(r=>r.id===CUR_ROLE_ID)) CUR_ROLE_ID=PROJ_ROLES.length?PROJ_ROLES[0].id:null;
-  const bar=`<div class="row" style="margin:0 0 12px;align-items:center;flex-wrap:wrap">
-    <select id="pm-role" class="inp" style="max-width:240px" onchange="CUR_ROLE_ID=this.value;renderModules('${pid}',${!!isAdmin})">
-      ${PROJ_ROLES.length?PROJ_ROLES.map(r=>`<option value="${r.id}" ${r.id===CUR_ROLE_ID?"selected":""}>👤 ${esc(r.name)}</option>`).join(""):`<option value="">— no roles yet —</option>`}
-    </select>
-    ${isAdmin?`<button class="btn btn-sm btn-ghost" style="width:auto;margin:0" onclick="addRole('${pid}')">＋ Add role</button>`:""}
-    ${isAdmin&&CUR_ROLE_ID?`<button class="btn btn-sm btn-ok" style="width:auto;margin:0" onclick="openModuleForm('${pid}','${CUR_ROLE_ID}')">＋ Add module</button>
-    <button class="link-btn" style="color:#ff7b7b" onclick="deleteRole('${CUR_ROLE_ID}','${pid}')">Delete role</button>`:""}
-  </div>`;
-  if(!CUR_ROLE_ID){ el.innerHTML=bar+`<div class="hint">No roles yet.${isAdmin?" Add a role (e.g. Admin, Retailer, Distributor) to begin.":""}</div>`; return; }
-  const {data:mods}=await sb.from("cr_project_modules").select("*").eq("role_id",CUR_ROLE_ID).order("created_at");
-  const list=mods||[];
+  const {data:allMods}=await sb.from("cr_project_modules").select("*").eq("project_id",pid).order("created_at");
+  const mods=allMods||[];
   let items=[];
-  if(list.length){ const {data:it}=await sb.from("cr_module_items").select("*").in("module_id",list.map(m=>m.id)).order("created_at"); items=it||[]; }
-  el.innerHTML=bar+(list.length?list.map(m=>moduleCard(m,items.filter(i=>i.module_id===m.id),isAdmin,pid)).join(""):`<div class="hint">No modules under this role yet.</div>`);
-  for(const it of items){ if(!it.file_path)continue; try{ const {data}=await sb.storage.from("cr-attachments").createSignedUrl(it.file_path,3600); const e=document.getElementById("mi-"+it.id); if(data&&data.signedUrl&&e) e.src=data.signedUrl; }catch(_){ } }
-}
-function moduleCard(m,items,isAdmin,pid){
-  const imgs=items.filter(i=>i.kind==="photo"), vids=items.filter(i=>i.kind==="video"), auds=items.filter(i=>i.kind==="voice"), notes=items.filter(i=>i.kind==="note"&&i.description);
+  if(mods.length){ const {data:it}=await sb.from("cr_module_items").select("*").in("module_id",mods.map(m=>m.id)).order("created_at"); items=it||[]; }
+  const proj=(PROJECTS||[]).find(p=>p.id===pid);
+  let role=MOD_NAV.role?PROJ_ROLES.find(r=>r.id===MOD_NAV.role):null; if(MOD_NAV.role&&!role){MOD_NAV.role=null;MOD_NAV.module=null;}
+  let mod=MOD_NAV.module?mods.find(m=>m.id===MOD_NAV.module):null; if(MOD_NAV.module&&!mod){MOD_NAV.module=null;}
+  const crumb=`<div class="fold-crumb"><button onclick="modNav('${pid}',${isAdmin},null,null)">📁 ${esc(proj?proj.name:"Project")}</button>${role?`<span>›</span><button onclick="modNav('${pid}',${isAdmin},'${role.id}',null)">👤 ${esc(role.name)}</button>`:""}${mod?`<span>›</span><button class="on">🧩 ${esc(mod.name)}</button>`:""}</div>`;
+
+  if(!role){
+    const cards=PROJ_ROLES.map(r=>{ const n=mods.filter(m=>m.role_id===r.id).length; const f=items.filter(i=>mods.some(m=>m.role_id===r.id&&m.id===i.module_id)).length;
+      return `<div class="fold-card" onclick="modNav('${pid}',${isAdmin},'${r.id}',null)"><div class="fold-ic">📁</div><div class="fold-nm">${esc(r.name)}</div><div class="fold-mt">${n} module${n===1?"":"s"} · ${f} file${f===1?"":"s"}</div>${isAdmin?`<button class="fold-x" title="Delete role" onclick="event.stopPropagation();deleteRole('${r.id}','${pid}')">🗑</button>`:""}</div>`;
+    }).join("");
+    el.innerHTML=crumb+`<div class="fold-grid">${cards}${isAdmin?`<div class="fold-card add" onclick="addRole('${pid}')"><div class="fold-ic">➕</div><div class="fold-nm">Add role</div><div class="fold-mt">New folder</div></div>`:""}</div>`+(PROJ_ROLES.length?"":`<div class="hint" style="margin-top:8px">No roles yet.</div>`);
+    return;
+  }
+  if(!mod){
+    const list=mods.filter(m=>m.role_id===role.id);
+    const cards=list.map(m=>{ const its=items.filter(i=>i.module_id===m.id);
+      return `<div class="fold-card" onclick="modNav('${pid}',${isAdmin},'${role.id}','${m.id}')"><div class="fold-ic">🧩</div><div class="fold-nm">${esc(m.name)}</div><div class="fold-mt">${its.length} file${its.length===1?"":"s"}</div><div style="margin-top:7px">${psBadge(m.status)}</div></div>`;
+    }).join("");
+    el.innerHTML=crumb+`<div class="fold-grid">${cards}${isAdmin?`<div class="fold-card add" onclick="openModuleForm('${pid}','${role.id}')"><div class="fold-ic">➕</div><div class="fold-nm">Add module</div><div class="fold-mt">New folder</div></div>`:""}</div>`+(list.length?"":`<div class="hint" style="margin-top:8px">No modules in this role yet.</div>`);
+    return;
+  }
+  const its=items.filter(i=>i.module_id===mod.id);
   const canAppr=(typeof ME!=="undefined"&&ME&&ME.can_approve);
-  return `<div class="scr-card">
-    <div class="scr-head"><div style="min-width:0"><div class="scr-name">🧩 ${esc(m.name)}</div><div class="hint" style="margin-top:2px">${items.length} item${items.length===1?"":"s"}${imgs.length?` · 🖼 ${imgs.length}`:""}${vids.length?` · 🎬 ${vids.length}`:""}${auds.length?` · 🎙 ${auds.length}`:""}</div></div>${psBadge(m.status)}</div>
-    ${m.description?`<div class="scr-desc">${esc(m.description)}</div>`:""}
-    ${imgs.length?`<div class="photo-grid" style="margin:8px 0">${imgs.map(i=>`<img id="mi-${i.id}" class="thumb" alt="photo" style="cursor:zoom-in">`).join("")}</div>`:""}
-    ${vids.length?`<div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0">${vids.map(i=>`<video id="mi-${i.id}" controls preload="metadata" style="max-width:240px;border-radius:10px;background:#000"></video>`).join("")}</div>`:""}
-    ${auds.length?`<div style="margin:8px 0">${auds.map(i=>`<audio id="mi-${i.id}" controls style="width:100%;max-width:340px;display:block;margin-bottom:6px"></audio>`).join("")}</div>`:""}
-    ${notes.length?notes.map(i=>`<div class="ba-note" style="margin-top:6px">📝 ${esc(i.description)}</div>`).join(""):""}
-    <div class="scr-meta">${m.verified_at?`<span>✅ Approved &amp; verified by ${esc(m.verified_by_name||"client")} on ${esc(fmtDay(m.verified_at))}</span>`:`<span>⏳ Not yet approved by the client</span>`}</div>
-    <div class="scr-actions">${isAdmin
-      ? `<label class="btn btn-sm btn-ghost">＋ Photo / Video / Audio<input type="file" accept="image/*,video/*,audio/*" multiple hidden onchange="addModuleMedia('${m.id}','${pid}',this)"></label>
-         <button class="btn btn-sm btn-ghost" onclick="addModuleNote('${m.id}','${pid}')">＋ Note</button>
-         <button class="btn btn-sm btn-ghost" onclick="openModuleForm('${pid}','${m.role_id}','${m.id}')">✏️</button>
-         <button class="btn btn-sm btn-danger" onclick="deleteModule('${m.id}','${pid}')">🗑</button>
-         ${m.status==="Pending"?`<span class="hint" style="align-self:center">Awaiting client approval…</span>`:""}`
-      : `${m.status!=="Verified"?(canAppr?`<button class="btn btn-sm btn-ok" onclick="verifyModule('${m.id}','${pid}')">✅ Approve module</button>`:`<span class="hint" style="align-self:center">⏳ Awaiting your account's approval user</span>`):`<span class="hint" style="align-self:center">✅ Approved by you</span>`}
-         <button class="btn btn-sm btn-ghost" onclick="requestModuleChange('${m.id}','${pid}')">✎ Request change (Paid)</button>`}
-    </div></div>`;
+  el.innerHTML=crumb+`<div class="mod-head"><div style="min-width:0"><div class="scr-name">🧩 ${esc(mod.name)}</div>${mod.description?`<div class="hint" style="margin-top:3px">${esc(mod.description)}</div>`:""}<div class="hint" style="margin-top:6px">${mod.verified_at?`✅ Approved &amp; verified by ${esc(mod.verified_by_name||"client")} on ${esc(fmtDay(mod.verified_at))}`:"⏳ Not yet approved by the client"}</div></div>${psBadge(mod.status)}</div>
+    <div class="scr-actions" style="margin:10px 0 12px">${isAdmin
+      ? `<label class="btn btn-sm btn-ok">⬆ Upload photo / video / audio<input type="file" accept="image/*,video/*,audio/*" multiple hidden onchange="addModuleMedia('${mod.id}','${pid}',this)"></label>
+         <button class="btn btn-sm btn-ghost" onclick="addModuleNote('${mod.id}','${pid}')">＋ Note</button>
+         <button class="btn btn-sm btn-ghost" onclick="openModuleForm('${pid}','${role.id}','${mod.id}')">✏️ Edit</button>
+         <button class="btn btn-sm btn-danger" onclick="deleteModule('${mod.id}','${pid}')">🗑 Delete module</button>`
+      : `${mod.status!=="Verified"?(canAppr?`<button class="btn btn-sm btn-ok" onclick="verifyModule('${mod.id}','${pid}')">✅ Approve this module</button>`:`<span class="hint" style="align-self:center">⏳ Awaiting your account's approval user</span>`):`<span class="hint" style="align-self:center">✅ Approved by you</span>`}
+         <button class="btn btn-sm btn-ghost" onclick="requestModuleChange('${mod.id}','${pid}')">✎ Request change (Paid)</button>`}</div>
+    <div class="up-grid">${its.length?its.map(i=>uploadCard(i,isAdmin,pid)).join(""):`<div class="hint">No uploads yet.</div>`}</div>`;
+  for(const it of its){ if(!it.file_path)continue; try{ const {data}=await sb.storage.from("cr-attachments").createSignedUrl(it.file_path,3600); const e=document.getElementById("mi-"+it.id); if(data&&data.signedUrl&&e) e.src=data.signedUrl; }catch(_){ } }
 }
+function modNav(pid,isAdmin,roleId,modId){ MOD_NAV.role=roleId||null; MOD_NAV.module=modId||null; renderModules(pid,isAdmin); }
+function uploadCard(i,isAdmin,pid){
+  let body="";
+  if(i.kind==="photo") body=`<img id="mi-${i.id}" class="thumb up-media" alt="photo" style="cursor:zoom-in">`;
+  else if(i.kind==="video") body=`<video id="mi-${i.id}" class="up-media" controls preload="metadata"></video>`;
+  else if(i.kind==="voice") body=`<div class="up-audio"><div class="up-ic">🎙</div><audio id="mi-${i.id}" controls style="width:100%"></audio></div>`;
+  else body=`<div class="up-note">📝 ${esc(i.description||"")}</div>`;
+  return `<div class="up-card">${body}<div class="up-meta"><span class="up-name" title="${esc(i.file_name||"Note")}">${esc(i.file_name||"Note")}</span><span class="hint">${esc(fmtDay(i.created_at))}</span></div>${isAdmin?`<button class="up-del" title="Delete" onclick="deleteModuleItem('${i.id}','${pid}')">🗑</button>`:""}</div>`;
+}
+async function deleteModuleItem(id,pid){ if(!confirm("Delete this upload?"))return; const {error}=await sb.from("cr_module_items").delete().eq("id",id); if(error){toast(error.message,true);return;} toast("Deleted."); renderModules(pid,true); }
 async function addRole(pid){
   const name=(prompt("Role name (e.g. Admin, Retailer, Distributor)")||"").trim(); if(!name)return;
   const {data,error}=await sb.from("cr_project_roles").insert({project_id:pid,name}).select().single();
   if(error){toast(error.message,true);return;}
-  CUR_ROLE_ID=data.id; toast("Role added."); renderModules(pid,true);
+  CUR_ROLE_ID=data.id; MOD_NAV.role=data.id; MOD_NAV.module=null; toast("Role added."); renderModules(pid,true);
 }
 async function deleteRole(rid,pid){
   if(!confirm("Delete this role and all of its modules?"))return;
   const {error}=await sb.from("cr_project_roles").delete().eq("id",rid);
   if(error){toast(error.message,true);return;}
-  CUR_ROLE_ID=null; toast("Role deleted."); renderModules(pid,true);
+  CUR_ROLE_ID=null; MOD_NAV.role=null; MOD_NAV.module=null; toast("Role deleted."); renderModules(pid,true);
 }
 function openModuleForm(pid,roleId,mid){
   const m=mid?null:null; MOD_PASTES=[];
@@ -2465,7 +2501,7 @@ async function saveModule(pid,roleId,mid){
   if($("md-files")&&$("md-files").files){ for(const f of $("md-files").files) fs.push(f); }
   for(const f of fs){ await uploadModuleItem(id,f); }
   if(RECORDED["mod"]){ const vf=new File([RECORDED["mod"]],"voice-note-"+Date.now()+".webm",{type:"audio/webm"}); await uploadModuleItem(id,vf,"voice"); delete RECORDED["mod"]; }
-  MOD_PASTES=[]; CUR_ROLE_ID=roleId;
+  MOD_PASTES=[]; CUR_ROLE_ID=roleId; MOD_NAV.role=roleId; MOD_NAV.module=id;
   toast(mid?"Module updated.":"Module added."); openProject(pid);
 }
 async function addModuleMedia(mid,pid,inp){
@@ -2483,12 +2519,12 @@ async function deleteModule(mid,pid){
   if(!confirm("Delete this module and all its media?"))return;
   const {error}=await sb.from("cr_project_modules").delete().eq("id",mid);
   if(error){toast(error.message,true);return;}
-  toast("Module deleted."); renderModules(pid,true);
+  MOD_NAV.module=null; toast("Module deleted."); renderModules(pid,true);
 }
 async function verifyModule(mid,pid){
   const {error}=await sb.rpc("cr_module_verify",{p_module_id:mid});
   if(error){toast(error.message||"Could not approve.",true);return;}
-  toast("Module approved & verified. Thank you!"); renderModules(pid,false);
+  toast("Module approved & verified. Thank you!"); renderModules(pid,ME.role==="admin");
 }
 function requestModuleChange(mid,pid){
   $("modal-root").innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()"><div class="modal"><div class="mh"><h2 style="margin:0">Request a change (Paid)</h2><button class="x" onclick="openProject('${pid}')">×</button></div><div class="mb">
