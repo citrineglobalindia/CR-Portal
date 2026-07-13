@@ -722,6 +722,7 @@
   .stamp.pending{color:#ffb020;background:rgba(255,176,32,.14)}
   .stamp.rejected{color:#ff5b6b;background:rgba(255,91,107,.14)}
   .stamp.clarify{color:#f5a623;background:rgba(245,166,35,.16)}
+  .appr-banner{background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.45);color:#bff2d4;border-radius:12px;padding:12px 14px;margin-bottom:10px;font-size:13.5px;line-height:1.5}
   .clar-answer{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.35);color:#bff2d4;border-radius:10px;padding:9px 11px;margin-top:8px}
   .del-banner{background:rgba(255,107,107,.12);border:1px solid rgba(255,107,107,.4);color:#ffb4b4;border-radius:12px;padding:12px 14px;margin-bottom:12px;font-size:13.5px;line-height:1.5}
   /* touch devices: keep 3D off for clarity/perf */
@@ -1381,7 +1382,7 @@ async function loadRequests(){
   CACHE=data||[]; return CACHE;
 }
 async function loadClients(){
-  const {data,error}=await sb.from("cr_profiles").select("*").eq("role","client").order("created_at",{ascending:false});
+  const {data,error}=await sb.from("cr_profiles").select("*").eq("role","client").is("parent_client_id",null).order("created_at",{ascending:false});
   if(error){toast(error.message,true);return [];}
   CLIENTS=data||[]; return CLIENTS;
 }
@@ -1389,9 +1390,52 @@ async function loadClients(){
 // ===================== CLIENT VIEW =====================
 let CLIENT_TAB="list";
 function setClientTab(t){ CLIENT_TAB=t;
-  const map={list:"client-list-view",create:"client-create-view",projects:"client-projects-view"};
+  const map={list:"client-list-view",create:"client-create-view",projects:"client-projects-view",team:"client-team-view"};
   Object.keys(map).forEach(k=>{ const e=$(map[k]); if(e) e.classList.toggle("hidden",k!==t); const b=$("ctab-"+k); if(b) b.classList.toggle("on",k===t); });
   if(t==="projects") renderClientProjects();
+  if(t==="team") renderClientTeam();
+}
+let TEAM=[];
+async function renderClientTeam(){
+  const el=$("client-team-view"); if(!el)return;
+  el.innerHTML=`<div class="card"><h2>Team &amp; approval authority</h2><div class="sub">Add users to your account. Exactly one user holds <b>approval authority</b> — only they can verify a completed change request, give feedback, or re-raise it.</div><div id="team-list"><div class="hint">Loading…</div></div></div>`;
+  let users=[];
+  try{ const j=await callFn("client-users",{action:"list"}); users=j.users||[]; }catch(e){ $("team-list").innerHTML=`<div class="empty">${esc(e.message||"Could not load users.")}</div>`; return; }
+  TEAM=users;
+  const owner={id:(SESSION&&SESSION.user)?SESSION.user.id:"",full_name:(ME.full_name||ME.company||ME.username||"You")+" (account owner)",email:ME.email,can_approve:!!ME.can_approve,owner:true};
+  const all=[owner].concat(users);
+  $("team-list").innerHTML=`<div class="table-wrap"><table class="lead-table"><thead><tr><th>User</th><th>Email</th><th>Approval authority</th><th></th></tr></thead><tbody>${all.map(u=>`<tr>
+    <td><b>${esc(u.full_name||"—")}</b></td>
+    <td class="hint">${esc(u.email||"—")}</td>
+    <td>${u.can_approve?`<span class="badge" style="background:rgba(34,197,94,.15);color:#8ff0c8;border:1px solid rgba(34,197,94,.45)">✅ Approver</span>`:`<button class="btn btn-sm btn-ghost" style="width:auto;margin:0" onclick="setApprover('${u.id}')">Make approver</button>`}</td>
+    <td>${u.owner?`<span class="hint">—</span>`:`<button class="link-btn" style="color:#ff7b7b" onclick="removeTeamUser('${u.id}','${esc(u.full_name||"")}')">Remove</button>`}</td>
+  </tr>`).join("")}</tbody></table></div>
+  <div class="section-title">Add a user</div>
+  <div class="grid2">
+    <div><label>Full name <span class="req">*</span></label><input id="tu-name" class="inp"/></div>
+    <div><label>Email <span class="req">*</span></label><input id="tu-email" class="inp" type="email" placeholder="user@company.com"/></div>
+    <div><label>Password <span class="req">*</span></label><input id="tu-pass" class="inp" type="password" placeholder="At least 8 characters"/></div>
+    <div><label>Approval authority</label><select id="tu-appr" class="inp"><option value="">No — normal user</option><option value="1">Yes — make this user the approver</option></select></div>
+  </div>
+  <div class="row" style="margin-top:12px"><button class="btn btn-sm btn-ok" id="tu-btn" onclick="addTeamUser()">＋ Add user</button></div>
+  <div class="hint">The new user signs in with this email &amp; password and sees all of your account's change requests.</div>`;
+}
+async function addTeamUser(){
+  const full_name=($("tu-name").value||"").trim(), email=($("tu-email").value||"").trim(), password=$("tu-pass").value||"";
+  if(!full_name||!email||!password){ toast("Name, email and password are required.",true); return; }
+  const btn=$("tu-btn"); if(btn){btn.disabled=true;btn.textContent="Adding…";}
+  try{ await callFn("client-users",{action:"create",full_name,email,password,can_approve:!!$("tu-appr").value});
+    toast("User added."); await ensureProfile(); renderClientTeam();
+  }catch(e){ toast(e.message||"Could not add user.",true); if(btn){btn.disabled=false;btn.textContent="＋ Add user";} }
+}
+async function setApprover(id){
+  try{ await callFn("client-users",{action:"set-approver",user_id:id}); toast("Approval authority updated."); await ensureProfile(); renderClientTeam(); }
+  catch(e){ toast(e.message||"Could not update.",true); }
+}
+async function removeTeamUser(id,name){
+  if(!confirm("Remove "+(name||"this user")+" from your account?"))return;
+  try{ await callFn("client-users",{action:"delete",user_id:id}); toast("User removed."); renderClientTeam(); }
+  catch(e){ toast(e.message||"Could not remove.",true); }
 }
 async function renderClientProjects(){ const el=$("client-projects-view"); if(!el)return; el.innerHTML=`<div class="card"><h2>My Projects</h2><div class="sub">Review the screens for your projects, approve them, or request a paid change.</div><div id="cproj-list"><div class="hint">Loading…</div></div></div>`; await loadProjects(); const l=$("cproj-list"); if(l) l.innerHTML=PROJECTS.length?`<div class="clients-grid">${PROJECTS.map(p=>projectCard(p)).join("")}</div>`:`<div class="empty">No projects assigned to you yet.</div>`; }
 function renderClient(){
@@ -1406,7 +1450,7 @@ function renderClient(){
       </div>
     </div>
     <div class="stats" id="client-stats"></div>
-    <div class="lead-bar" style="margin:4px 0 14px"><div class="seg"><button id="ctab-list" class="on" onclick="setClientTab('list')">📋 My Requests</button><button id="ctab-create" onclick="setClientTab('create')">＋ Raise a request</button><button id="ctab-projects" onclick="setClientTab('projects')">📁 Projects</button></div></div>
+    <div class="lead-bar" style="margin:4px 0 14px"><div class="seg"><button id="ctab-list" class="on" onclick="setClientTab('list')">📋 My Requests</button><button id="ctab-create" onclick="setClientTab('create')">＋ Raise a request</button><button id="ctab-projects" onclick="setClientTab('projects')">📁 Projects</button>${!ME.parent_client_id?`<button id="ctab-team" onclick="setClientTab('team')">👥 Team</button>`:""}</div></div>
     <div id="client-create-view" class="hidden">
     <div class="card">
       <h2>Raise a Change Request</h2>
@@ -1448,7 +1492,8 @@ function renderClient(){
       <div class="table-wrap"><div id="c-table"></div></div>
     </div>
     </div>
-    <div id="client-projects-view" class="hidden"></div>`;
+    <div id="client-projects-view" class="hidden"></div>
+    <div id="client-team-view" class="hidden"></div>`;
   $("f-files").addEventListener("change",previewFiles);
   loadAndRenderClient();
 }
@@ -1478,7 +1523,7 @@ function renderClientTable(){
       <td class="pr-${r.priority}">${esc(r.priority)}</td>
       <td>${r.deleted_at?`<span class="badge" style="background:rgba(255,107,107,.15);color:#ff8a8a;border:1px solid rgba(255,107,107,.4)">🗑 Deleted</span>`:`<span class="badge ${badgeClass(r.status)}">${esc(r.status)}</span>`}</td>
       <td>${fmtDay(r.created_at)}</td>
-      <td style="white-space:nowrap">${(!r.deleted_at&&r.status==="Done")?`<button class="btn btn-sm btn-ghost" onclick="openReopen('${r.id}')">↺ Not completed</button> `:""}<button class="link-btn" onclick="openDetail('${r.id}')">View</button> <button class="link-btn" title="Download this CR (PDF)" onclick="event.stopPropagation();exportBeforeAfter('${r.id}')">⬇</button></td>
+      <td style="white-space:nowrap">${(!r.deleted_at&&r.status==="Done"&&ME.can_approve&&r.approval_status!=="Approved")?`<button class="btn btn-sm btn-ghost" onclick="openReopen('${r.id}')">↺ Not completed</button> `:""}<button class="link-btn" onclick="openDetail('${r.id}')">View</button> <button class="link-btn" title="Download this CR (PDF)" onclick="event.stopPropagation();exportBeforeAfter('${r.id}')">⬇</button></td>
     </tr>`).join("")}</tbody></table>`:`<div class="empty">No change requests yet. Submit your first one above.</div>`;
 }
 let RAISE_PASTES={f:[],ac:[]};
@@ -1754,8 +1799,8 @@ function renderAdminTable(){
     <thead><tr><th>Ref</th><th>Heading</th><th>Client</th><th>Pri.</th><th>Raised</th><th></th></tr></thead>
     <tbody>${rows.map(r=>`<tr>
       <td>${crStamp(r)}<span class="ref">${esc(r.ref_no)}</span></td>
-      <td>${esc(r.title)}${(r.tags&&r.tags.length)?` <span style="color:var(--muted);font-size:11px">#${esc(r.tags[0])}${r.tags.length>1?"+"+(r.tags.length-1):""}</span>`:""}${COMMIT_COUNTS[r.id]?` <span class="cm-badge" title="${COMMIT_COUNTS[r.id]} commit(s) linked">🔗 ${COMMIT_COUNTS[r.id]}</span>`:""}${r.resent_count?` <span class="cm-badge resent" title="Re-sent by client ${r.resent_count} time(s)">↩ Re-Sent${r.resent_count>1?" ×"+r.resent_count:""}</span>`:""}${r.deleted_at?` <span class="cm-badge resent" title="Deleted by ${esc(r.deleted_by_name||'client')}">🗑 Deleted</span>`:""}${r.needs_clarification?(r.clarification_answered?` <span class="cm-badge" style="color:#8ff0c8;background:rgba(34,197,94,.14);border-color:rgba(34,197,94,.45)" title="Client answered — review">💬 Clarified</span>`:` <span class="cm-badge" style="color:#ffd27a;background:rgba(255,176,32,.14);border-color:rgba(255,176,32,.45)" title="Awaiting client clarification">❓ Clarify</span>`):""}${r.is_paid?` <span class="cm-badge" style="color:#ffd591;background:rgba(255,176,32,.14);border-color:rgba(255,176,32,.4)">💲 Paid</span>`:""}</td>
-      <td>${(()=>{const _c=(CLIENTS||[]).find(x=>x.id===r.created_by);const _l=_c?logoUrl(_c.logo_path):"";return _l?`<img class="cc-logo-sm" src="${esc(_l)}" alt="${esc(r.client_name||'')}" title="${esc(r.client_name||'')}">`:`<span class="cc-logo-sm cli-ph" title="${esc(r.client_name||'')}">${esc(initials(r.client_name||"?"))}</span>`;})()}</td>
+      <td>${esc(r.title)}${(r.tags&&r.tags.length)?` <span style="color:var(--muted);font-size:11px">#${esc(r.tags[0])}${r.tags.length>1?"+"+(r.tags.length-1):""}</span>`:""}${COMMIT_COUNTS[r.id]?` <span class="cm-badge" title="${COMMIT_COUNTS[r.id]} commit(s) linked">🔗 ${COMMIT_COUNTS[r.id]}</span>`:""}${r.resent_count?` <span class="cm-badge resent" title="Re-sent by client ${r.resent_count} time(s)">↩ Re-Sent${r.resent_count>1?" ×"+r.resent_count:""}</span>`:""}${r.deleted_at?` <span class="cm-badge resent" title="Deleted by ${esc(r.deleted_by_name||'client')}">🗑 Deleted</span>`:""}${r.needs_clarification?(r.clarification_answered?` <span class="cm-badge" style="color:#8ff0c8;background:rgba(34,197,94,.14);border-color:rgba(34,197,94,.45)" title="Client answered — review">💬 Clarified</span>`:` <span class="cm-badge" style="color:#ffd27a;background:rgba(255,176,32,.14);border-color:rgba(255,176,32,.45)" title="Awaiting client clarification">❓ Clarify</span>`):""}${r.is_paid?` <span class="cm-badge" style="color:#ffd591;background:rgba(255,176,32,.14);border-color:rgba(255,176,32,.4)">💲 Paid</span>`:""}${r.status==="Done"?(r.approval_status==="Approved"?` <span class="cm-badge" style="color:#8ff0c8;background:rgba(34,197,94,.14);border-color:rgba(34,197,94,.45)" title="Verified by the client approver">✅ Client approved</span>`:` <span class="cm-badge" style="color:#ffd27a;background:rgba(255,176,32,.14);border-color:rgba(255,176,32,.45)" title="Waiting for the client approver">⏳ Awaiting approval</span>`):""}</td>
+      <td>${(()=>{const _c=(CLIENTS||[]).find(x=>x.id===r.created_by||x.client_code===r.client_code);const _l=_c?logoUrl(_c.logo_path):"";return _l?`<img class="cc-logo-sm" src="${esc(_l)}" alt="${esc(r.client_name||'')}" title="${esc(r.client_name||'')}">`:`<span class="cc-logo-sm cli-ph" title="${esc(r.client_name||'')}">${esc(initials(r.client_name||"?"))}</span>`;})()}</td>
       <td class="pr-${r.priority}">${esc(r.priority)}</td>
       <td style="white-space:nowrap"><div>${fmtDay(r.created_at)}</div><div style="color:var(--muted);font-size:11px">${fmtTime(r.created_at)}</div></td>
       <td style="white-space:nowrap">${r.status!=="Done"?`<button class="btn btn-sm btn-ok" onclick="quickStatus('${r.id}','Done')">✓ Complete</button> `:""}<button class="link-btn" onclick="openDetail('${r.id}')">Open</button> <button class="link-btn" title="Download this CR (PDF)" onclick="event.stopPropagation();exportBeforeAfter('${r.id}')">⬇</button> <button class="link-btn" style="color:#ff7b7b" title="Delete change request" onclick="deleteCR('${r.id}')">🗑</button></td>
@@ -1870,7 +1915,7 @@ async function confirmDeleteCR(id){
 function openReopen(id){
   const r=CACHE.find(x=>x.id===id); if(!r)return;
   $("modal-root").innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()"><div class="modal">
-    <div class="mh"><div><h2 style="margin:0">Mark as not completed</h2><div class="hint">${esc(r.ref_no)} — this re-sends it to the admin as <b>Re-Sent</b>.</div></div><button class="x" onclick="closeModal()">×</button></div>
+    <div class="mh"><div><h2 style="margin:0">Re-raise this request</h2><div class="hint">${esc(r.ref_no)} — it goes back to the admin as <b>Re-Sent</b> and they are notified.</div></div><button class="x" onclick="closeModal()">×</button></div>
     <div class="mb">
       <label>What still needs to be done? <span class="hint">(recommended)</span></label>
       <textarea id="ro-note" class="inp" rows="3" placeholder="Explain what is still pending or wrong…"></textarea>
@@ -1880,6 +1925,18 @@ function openReopen(id){
       ${recorderUI("reopen","ro-rec-btn","ro-rec-player")}
       <div class="row" style="margin-top:16px"><button class="btn btn-sm btn-ok" id="ro-btn" onclick="submitReopen('${id}')">↩ Re-send to admin</button><button class="btn btn-sm btn-ghost" onclick="closeModal()">Cancel</button></div>
     </div></div></div>`;
+}
+async function approveCR(id){
+  const fb=(($("ap-fb")&&$("ap-fb").value)||"").trim();
+  const rt=(($("ap-rate")&&$("ap-rate").value)||"");
+  const {error}=await sb.rpc("cr_approve_request",{p_id:id,p_feedback:fb||null,p_rating:rt?parseInt(rt,10):null});
+  if(error){ toast(error.message||"Could not approve.",true); return; }
+  try{ if(fb) await sb.from("cr_comments").insert({request_id:id,author_id:SESSION.user.id,author_name:ME.full_name||ME.username||ME.email,author_role:ME.role,body:"✅ Approved & verified: "+fb}); }catch(_){ }
+  notify("approved",id).catch(()=>{});
+  toast("Approved — thank you for verifying!");
+  await loadRequests();
+  if(ME.role==="admin"){ renderAdminTable(); } else { renderClientStats(); renderClientTable(); }
+  await openDetail(id);
 }
 async function submitReopen(id){
   const note=($("ro-note")?$("ro-note").value:"").trim();
@@ -3290,9 +3347,18 @@ async function openDetail(id){
           <input id="d-status-note" class="inp" placeholder="Optional note…" style="flex:1"/>
           <button class="btn btn-sm" onclick="saveStatus('${r.id}')">Save</button>
         </div>`:""}
-        ${(!isAdmin && r.status==="Done")?`<div class="section-title">Not completed?</div>
-        <button class="btn btn-sm btn-ghost" onclick="openReopen('${r.id}')">↺ Mark as not completed (reopen)</button>
-        <div class="hint">This reopens the request and notifies the team to look again.</div>`:""}
+        ${(r.status==="Done")?`<div class="section-title">Client approval</div>
+        ${r.approval_status==="Approved"
+          ? `<div class="appr-banner">✅ <b>Approved &amp; verified by ${esc(r.approved_by_name||"client")}</b>${r.approved_at?` · ${esc(fmtDate(r.approved_at))}`:""}${r.approval_rating?`<div style="margin-top:4px">Rating: ${"★".repeat(r.approval_rating)}${"☆".repeat(5-r.approval_rating)}</div>`:""}${r.approval_feedback?`<div style="margin-top:6px">“${esc(r.approval_feedback)}”</div>`:""}</div>`
+          : (isAdmin
+              ? `<div class="hint">⏳ Waiting for the client's approval user to verify this completion.</div>`
+              : (ME.can_approve
+                  ? `<div class="hint" style="margin-bottom:8px">You hold approval authority. Verify the work, then approve with feedback — or re-raise it if it isn't solved properly.</div>
+                     <label>Feedback</label><textarea id="ap-fb" class="inp" rows="2" placeholder="How was the change? Any feedback…"></textarea>
+                     <label style="margin-top:8px">Rating <span class="hint">(optional)</span></label>
+                     <select id="ap-rate" class="inp" style="max-width:180px"><option value="">—</option>${[5,4,3,2,1].map(n=>`<option value="${n}">${"★".repeat(n)}</option>`).join("")}</select>
+                     <div class="row" style="margin-top:12px"><button class="btn btn-sm btn-ok" onclick="approveCR('${r.id}')">✅ Verify &amp; approve</button><button class="btn btn-sm btn-danger" onclick="openReopen('${r.id}')">↩ Re-raise — not solved properly</button></div>`
+                  : `<div class="hint">⏳ Awaiting approval from your account's approval user — only they can approve or re-raise this request.</div>`))}`:""}
         ${(isOwner && !isAdmin && !r.deleted_at)?`<div style="margin-top:10px"><button class="btn btn-sm btn-danger" onclick="clientDeleteCR('${r.id}')">🗑 Delete this request</button></div>`:""}
         ${files.length?`<div class="section-title">Attachments (${files.length})</div>
         <div>${files.map(a=>`<div class="att"><span>📎</span><span class="name">${esc(a.file_name)}</span>
