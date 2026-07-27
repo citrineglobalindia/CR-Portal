@@ -1479,8 +1479,8 @@ let OTP_EMAIL="";
 function openOtpLogin(){
   OTP_EMAIL=(($("li-id")&&$("li-id").value)||"").trim();
   $("modal-root").innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()"><div class="modal" style="max-width:400px"><div class="mh"><h2 style="margin:0">✉️ Login with OTP</h2><button class="x" onclick="closeModal()">×</button></div><div class="mb">
-    <div id="otp-step1"><label>Email</label><input id="otp-email" class="inp" type="email" placeholder="you@company.com" value="${(/@/.test(OTP_EMAIL))?OTP_EMAIL:""}"/><div class="row" style="margin-top:12px"><button class="btn btn-sm btn-ok" id="otp-send" onclick="otpSend()">Send code</button></div><div class="hint" style="margin-top:8px">We'll email you a 6-digit code and a login link. Works for tele-callers &amp; managers.</div></div>
-    <div id="otp-step2" class="hidden"><label>Enter the 6-digit code</label><input id="otp-code" class="inp" inputmode="numeric" autocomplete="one-time-code" placeholder="123456" onkeydown="if(event.key==='Enter')otpVerify()"/><div class="row" style="margin-top:12px"><button class="btn btn-sm btn-ok" id="otp-verify" onclick="otpVerify()">Verify &amp; sign in</button><button class="btn btn-sm btn-ghost" onclick="otpSend()">Resend</button></div><div class="hint" style="margin-top:8px">Didn't get a code? Click the login link in the same email instead.</div></div>
+    <div id="otp-step1"><label>Email</label><input id="otp-email" class="inp" type="email" placeholder="you@company.com" value="${(/@/.test(OTP_EMAIL))?OTP_EMAIL:""}"/><div class="row" style="margin-top:12px"><button class="btn btn-sm btn-ok" id="otp-send" onclick="otpSend()">Send code</button></div><div class="hint" style="margin-top:8px">We'll email you a 6-digit login code. For managers &amp; tele-callers.</div></div>
+    <div id="otp-step2" class="hidden"><label>Enter the 6-digit code</label><input id="otp-code" class="inp" inputmode="numeric" autocomplete="one-time-code" placeholder="123456" onkeydown="if(event.key==='Enter')otpVerify()"/><div class="row" style="margin-top:12px"><button class="btn btn-sm btn-ok" id="otp-verify" onclick="otpVerify()">Verify &amp; sign in</button><button class="btn btn-sm btn-ghost" onclick="otpSend()">Resend</button></div><div class="hint" style="margin-top:8px">Didn't get it? Check your spam, or tap Resend.</div></div>
     <div id="otp-msg" class="msg"></div>
   </div></div></div>`;
 }
@@ -1489,19 +1489,23 @@ async function otpSend(){
   const em=(($("otp-email")&&$("otp-email").value)||OTP_EMAIL||"").trim().toLowerCase();
   if(!em||!/@/.test(em)){ otpMsg("Enter a valid email."); return; }
   OTP_EMAIL=em; const b=$("otp-send")||$("otp-verify"); const t0=b?b.textContent:""; if(b){b.disabled=true;b.textContent="Sending…";}
-  const {error}=await sb.auth.signInWithOtp({email:em,options:{shouldCreateUser:false}});
+  try{ await callFn("loans-otp",{action:"request",email:em}); }
+  catch(e){ if(b){b.disabled=false;b.textContent=t0||"Send code";} otpMsg((e&&e.message)||"Could not send the code."); return; }
   if(b){b.disabled=false;b.textContent=t0||"Send code";}
-  if(error){ otpMsg(error.message||"Could not send the code."); return; }
   const s1=$("otp-step1"), s2=$("otp-step2"); if(s1)s1.classList.add("hidden"); if(s2)s2.classList.remove("hidden");
-  otpMsg("Code sent to "+em+". Check your inbox.","ok");
+  otpMsg("Code emailed to "+em+". Enter the 6-digit code.","ok");
+  const ci=$("otp-code"); if(ci) setTimeout(function(){ci.focus();},100);
 }
 async function otpVerify(){
   const code=(($("otp-code")&&$("otp-code").value)||"").trim();
   if(!code){ otpMsg("Enter the code from your email."); return; }
   const b=$("otp-verify"); if(b){b.disabled=true;b.textContent="Verifying…";}
-  const {error}=await sb.auth.verifyOtp({email:OTP_EMAIL,token:code,type:"email"});
-  if(error){ if(b){b.disabled=false;b.textContent="Verify & sign in";} otpMsg(error.message||"Invalid or expired code."); return; }
-  location.reload();
+  try{
+    const j=await callFn("loans-otp",{action:"verify",email:OTP_EMAIL,code:code});
+    const {error}=await sb.auth.verifyOtp({token_hash:j.token_hash,type:"magiclink"});
+    if(error) throw error;
+    location.reload();
+  }catch(e){ if(b){b.disabled=false;b.textContent="Verify & sign in";} otpMsg((e&&e.message)||"Invalid or expired code."); }
 }
 async function boot(){
   if(!CONFIGURED){ showConfigWarning(); return; }
