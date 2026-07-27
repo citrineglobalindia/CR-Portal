@@ -848,6 +848,9 @@
   .ln-lead{transition:transform .15s,box-shadow .2s}
   .ln-lead:hover{transform:translateY(-2px);box-shadow:0 12px 26px rgba(0,0,0,.28)}
   .loans .scr-actions .btn-ok{text-decoration:none;display:inline-flex;align-items:center}
+  .rem-row{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:7px 10px;border:1px solid var(--line);border-radius:9px;margin-bottom:6px;font-size:12.5px}
+  .rem-row.due{border-color:rgba(255,91,107,.5);background:rgba(255,91,107,.08)}
+  .rem-due td{background:rgba(255,91,107,.08)}
   .masked-ph{font-family:monospace;letter-spacing:1px;color:var(--muted)}
   .rev-badge{display:inline-block;background:rgba(255,176,32,.16);color:#ffd27a;border:1px solid rgba(255,176,32,.4);border-radius:7px;padding:1px 6px;font-size:11px;font-weight:800;vertical-align:middle}
   .ln-filter{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:9px 12px;margin-bottom:14px}
@@ -1911,10 +1914,14 @@ function openLoanEdit(id){
     </div>
     <label style="margin-top:10px">Remarks</label><textarea id="le-rem" class="inp" rows="2">${esc(l.remarks||"")}</textarea>
     <label style="margin-top:8px" class="hint"><input type="checkbox" id="le-log" checked> Count this as a call attempt</label>
+    <div class="section-title" style="margin-top:10px">🔔 Reminders <span class="hint" style="font-weight:600">— visible to manager &amp; admin</span></div>
+    <div class="row" style="gap:8px"><input id="le-remind" class="inp" type="datetime-local" style="max-width:210px"/><input id="le-remind-note" class="inp" placeholder="Reminder note…" style="flex:1"/><button class="btn btn-sm btn-ok" style="width:auto;margin:0" onclick="addReminder('${id}')">＋ Set</button></div>
+    <div id="le-rem-list" style="margin-top:8px"><div class="hint">Loading…</div></div>
     <div class="row" style="margin-top:12px"><button class="btn btn-sm btn-ok" id="le-btn" onclick="saveLoanEdit('${id}')">Save</button>${isAdmin?`<button class="btn btn-sm btn-danger" style="width:auto" onclick="delLoanLead('${id}')">Delete</button>`:""}<button class="btn btn-sm btn-ghost" onclick="closeModal()">Close</button></div>
     ${(l.activity_loaded)?"":`<div id="le-hist" class="hint" style="margin-top:12px">Loading history…</div>`}
   </div></div></div>`;
   sb.from("cr_loan_activity").select("*").eq("lead_id",id).order("created_at",{ascending:false}).limit(20).then(({data})=>{ const h=$("le-hist"); if(!h)return; h.innerHTML=(data&&data.length)?`<div class="section-title">History</div>`+data.map(a=>`<div class="hist">${esc(a.agent_name||"")} · ${a.from_status&&a.to_status&&a.from_status!==a.to_status?esc(a.from_status)+" → "+esc(a.to_status):esc(a.action||"update")} · ${fmtDate(a.created_at)}${a.note?`<br><em>${esc(a.note)}</em>`:""}</div>`).join(""):`<div class="hint">No history yet.</div>`; });
+  sb.from("cr_loan_reminders").select("*").eq("lead_id",id).order("remind_at").then(({data})=>{ const c=$("le-rem-list"); if(!c)return; c.innerHTML=(data&&data.length)?data.map(r=>{const due=!r.done&&new Date(r.remind_at)<=new Date();return `<div class="rem-row ${due?'due':''}"><span>${r.done?'✅':(due?'⏰':'🔔')} ${esc(fmtDate(r.remind_at))}${r.note?" · "+esc(r.note):""} <span class="hint">(${esc(r.agent_name||"agent")})</span></span><span style="white-space:nowrap">${r.done?'<span class="hint">Done</span>':`<button class="link-btn" onclick="doneReminder('${r.id}','${id}')">✓ Done</button>`} <button class="link-btn" style="color:#ff7b7b" onclick="delReminder('${r.id}','${id}')">✕</button></span></div>`;}).join(""):`<div class="hint">No reminders yet.</div>`; });
 }
 async function saveLoanEdit(id){
   const cb=$("le-cb").value?new Date($("le-cb").value).toISOString():null;
@@ -1931,6 +1938,24 @@ async function delLoanLead(id){ if(!confirm("Delete this lead?"))return; const {
 
 // ---------- Dashboard ----------
 let LN_CHARTS={};
+async function addReminder(leadId){
+  const at=$("le-remind").value; if(!at){toast("Pick a date & time for the reminder.",true);return;}
+  const note=($("le-remind-note").value||"").trim();
+  const {error}=await sb.from("cr_loan_reminders").insert({lead_id:leadId,remind_at:new Date(at).toISOString(),note:note||null,agent_id:(SESSION&&SESSION.user)?SESSION.user.id:null,agent_name:ME.full_name||ME.username||ME.email});
+  if(error){toast(error.message,true);return;}
+  toast("Reminder set — visible to your manager & admin."); openLoanEdit(leadId);
+}
+async function doneReminder(id,leadId){ const {error}=await sb.from("cr_loan_reminders").update({done:true}).eq("id",id); if(error){toast(error.message,true);return;} toast("Reminder cleared."); if(document.getElementById("le-remind")) openLoanEdit(leadId); else if(ME.role==="telesales"&&AGENT_TAB==="rem") drawAgentReminders(); else if($("ln-rem-list")) loadDashReminders(); }
+async function delReminder(id,leadId){ if(!confirm("Delete this reminder?"))return; const {error}=await sb.from("cr_loan_reminders").delete().eq("id",id); if(error){toast(error.message,true);return;} if(document.getElementById("le-remind")) openLoanEdit(leadId); else if(ME.role==="telesales"&&AGENT_TAB==="rem") drawAgentReminders(); else if($("ln-rem-list")) loadDashReminders(); }
+async function loadDashReminders(){
+  const c=$("ln-rem-list"); if(!c)return;
+  const {data}=await sb.from("cr_loan_reminders").select("*").eq("done",false).order("remind_at").limit(100);
+  const rem=data||[]; if(!rem.length){ c.innerHTML='<div class="hint">No upcoming reminders.</div>'; return; }
+  const ids=[...new Set(rem.map(r=>r.lead_id))];
+  const {data:leads}=await sb.from("cr_loan_leads").select("id,name,phone,assigned_to_name").in("id",ids);
+  const lm={}; (leads||[]).forEach(l=>lm[l.id]=l);
+  c.innerHTML=`<div class="table-wrap"><table class="lead-table"><thead><tr><th>When</th><th>Lead</th><th>Phone</th><th>Agent</th><th>Note</th><th></th></tr></thead><tbody>${rem.map(r=>{const l=lm[r.lead_id]||{};const due=new Date(r.remind_at)<=new Date();return `<tr class="${due?'rem-due':''}"><td style="white-space:nowrap">${due?'⏰ ':'🔔 '}${esc(fmtDate(r.remind_at))}</td><td><b>${esc(l.name||"—")}</b></td><td>${esc(l.phone||"")}</td><td>${esc(r.agent_name||l.assigned_to_name||"")}</td><td>${esc(r.note||"")}</td><td style="white-space:nowrap"><button class="link-btn" onclick="openLoanEdit('${r.lead_id}')">Open</button> <button class="link-btn" onclick="doneReminder('${r.id}','${r.lead_id}')">✓</button></td></tr>`;}).join("")}</tbody></table></div>`;
+}
 let LN_DF={agent:"",from:"",to:""};
 function loanDashSet(k,v){ LN_DF[k]=v; drawLoanDashboard(); }
 function loanDashData(){
@@ -1978,6 +2003,7 @@ function drawLoanDashboard(){
     <div class="card"><h2 style="margin:0 0 8px;font-size:15px">Disbursed by agent</h2><div style="position:relative;height:230px"><canvas id="ln-agentamt"></canvas></div></div>
     <div class="card"><h2 style="margin:0 0 8px;font-size:15px">Loan stage split</h2><div style="position:relative;height:230px"><canvas id="ln-stagepie"></canvas></div></div>
   </div>
+  <div class="card" style="margin-top:14px"><h2 style="margin:0 0 6px;font-size:15px">🔔 Upcoming reminders <span class="hint" style="font-weight:600">— set by tele-callers</span></h2><div id="ln-rem-list"><div class="hint">Loading…</div></div></div>
   <div class="grid2" style="gap:14px;margin-top:14px">
     <div class="card"><h2 style="margin:0 0 6px;font-size:15px">Call status breakdown</h2>${anTable(LOAN_CALL.map(x=>[x,L.filter(l=>l.call_status===x).length]),L.length,LOAN_CC)}</div>
     <div class="card"><h2 style="margin:0 0 6px;font-size:15px">Loan pipeline breakdown</h2>${anTable(LOAN_STAGES.map(x=>[x,L.filter(l=>l.stage===x).length]),L.length,LOAN_SC)}</div>
@@ -1991,6 +2017,7 @@ function drawLoanDashboard(){
   const ccL=LOAN_CALL.filter(x=>L.filter(l=>l.call_status===x).length); const ccV=ccL.map(x=>L.filter(l=>l.call_status===x).length);
   try{ if(LN_CHARTS.p)LN_CHARTS.p.destroy(); LN_CHARTS.p=new Chart($("ln-pie"),{type:"pie",data:{labels:ccL,datasets:[{data:ccV,backgroundColor:ccL.map(x=>LOAN_CC[x]),borderColor:"rgba(0,0,0,.25)",borderWidth:1}]},options:{plugins:{legend:{position:"right",labels:{boxWidth:10,boxHeight:10,padding:8,font:{size:11}}}}}}); }catch(_){ }
   const sgL=LOAN_STAGES.filter(x=>L.filter(l=>l.stage===x).length); const sgV=sgL.map(x=>L.filter(l=>l.stage===x).length);
+  loadDashReminders();
   try{ if(LN_CHARTS.s)LN_CHARTS.s.destroy(); LN_CHARTS.s=new Chart($("ln-stagepie"),{type:"doughnut",data:{labels:sgL,datasets:[{data:sgV,backgroundColor:sgL.map(x=>LOAN_SC[x]),borderColor:"rgba(0,0,0,.25)",borderWidth:1}]},options:{cutout:"58%",plugins:{legend:{position:"right",labels:{boxWidth:10,boxHeight:10,padding:8,font:{size:11}}}}}}); }catch(_){ }
 }
 function anTable(rows,total,colors){
@@ -2072,7 +2099,7 @@ async function loadAgentLeads(){ const {data,error}=await sb.from("cr_loan_leads
 async function renderTelesales(){
   $("app-body").innerHTML=`<div class="loans"><div class="ln-hero"><div class="ln-hero-ic">🎧</div><div><div class="ln-hero-t">${esc(ME.full_name||ME.email||"Agent")}</div><div class="ln-hero-s">Tele-sales agent · your assigned leads</div></div></div>
   <div class="ln-stats" id="agent-stats" style="margin-bottom:14px"></div>
-  <div class="seg ln-seg" style="margin:0 0 14px"><button id="atab-all" class="on" onclick="setAgentTab('all')">All</button><button id="atab-due" onclick="setAgentTab('due')">⏰ Callbacks due</button><button id="atab-new" onclick="setAgentTab('new')">🆕 New</button><button id="atab-interested" onclick="setAgentTab('interested')">🔥 Interested</button></div>
+  <div class="seg ln-seg" style="margin:0 0 14px"><button id="atab-all" class="on" onclick="setAgentTab('all')">All</button><button id="atab-due" onclick="setAgentTab('due')">⏰ Callbacks due</button><button id="atab-new" onclick="setAgentTab('new')">🆕 New</button><button id="atab-interested" onclick="setAgentTab('interested')">🔥 Interested</button><button id="atab-rem" onclick="setAgentTab('rem')">🔔 Reminders</button></div>
   <div class="card"><input id="ag-q" class="inp" placeholder="🔍 Search name or phone…" oninput="drawAgentLeads()" style="margin-bottom:10px"/><div id="agent-list"><div class="hint">Loading…</div></div></div></div>`;
   await loadAgentLeads(); drawAgentStats(); drawAgentLeads();
 }
@@ -2096,7 +2123,15 @@ async function revealNumber(id){
   REVEALED[id]=data; toast("Number opened — the admin is notified of this.");
   if(document.getElementById("le-call")) openLoanEdit(id); else if(ME.role==="telesales") drawAgentLeads();
 }
+async function drawAgentReminders(){
+  const el=$("agent-list"); if(!el)return; el.innerHTML=`<div class="hint">Loading…</div>`;
+  const {data}=await sb.from("cr_loan_reminders").select("*").eq("done",false).order("remind_at"); const rem=data||[];
+  if(!rem.length){ el.innerHTML=`<div class="empty">No reminders set.</div>`; return; }
+  const ids=[...new Set(rem.map(r=>r.lead_id))]; const {data:leads}=await sb.from("cr_loan_leads_agent").select("id,name,phone").in("id",ids); const lm={}; (leads||[]).forEach(l=>lm[l.id]=l);
+  el.innerHTML=rem.map(r=>{const l=lm[r.lead_id]||{};const due=new Date(r.remind_at)<=new Date();return `<div class="scr-card ln-lead" style="border-left:4px solid ${due?"#ff5b6b":"#ffb020"}"><div class="scr-head"><div style="min-width:0"><div class="scr-name">${due?"⏰":"🔔"} ${esc(fmtDate(r.remind_at))}</div><div class="hint">${esc(l.name||"—")}${r.note?" · "+esc(r.note):""}</div></div></div><div class="scr-actions"><button class="btn btn-sm btn-ok" onclick="doneReminder('${r.id}','${r.lead_id}')">✓ Done</button><button class="btn btn-sm btn-ghost" onclick="openLoanEdit('${r.lead_id}')">Open lead</button></div></div>`;}).join("");
+}
 function drawAgentLeads(){
+  if(AGENT_TAB==="rem"){ drawAgentReminders(); return; }
   const el=$("agent-list"); if(!el)return;
   const q=(($("ag-q")&&$("ag-q").value)||"").toLowerCase();
   let L=AGENT_LEADS.filter(l=>!q||((l.name||"")+(l.phone||"")).toLowerCase().indexOf(q)>=0);
