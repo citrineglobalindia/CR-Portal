@@ -1900,6 +1900,7 @@ function openLoanEdit(id){
   const l=(LOAN_LEADS.find(x=>x.id===id))||(AGENT_LEADS.find(x=>x.id===id)); if(!l)return;
   const isAdmin=ME.role==="admin";
   $("modal-root").innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()"><div class="modal" style="max-width:520px"><div class="mh"><div style="min-width:0"><h2 style="margin:0">${esc(l.name||l.phone)}</h2><div class="hint">${(ME.role==="admin"||ME.role==="manager"||REVEALED[l.id])?`<a href="tel:${esc(REVEALED[l.id]||l.phone)}" style="color:var(--brand2)">📞 ${esc(REVEALED[l.id]||l.phone)}</a>`:`<span class="masked-ph">📞 ${esc(l.phone)}</span> ${l.call_status==="Not interested"?"🔒":`<button class="btn btn-sm btn-ghost" style="padding:2px 8px;font-size:11px" onclick="revealNumber('${l.id}')">🔓 Reveal</button>`}`}${l.city?" · "+esc(l.city):""}${l.assigned_to_name?" · 🎧 "+esc(l.assigned_to_name):""}</div></div><button class="x" onclick="closeModal()">×</button></div><div class="mb">
+    ${(ME.role==="admin"||ME.role==="manager"||!l.name)?`<label>Name${!l.name?` <span class="hint">— not saved yet, you can add it</span>`:""}</label><input id="le-name" class="inp" value="${esc(l.name||"")}" placeholder="Contact name" style="margin-bottom:10px"/>`:""}
     <div class="grid2">
       <div><label>Call status</label><select id="le-call" class="inp">${LOAN_CALL.map(x=>`<option ${l.call_status===x?"selected":""}>${x}</option>`).join("")}</select></div>
       <div><label>Loan stage</label><select id="le-stage" class="inp">${LOAN_STAGES.map(x=>`<option ${l.stage===x?"selected":""}>${x}</option>`).join("")}</select></div>
@@ -1920,6 +1921,7 @@ async function saveLoanEdit(id){
   const amt=$("le-amt").value!==""?parseFloat($("le-amt").value):null;
   const disb=$("le-disb").value!==""?parseFloat($("le-disb").value):null;
   const btn=$("le-btn"); if(btn){btn.disabled=true;btn.textContent="Saving…";}
+  if($("le-name")){ const nm=($("le-name").value||"").trim(); if(nm){ const r=await sb.from("cr_loan_leads").update({name:nm}).eq("id",id); if(r&&r.error){ toast(r.error.message,true); } } }
   const {error}=await sb.rpc("cr_loan_update",{p_id:id,p_call_status:$("le-call").value,p_stage:$("le-stage").value,p_loan_amount:amt,p_disbursed:disb,p_callback:cb,p_remarks:($("le-rem").value||"").trim()||null,p_log_call:$("le-log").checked});
   if(error){toast(error.message||"Could not save.",true); if(btn){btn.disabled=false;btn.textContent="Save";} return;}
   toast("Saved."); closeModal();
