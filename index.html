@@ -1872,13 +1872,13 @@ async function loadAttendance(){
 async function renderAdminLoans(){
   $("admin-pane").innerHTML=`<div class="loans">
   <div class="ln-hero"><div class="ln-hero-ic">💰</div><div style="flex:1;min-width:0"><div class="ln-hero-t">Loans — Tele-calling</div><div class="ln-hero-s">Import numbers, assign to agents, track every call &amp; loan disbursed.</div></div>${ME.role==="manager"?`<button class="btn btn-sm btn-danger" style="width:auto;margin:0" onclick="attendanceLogout('Signed out')">⏻ Logout</button>`:""}</div>
-  <div class="seg ln-seg" style="margin:0 0 16px"><button id="lntab-dashboard" class="${LOAN_TAB==='dashboard'?'on':''}" onclick="setLoanTab('dashboard')">📊 Dashboard</button><button id="lntab-leads" class="${LOAN_TAB==='leads'?'on':''}" onclick="setLoanTab('leads')">📇 Leads</button><button id="lntab-reports" class="${LOAN_TAB==='reports'?'on':''}" onclick="setLoanTab('reports')">📄 Reports</button><button id="lntab-agents" class="${LOAN_TAB==='agents'?'on':''}" onclick="setLoanTab('agents')">🎧 Agents</button><button id="lntab-attendance" class="${LOAN_TAB==='attendance'?'on':''}" onclick="setLoanTab('attendance')">🗓 Attendance</button></div>
+  <div class="seg ln-seg" style="margin:0 0 16px"><button id="lntab-dashboard" class="${LOAN_TAB==='dashboard'?'on':''}" onclick="setLoanTab('dashboard')">📊 Dashboard</button><button id="lntab-leads" class="${LOAN_TAB==='leads'?'on':''}" onclick="setLoanTab('leads')">📇 Leads</button><button id="lntab-hot" class="${LOAN_TAB==='hot'?'on':''}" onclick="setLoanTab('hot')">🔥 Hot leads</button><button id="lntab-reports" class="${LOAN_TAB==='reports'?'on':''}" onclick="setLoanTab('reports')">📄 Reports</button><button id="lntab-agents" class="${LOAN_TAB==='agents'?'on':''}" onclick="setLoanTab('agents')">🎧 Agents</button><button id="lntab-attendance" class="${LOAN_TAB==='attendance'?'on':''}" onclick="setLoanTab('attendance')">🗓 Attendance</button></div>
   <div id="loan-pane"><div class="hint">Loading…</div></div></div>`;
   await loadLoanAgents(); await loadLoanLeads();
   drawLoanTab();
 }
 function setLoanTab(t){ LOAN_TAB=t; document.querySelectorAll('[id^="lntab-"]').forEach(b=>b.classList.remove("on")); const b=$("lntab-"+t); if(b)b.classList.add("on"); drawLoanTab(); }
-function drawLoanTab(){ if(LOAN_TAB==="agents") drawLoanAgents(); else if(LOAN_TAB==="leads") drawLoanLeads(); else if(LOAN_TAB==="reports") drawLoanReports(); else if(LOAN_TAB==="attendance") drawLoanAttendance(); else drawLoanDashboard(); }
+function drawLoanTab(){ if(LOAN_TAB==="agents") drawLoanAgents(); else if(LOAN_TAB==="leads") drawLoanLeads(); else if(LOAN_TAB==="hot") drawHotLeads(); else if(LOAN_TAB==="reports") drawLoanReports(); else if(LOAN_TAB==="attendance") drawLoanAttendance(); else drawLoanDashboard(); }
 
 // ---------- Agents ----------
 function drawLoanAgents(){
@@ -1946,6 +1946,34 @@ function drawLoanLeads(){
       <td>${l.callback_at?esc(fmtDate(l.callback_at)):"—"}</td>
       <td><button class="link-btn" onclick="openLoanEdit('${l.id}')">Open</button></td>
     </tr>`).join("")||'<tr><td colspan="9" class="hint">No leads match.</td></tr>'}</tbody></table></div></div>`;
+}
+function isHot(l){ return l.call_status==="Interested" || ["Interested","Documents collected","Applied","Approved","Disbursed"].indexOf(l.stage)>=0; }
+let HOT_F={agent:"",q:"",stage:""};
+function drawHotLeads(){
+  const el=$("loan-pane"); if(!el)return;
+  let rows=LOAN_LEADS.filter(isHot);
+  if(HOT_F.agent==="__none__") rows=rows.filter(function(l){return !l.assigned_to;}); else if(HOT_F.agent) rows=rows.filter(function(l){return l.assigned_to===HOT_F.agent;});
+  if(HOT_F.stage) rows=rows.filter(function(l){return l.stage===HOT_F.stage;});
+  if(HOT_F.q){ const q=HOT_F.q.toLowerCase(); rows=rows.filter(function(l){return ((l.name||"")+(l.phone||"")).toLowerCase().indexOf(q)>=0;}); }
+  const agentOpts=`<option value="">All agents</option><option value="__none__" ${HOT_F.agent==="__none__"?"selected":""}>Unassigned</option>`+LOAN_AGENTS.map(function(a){return `<option value="${a.id}" ${HOT_F.agent===a.id?"selected":""}>${esc(a.full_name)}</option>`;}).join("");
+  el.innerHTML=`<div class="card">
+    <div class="lead-bar" style="margin:0 0 10px"><h2 style="margin:0">🔥 Hot leads <span class="hint" style="font-weight:600">· ${rows.length} interested</span></h2></div>
+    <div class="row" style="gap:8px;flex-wrap:wrap">
+      <input class="inp" placeholder="🔍 Name or phone…" style="min-width:200px;flex:1" value="${esc(HOT_F.q)}" oninput="HOT_F.q=this.value;drawHotLeads()"/>
+      <select class="inp" style="max-width:170px" onchange="HOT_F.agent=this.value;drawHotLeads()">${agentOpts}</select>
+      <select class="inp" style="max-width:170px" onchange="HOT_F.stage=this.value;drawHotLeads()"><option value="">All stages</option>${LOAN_STAGES.map(function(x){return `<option ${HOT_F.stage===x?"selected":""}>${x}</option>`;}).join("")}</select>
+    </div>
+    <div class="table-wrap" style="margin-top:10px"><table class="lead-table"><thead><tr><th>Name</th><th>Phone</th><th>Agent</th><th>Call status</th><th>Stage</th><th>Loan</th><th>Callback</th><th></th></tr></thead>
+    <tbody>${rows.map(function(l){return `<tr>
+      <td><b>${esc(l.name||"—")}</b>${l.city?`<div class="hint">${esc(l.city)}</div>`:""}</td>
+      <td style="white-space:nowrap">${(ME.role==="admin"||REVEALED[l.id])?esc(REVEALED[l.id]||l.phone||""):`<span class="masked-ph">${esc(l.phone||"")}</span> <button class="btn btn-sm btn-ghost" style="padding:1px 7px;font-size:11px;margin:0" onclick="revealNumber('${l.id}')">🔓</button>`}</td>
+      <td>${l.assigned_to_name?esc(l.assigned_to_name):`<span class="hint">Unassigned</span>`}</td>
+      <td>${lnBadge(LOAN_CC,l.call_status)}</td>
+      <td>${lnBadge(LOAN_SC,l.stage)}</td>
+      <td>${l.stage==="Disbursed"?money(l.disbursed_amount||l.loan_amount):money(l.loan_amount)}</td>
+      <td>${l.callback_at?esc(fmtDate(l.callback_at)):"—"}</td>
+      <td><button class="link-btn" onclick="openLoanEdit('${l.id}')">Open</button></td>
+    </tr>`;}).join("")||'<tr><td colspan="8" class="hint">No hot leads yet — mark a lead as Interested to see it here.</td></tr>'}</tbody></table></div></div>`;
 }
 function filteredLoans(){
   return LOAN_LEADS.filter(l=>{
@@ -2241,7 +2269,7 @@ async function loadAgentLeads(){
 async function renderTelesales(){
   $("app-body").innerHTML=`<div class="loans"><div class="ln-hero"><div class="ln-hero-ic">🎧</div><div style="flex:1;min-width:0"><div class="ln-hero-t">${esc(ME.full_name||ME.email||"Agent")}</div><div class="ln-hero-s">Tele-sales agent · your assigned leads</div></div><button class="btn btn-sm btn-danger" style="width:auto;margin:0" onclick="attendanceLogout('Signed out')">⏻ Logout</button></div>
   <div class="ln-stats" id="agent-stats" style="margin-bottom:14px"></div>
-  <div class="seg ln-seg" style="margin:0 0 14px"><button id="atab-all" class="on" onclick="setAgentTab('all')">All</button><button id="atab-due" onclick="setAgentTab('due')">⏰ Callbacks due</button><button id="atab-new" onclick="setAgentTab('new')">🆕 New</button><button id="atab-interested" onclick="setAgentTab('interested')">🔥 Interested</button><button id="atab-rem" onclick="setAgentTab('rem')">🔔 Reminders</button></div>
+  <div class="seg ln-seg" style="margin:0 0 14px"><button id="atab-all" class="on" onclick="setAgentTab('all')">All</button><button id="atab-due" onclick="setAgentTab('due')">⏰ Callbacks due</button><button id="atab-new" onclick="setAgentTab('new')">🆕 New</button><button id="atab-interested" onclick="setAgentTab('interested')">🔥 Hot leads</button><button id="atab-rem" onclick="setAgentTab('rem')">🔔 Reminders</button></div>
   <div class="card"><input id="ag-q" class="inp" placeholder="🔍 Search name or phone…" oninput="drawAgentLeads()" style="margin-bottom:10px"/><div id="agent-list"><div class="hint">Loading…</div></div></div></div>`;
   await loadAgentLeads(); drawAgentStats(); drawAgentLeads();
 }
@@ -2263,7 +2291,7 @@ async function revealNumber(id){
   const {data,error}=await sb.rpc("cr_loan_reveal",{p_id:id});
   if(error){ toast(error.message||"Could not open the number.",true); return; }
   REVEALED[id]=data; toast("Number opened — the admin is notified of this.");
-  if(document.getElementById("le-remind")||document.getElementById("le-call")) openLoanEdit(id); else if(ME.role==="telesales") drawAgentLeads(); else if(typeof LOAN_TAB!=="undefined"&&LOAN_TAB==="leads"&&$("loan-pane")) drawLoanLeads();
+  if(document.getElementById("le-remind")||document.getElementById("le-call")) openLoanEdit(id); else if(ME.role==="telesales") drawAgentLeads(); else if(typeof LOAN_TAB!=="undefined"&&$("loan-pane")){ if(LOAN_TAB==="hot")drawHotLeads(); else if(LOAN_TAB==="leads")drawLoanLeads(); }
 }
 async function drawAgentReminders(){
   const el=$("agent-list"); if(!el)return; el.innerHTML=`<div class="hint">Loading…</div>`;
