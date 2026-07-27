@@ -848,6 +848,18 @@
   .ln-lead{transition:transform .15s,box-shadow .2s}
   .ln-lead:hover{transform:translateY(-2px);box-shadow:0 12px 26px rgba(0,0,0,.28)}
   .loans .scr-actions .btn-ok{text-decoration:none;display:inline-flex;align-items:center}
+  .ln-filter{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:9px 12px;margin-bottom:14px}
+  .an-mini td{padding:6px 8px;border:0;vertical-align:middle}
+  .an-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px;vertical-align:middle}
+  .an-bar{height:8px;background:var(--chip);border-radius:99px;overflow:hidden;min-width:80px}
+  .an-fill{height:100%;border-radius:99px;transition:width .3s}
+  .ln-rtypes{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px}
+  .ln-rtype{display:flex;align-items:center;gap:12px;background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:12px 14px;cursor:pointer;transition:.16s}
+  .ln-rtype:hover{border-color:var(--brand);transform:translateY(-2px)}
+  .ln-rtype.on{border-color:var(--brand);background:linear-gradient(135deg,color-mix(in srgb,var(--brand) 20%,var(--panel2)),var(--panel2));box-shadow:0 8px 22px -10px var(--brand)}
+  .ln-rt-ic{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;font-size:21px;background:var(--chip);flex:0 0 auto}
+  .ln-rt-n{font-weight:800;color:var(--txt);font-size:14px}
+  .ln-rt-d{font-size:11.5px;color:var(--muted);margin-top:2px}
 </style>
 </head>
 <body>
@@ -1751,13 +1763,13 @@ async function loadLoanLeads(){ const {data,error}=await sb.from("cr_loan_leads"
 async function renderAdminLoans(){
   $("admin-pane").innerHTML=`<div class="loans">
   <div class="ln-hero"><div class="ln-hero-ic">💰</div><div><div class="ln-hero-t">Loans — Tele-calling</div><div class="ln-hero-s">Import numbers, assign to agents, track every call &amp; loan disbursed.</div></div></div>
-  <div class="seg ln-seg" style="margin:0 0 16px"><button id="lntab-dashboard" class="${LOAN_TAB==='dashboard'?'on':''}" onclick="setLoanTab('dashboard')">📊 Dashboard</button><button id="lntab-leads" class="${LOAN_TAB==='leads'?'on':''}" onclick="setLoanTab('leads')">📇 Leads</button><button id="lntab-agents" class="${LOAN_TAB==='agents'?'on':''}" onclick="setLoanTab('agents')">🎧 Agents</button></div>
+  <div class="seg ln-seg" style="margin:0 0 16px"><button id="lntab-dashboard" class="${LOAN_TAB==='dashboard'?'on':''}" onclick="setLoanTab('dashboard')">📊 Dashboard</button><button id="lntab-leads" class="${LOAN_TAB==='leads'?'on':''}" onclick="setLoanTab('leads')">📇 Leads</button><button id="lntab-reports" class="${LOAN_TAB==='reports'?'on':''}" onclick="setLoanTab('reports')">📄 Reports</button><button id="lntab-agents" class="${LOAN_TAB==='agents'?'on':''}" onclick="setLoanTab('agents')">🎧 Agents</button></div>
   <div id="loan-pane"><div class="hint">Loading…</div></div></div>`;
   await loadLoanAgents(); await loadLoanLeads();
   drawLoanTab();
 }
 function setLoanTab(t){ LOAN_TAB=t; document.querySelectorAll('[id^="lntab-"]').forEach(b=>b.classList.remove("on")); const b=$("lntab-"+t); if(b)b.classList.add("on"); drawLoanTab(); }
-function drawLoanTab(){ if(LOAN_TAB==="agents") drawLoanAgents(); else if(LOAN_TAB==="leads") drawLoanLeads(); else drawLoanDashboard(); }
+function drawLoanTab(){ if(LOAN_TAB==="agents") drawLoanAgents(); else if(LOAN_TAB==="leads") drawLoanLeads(); else if(LOAN_TAB==="reports") drawLoanReports(); else drawLoanDashboard(); }
 
 // ---------- Agents ----------
 function drawLoanAgents(){
@@ -1898,9 +1910,19 @@ async function delLoanLead(id){ if(!confirm("Delete this lead?"))return; const {
 
 // ---------- Dashboard ----------
 let LN_CHARTS={};
+let LN_DF={agent:"",from:"",to:""};
+function loanDashSet(k,v){ LN_DF[k]=v; drawLoanDashboard(); }
+function loanDashData(){
+  return LOAN_LEADS.filter(l=>{
+    if(LN_DF.agent==="__none__"){ if(l.assigned_to)return false; } else if(LN_DF.agent && l.assigned_to!==LN_DF.agent) return false;
+    if(LN_DF.from && new Date(l.created_at) < new Date(LN_DF.from)) return false;
+    if(LN_DF.to){ const t=new Date(LN_DF.to); t.setHours(23,59,59); if(new Date(l.created_at)>t) return false; }
+    return true;
+  });
+}
 function drawLoanDashboard(){
   const el=$("loan-pane"); if(!el)return;
-  const L=LOAN_LEADS;
+  const L=loanDashData();
   const total=L.length, assigned=L.filter(l=>l.assigned_to).length, called=L.filter(l=>l.attempts>0).length, untouched=L.filter(l=>!l.attempts).length;
   const interested=L.filter(l=>l.call_status==="Interested").length;
   const disbursed=L.filter(l=>l.stage==="Disbursed");
@@ -1910,7 +1932,14 @@ function drawLoanDashboard(){
   const stageCounts=LOAN_STAGES.map(st=>L.filter(l=>l.stage===st).length);
   const board=LOAN_AGENTS.map(a=>{ const n=L.filter(l=>l.assigned_to===a.id); const c=n.filter(l=>l.attempts>0).length; const intr=n.filter(l=>l.call_status==="Interested").length; const dz=n.filter(l=>l.stage==="Disbursed"); const amt=dz.reduce((s,l)=>s+(Number(l.disbursed_amount||l.loan_amount)||0),0);
     return {name:a.full_name,leads:n.length,called:c,interested:intr,disb:dz.length,amt,conv:n.length?Math.round(dz.length/n.length*100):0}; }).sort((x,y)=>y.amt-x.amt||y.disb-x.disb);
+  const agOpts=`<option value="">All agents</option><option value="__none__" ${LN_DF.agent==="__none__"?"selected":""}>Unassigned</option>`+LOAN_AGENTS.map(a=>`<option value="${a.id}" ${LN_DF.agent===a.id?"selected":""}>${esc(a.full_name)}</option>`).join("");
   el.innerHTML=`
+  <div class="ln-filter"><span class="hint" style="font-weight:800">Filter</span>
+    <select class="inp" style="max-width:180px" onchange="loanDashSet('agent',this.value)">${agOpts}</select>
+    <input type="date" class="inp" style="max-width:150px" value="${LN_DF.from}" onchange="loanDashSet('from',this.value)"/>
+    <input type="date" class="inp" style="max-width:150px" value="${LN_DF.to}" onchange="loanDashSet('to',this.value)"/>
+    ${(LN_DF.agent||LN_DF.from||LN_DF.to)?`<button class="btn btn-sm btn-ghost" style="width:auto;margin:0" onclick="LN_DF={agent:\'\',from:\'\',to:\'\'};drawLoanDashboard()">Clear</button>`:""}
+  </div>
   <div class="ln-stats" style="margin-bottom:14px">
     ${lnStat("📇","#8e7cff",total,"Total leads")}
     ${lnStat("🎧","#22d3ee",assigned,"Assigned")}
@@ -1924,7 +1953,13 @@ function drawLoanDashboard(){
   </div>
   <div class="grid2" style="gap:14px">
     <div class="card"><h2 style="margin:0 0 8px;font-size:15px">Loan pipeline</h2><div style="position:relative;height:230px"><canvas id="ln-funnel"></canvas></div></div>
+    <div class="card"><h2 style="margin:0 0 8px;font-size:15px">Call status split</h2><div style="position:relative;height:230px"><canvas id="ln-pie"></canvas></div></div>
     <div class="card"><h2 style="margin:0 0 8px;font-size:15px">Disbursed by agent</h2><div style="position:relative;height:230px"><canvas id="ln-agentamt"></canvas></div></div>
+    <div class="card"><h2 style="margin:0 0 8px;font-size:15px">Loan stage split</h2><div style="position:relative;height:230px"><canvas id="ln-stagepie"></canvas></div></div>
+  </div>
+  <div class="grid2" style="gap:14px;margin-top:14px">
+    <div class="card"><h2 style="margin:0 0 6px;font-size:15px">Call status breakdown</h2>${anTable(LOAN_CALL.map(x=>[x,L.filter(l=>l.call_status===x).length]),L.length,LOAN_CC)}</div>
+    <div class="card"><h2 style="margin:0 0 6px;font-size:15px">Loan pipeline breakdown</h2>${anTable(LOAN_STAGES.map(x=>[x,L.filter(l=>l.stage===x).length]),L.length,LOAN_SC)}</div>
   </div>
   <div class="card" style="margin-top:14px"><h2 style="margin:0 0 6px;font-size:15px">Agent performance</h2>
     <div class="table-wrap"><table class="lead-table"><thead><tr><th>Agent</th><th class="num">Leads</th><th class="num">Called</th><th class="num">Interested</th><th class="num">Disbursed</th><th class="num">Amount</th><th class="num">Conv%</th></tr></thead>
@@ -1932,6 +1967,81 @@ function drawLoanDashboard(){
   </div>`;
   try{ if(LN_CHARTS.f)LN_CHARTS.f.destroy(); LN_CHARTS.f=new Chart($("ln-funnel"),{type:"bar",data:{labels:LOAN_STAGES,datasets:[{data:stageCounts,backgroundColor:LOAN_STAGES.map(s=>LOAN_SC[s]),borderRadius:5,maxBarThickness:26}]},options:{indexAxis:"y",plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,ticks:{precision:0}}}}}); }catch(_){ }
   try{ if(LN_CHARTS.a)LN_CHARTS.a.destroy(); LN_CHARTS.a=new Chart($("ln-agentamt"),{type:"bar",data:{labels:board.map(b=>b.name),datasets:[{data:board.map(b=>b.amt),backgroundColor:"#22c55e",borderRadius:5,maxBarThickness:26}]},options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}}); }catch(_){ }
+  const ccL=LOAN_CALL.filter(x=>L.filter(l=>l.call_status===x).length); const ccV=ccL.map(x=>L.filter(l=>l.call_status===x).length);
+  try{ if(LN_CHARTS.p)LN_CHARTS.p.destroy(); LN_CHARTS.p=new Chart($("ln-pie"),{type:"pie",data:{labels:ccL,datasets:[{data:ccV,backgroundColor:ccL.map(x=>LOAN_CC[x]),borderColor:"rgba(0,0,0,.25)",borderWidth:1}]},options:{plugins:{legend:{position:"right",labels:{boxWidth:10,boxHeight:10,padding:8,font:{size:11}}}}}}); }catch(_){ }
+  const sgL=LOAN_STAGES.filter(x=>L.filter(l=>l.stage===x).length); const sgV=sgL.map(x=>L.filter(l=>l.stage===x).length);
+  try{ if(LN_CHARTS.s)LN_CHARTS.s.destroy(); LN_CHARTS.s=new Chart($("ln-stagepie"),{type:"doughnut",data:{labels:sgL,datasets:[{data:sgV,backgroundColor:sgL.map(x=>LOAN_SC[x]),borderColor:"rgba(0,0,0,.25)",borderWidth:1}]},options:{cutout:"58%",plugins:{legend:{position:"right",labels:{boxWidth:10,boxHeight:10,padding:8,font:{size:11}}}}}}); }catch(_){ }
+}
+function anTable(rows,total,colors){
+  return `<div class="table-wrap"><table class="lead-table an-mini"><tbody>${rows.map(r=>{ const pct=total?Math.round(r[1]/total*100):0; const c=(colors&&colors[r[0]])||"#8e7cff";
+    return `<tr><td style="width:38%"><span class="an-dot" style="background:${c}"></span>${esc(r[0])}</td><td class="num" style="width:60px"><b>${r[1]}</b></td><td><div class="an-bar"><div class="an-fill" style="width:${pct}%;background:${c}"></div></div></td><td class="num" style="width:46px">${pct}%</td></tr>`; }).join("")}</tbody></table></div>`;
+}
+
+// ---------- Reports ----------
+let LN_R={type:"leads",agent:"",from:"",to:"",call:"",stage:""};
+function lnRSet(k,v){ LN_R[k]=v; drawLoanReports(); }
+function lnReportLeads(){
+  return LOAN_LEADS.filter(l=>{
+    if(LN_R.agent==="__none__"){ if(l.assigned_to)return false; } else if(LN_R.agent && l.assigned_to!==LN_R.agent) return false;
+    if(LN_R.call && l.call_status!==LN_R.call) return false;
+    if(LN_R.stage && l.stage!==LN_R.stage) return false;
+    if(LN_R.from && new Date(l.created_at) < new Date(LN_R.from)) return false;
+    if(LN_R.to){ const t=new Date(LN_R.to); t.setHours(23,59,59); if(new Date(l.created_at)>t) return false; }
+    return true;
+  });
+}
+function lnReportBuild(){
+  const L=lnReportLeads();
+  if(LN_R.type==="agents"){
+    const cols=["Agent","Leads","Called","Interested","Disbursed","Amount (INR)","Conv %"];
+    const rows=LOAN_AGENTS.map(a=>{ const n=L.filter(l=>l.assigned_to===a.id); const dz=n.filter(l=>l.stage==="Disbursed"); const amt=dz.reduce((s,l)=>s+(Number(l.disbursed_amount||l.loan_amount)||0),0);
+      return [a.full_name,n.length,n.filter(l=>l.attempts>0).length,n.filter(l=>l.call_status==="Interested").length,dz.length,amt,n.length?Math.round(dz.length/n.length*100):0]; }).sort((x,y)=>y[5]-x[5]);
+    return {cols,rows};
+  }
+  if(LN_R.type==="pipeline"){
+    const cols=["Stage","Leads","Loan value (INR)","Disbursed (INR)"];
+    const rows=LOAN_STAGES.map(st=>{ const n=L.filter(l=>l.stage===st); return [st,n.length,n.reduce((s,l)=>s+(Number(l.loan_amount)||0),0),n.reduce((s,l)=>s+(Number(l.disbursed_amount)||0),0)]; });
+    return {cols,rows};
+  }
+  const cols=["Name","Phone","City","Agent","Call status","Stage","Loan amount","Disbursed","Attempts","Callback","Last call","Remarks"];
+  const rows=L.map(l=>[l.name||"",l.phone||"",l.city||"",l.assigned_to_name||"",l.call_status||"",l.stage||"",l.loan_amount||"",l.disbursed_amount||"",l.attempts||0,l.callback_at?fmtDate(l.callback_at):"",l.last_call_at?fmtDate(l.last_call_at):"",(l.remarks||"").replace(/\n/g," ")]);
+  return {cols,rows};
+}
+function drawLoanReports(){
+  const el=$("loan-pane"); if(!el)return;
+  const agOpts=`<option value="">All agents</option><option value="__none__" ${LN_R.agent==="__none__"?"selected":""}>Unassigned</option>`+LOAN_AGENTS.map(a=>`<option value="${a.id}" ${LN_R.agent===a.id?"selected":""}>${esc(a.full_name)}</option>`).join("");
+  const rep=lnReportBuild();
+  const preview=rep.rows.slice(0,50);
+  el.innerHTML=`<div class="card">
+    <div class="lead-bar" style="margin:0 0 12px"><h2 style="margin:0">Generate report</h2></div>
+    <div class="ln-rtypes">
+      ${[["leads","📇","Leads detail","Every lead with full call & loan info"],["agents","🎧","Agent performance","Calls, conversions & amount per agent"],["pipeline","💰","Pipeline summary","Leads & value by loan stage"]].map(t=>`<div class="ln-rtype ${LN_R.type===t[0]?"on":""}" onclick="lnRSet('type','${t[0]}')"><div class="ln-rt-ic">${t[1]}</div><div><div class="ln-rt-n">${t[2]}</div><div class="ln-rt-d">${t[3]}</div></div></div>`).join("")}
+    </div>
+    <div class="row" style="gap:8px;flex-wrap:wrap;margin-top:14px">
+      <select class="inp" style="max-width:180px" onchange="lnRSet('agent',this.value)">${agOpts}</select>
+      ${LN_R.type==="leads"?`<select class="inp" style="max-width:160px" onchange="lnRSet('call',this.value)"><option value="">All call status</option>${LOAN_CALL.map(x=>`<option ${LN_R.call===x?"selected":""}>${x}</option>`).join("")}</select><select class="inp" style="max-width:160px" onchange="lnRSet('stage',this.value)"><option value="">All stages</option>${LOAN_STAGES.map(x=>`<option ${LN_R.stage===x?"selected":""}>${x}</option>`).join("")}</select>`:""}
+      <input type="date" class="inp" style="max-width:150px" value="${LN_R.from}" onchange="lnRSet('from',this.value)"/>
+      <input type="date" class="inp" style="max-width:150px" value="${LN_R.to}" onchange="lnRSet('to',this.value)"/>
+    </div>
+    <div class="row" style="gap:8px;margin-top:12px;flex-wrap:wrap">
+      <span class="hint" style="align-self:center">${rep.rows.length} row${rep.rows.length===1?"":"s"}</span>
+      <button class="btn btn-sm btn-ok" style="width:auto;margin:0" onclick="lnExport('xlsx')">⬇ Excel</button>
+      <button class="btn btn-sm btn-ghost" style="width:auto;margin:0" onclick="lnExport('csv')">⬇ CSV</button>
+      <button class="btn btn-sm btn-ghost" style="width:auto;margin:0" onclick="lnExport('pdf')">⬇ PDF</button>
+    </div>
+    <div class="table-wrap" style="margin-top:12px"><table class="lead-table"><thead><tr>${rep.cols.map(c=>`<th>${esc(c)}</th>`).join("")}</tr></thead><tbody>${preview.map(r=>`<tr>${r.map((c,ci)=>`<td>${(ci>0&&typeof c==="number")?`<span class="num">${(rep.cols[ci]||"").indexOf("INR")>=0||(rep.cols[ci]||"").indexOf("amount")>=0||(rep.cols[ci]||"").indexOf("Amount")>=0?money(c):c}</span>`:esc(String(c))}</td>`).join("")}</tr>`).join("")||`<tr><td colspan="${rep.cols.length}" class="hint">No data.</td></tr>`}</tbody></table></div>
+    ${rep.rows.length>50?`<div class="hint" style="margin-top:6px">Showing first 50 rows — export to get all ${rep.rows.length}.</div>`:""}
+  </div>`;
+}
+function lnReportTitle(){ return {leads:"Loan_Leads",agents:"Agent_Performance",pipeline:"Pipeline_Summary"}[LN_R.type]+"_"+new Date().toISOString().slice(0,10); }
+function lnExport(fmt){
+  const rep=lnReportBuild(); if(!rep.rows.length){toast("No data to export.",true);return;}
+  const name=lnReportTitle();
+  if(fmt==="xlsx"){ const objs=rep.rows.map(r=>{ const o={}; rep.cols.forEach((c,i)=>o[c]=r[i]); return o; }); const ws=XLSX.utils.json_to_sheet(objs); const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,"Report"); XLSX.writeFile(wb,name+".xlsx"); toast("Excel downloaded."); return; }
+  if(fmt==="csv"){ const esc2=v=>{ v=String(v==null?"":v); return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; }; const csv=[rep.cols.join(",")].concat(rep.rows.map(r=>r.map(esc2).join(","))).join("\n"); const b=new Blob([csv],{type:"text/csv"}); const a=document.createElement("a"); a.href=URL.createObjectURL(b); a.download=name+".csv"; a.click(); toast("CSV downloaded."); return; }
+  if(fmt==="pdf"){ const {jsPDF}=window.jspdf; const doc=new jsPDF({unit:"mm",format:"a4",orientation:LN_R.type==="leads"?"landscape":"portrait"}); doc.setFontSize(14); doc.text(name.replace(/_/g," "),14,16); doc.setFontSize(9); doc.setTextColor(120); doc.text("Generated "+new Date().toLocaleString(),14,22);
+    doc.autoTable({ startY:27, head:[rep.cols], body:rep.rows.map(r=>r.map(c=>String(c==null?"":c))), theme:"striped", headStyles:{fillColor:[124,58,237]}, styles:{fontSize:7.5,cellPadding:1.6} });
+    doc.save(name+".pdf"); toast("PDF downloaded."); return; }
 }
 
 // ===================== TELESALES AGENT VIEW =====================
