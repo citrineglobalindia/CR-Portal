@@ -1532,6 +1532,7 @@ async function boot(){
   try{ const bb=$("pm-bio"); if(bb) bb.style.display=(ME.role==="admin"&&bioSupported())?"":"none"; }catch(_){ }
   maybeBioLock();
   if(ME.role==="admin") renderAdmin(); else if(ME.role==="telesales") renderTelesales(); else if(ME.role==="manager") renderManager(); else renderClient();
+  if(ME.role==="telesales"||ME.role==="manager"){ try{ startAttendance(); }catch(_){ } }
   if(ME.role==="admin"){ try{ setupAssistant(); }catch(_){ } }
   startNotifPolling();
 }
@@ -1818,16 +1819,64 @@ async function loadLoanLeads(){
 }
 
 function renderManager(){ $("app-body").innerHTML=`<div id="admin-pane"></div>`; renderAdminLoans(); }
+let ATT_STARTED=false, ATT_TIMER=null, ATT_PING=null, _attLast=0; const ATT_IDLE_MS=15*60*1000;
+async function startAttendance(){
+  if(ATT_STARTED)return; ATT_STARTED=true;
+  try{ await sb.rpc("cr_attendance_checkin"); }catch(_){ }
+  ["mousemove","mousedown","keydown","touchstart","scroll","click"].forEach(function(ev){ window.addEventListener(ev,attActivity,{passive:true}); });
+  attResetIdle();
+  ATT_PING=setInterval(function(){ sb.rpc("cr_attendance_ping").catch(function(){}); },5*60*1000);
+}
+function attResetIdle(){ if(ATT_TIMER)clearTimeout(ATT_TIMER); ATT_TIMER=setTimeout(function(){ attendanceLogout("Auto logout — 15 min inactivity"); }, ATT_IDLE_MS); }
+function attActivity(){ const n=Date.now(); if(n-_attLast<2000)return; _attLast=n; attResetIdle(); }
+async function attendanceLogout(reason){
+  try{ if(ATT_TIMER)clearTimeout(ATT_TIMER); if(ATT_PING)clearInterval(ATT_PING); }catch(_){ }
+  try{ await sb.rpc("cr_attendance_checkout",{p_reason:reason||"Signed out"}); }catch(_){ }
+  try{ toast(reason&&reason.indexOf("Auto")===0?"Logged out — 15 min inactivity.":"Logged out. See you soon!"); }catch(_){ }
+  try{ await sb.auth.signOut(); }catch(_){ }
+  setTimeout(function(){ location.reload(); },400);
+}
+function attDur(r){ if(!r||!r.login_at)return "—"; const end=r.logout_at?new Date(r.logout_at):new Date(); const ms=end-new Date(r.login_at); if(ms<0)return "—"; const m=Math.floor(ms/60000); return Math.floor(m/60)+"h "+(m%60)+"m"; }
+let ATT_F={agent:"",from:"",to:""};
+function drawLoanAttendance(){
+  const el=$("loan-pane"); if(!el)return;
+  if(!ATT_F.to){ ATT_F.to=new Date().toISOString().slice(0,10); ATT_F.from=new Date(Date.now()-13*864e5).toISOString().slice(0,10); }
+  const agOpts=`<option value="">All agents (sessions)</option>`+LOAN_AGENTS.map(function(a){return `<option value="${a.id}" ${ATT_F.agent===a.id?"selected":""}>${esc(a.full_name)}</option>`;}).join("");
+  el.innerHTML=`<div class="card"><div class="lead-bar" style="margin:0 0 10px"><h2 style="margin:0">🗓 Attendance ledger</h2></div>
+    <div class="row" style="gap:8px;flex-wrap:wrap"><select class="inp" style="max-width:220px" onchange="ATT_F.agent=this.value;drawLoanAttendance()">${agOpts}</select><input type="date" class="inp" style="max-width:150px" value="${ATT_F.from}" onchange="ATT_F.from=this.value;drawLoanAttendance()"/><input type="date" class="inp" style="max-width:150px" value="${ATT_F.to}" onchange="ATT_F.to=this.value;drawLoanAttendance()"/></div>
+    <div id="att-body" style="margin-top:12px"><div class="hint">Loading…</div></div></div>`;
+  loadAttendance();
+}
+async function loadAttendance(){
+  const b=$("att-body"); if(!b)return;
+  let q=sb.from("cr_attendance").select("*").gte("work_date",ATT_F.from).lte("work_date",ATT_F.to).order("work_date",{ascending:false});
+  if(ATT_F.agent) q=q.eq("user_id",ATT_F.agent);
+  const {data,error}=await q; if(error){ b.innerHTML=`<div class="hint">${esc(error.message)}</div>`; return; }
+  const rows=data||[];
+  if(ATT_F.agent){
+    const map={}; rows.forEach(function(r){ map[r.work_date]=r; });
+    const days=[]; let d=new Date(ATT_F.to), start=new Date(ATT_F.from);
+    while(d>=start){ days.push(d.toISOString().slice(0,10)); d=new Date(d.getTime()-864e5); }
+    let present=0;
+    const trs=days.map(function(day){ const r=map[day]; const isP=!!(r&&r.login_at); if(isP)present++;
+      const online=r&&r.login_at&&!r.logout_at;
+      return `<tr><td style="white-space:nowrap">${esc(fmtDay(day))}</td><td>${isP?'<span class="badge" style="background:rgba(34,197,94,.15);color:#8ff0c8;border:1px solid rgba(34,197,94,.45)">Present</span>':'<span class="badge" style="background:rgba(255,91,107,.15);color:#ff9b9b;border:1px solid rgba(255,91,107,.45)">Absent</span>'}</td><td>${r&&r.login_at?esc(fmtTime(r.login_at)):"—"}</td><td>${r&&r.logout_at?esc(fmtTime(r.logout_at)):(online?'<span class="badge" style="background:rgba(34,197,94,.14);color:#8ff0c8;border:1px solid rgba(34,197,94,.4)">online</span>':"—")}</td><td>${attDur(r)}</td><td class="hint">${r&&r.logout_reason?esc(r.logout_reason):""}</td></tr>`;
+    }).join("");
+    b.innerHTML=`<div class="hint" style="margin-bottom:8px">Present <b>${present}</b> of ${days.length} day(s)</div><div class="table-wrap"><table class="lead-table"><thead><tr><th>Date</th><th>Status</th><th>Login</th><th>Logout</th><th>Duration</th><th>Note</th></tr></thead><tbody>${trs}</tbody></table></div>`;
+  } else {
+    b.innerHTML=`<div class="table-wrap"><table class="lead-table"><thead><tr><th>Date</th><th>Agent</th><th>Login</th><th>Logout</th><th>Duration</th></tr></thead><tbody>${rows.map(function(r){ const online=r.login_at&&!r.logout_at; return `<tr><td style="white-space:nowrap">${esc(fmtDay(r.work_date))}</td><td><b>${esc(r.user_name||"—")}</b></td><td>${r.login_at?esc(fmtTime(r.login_at)):"—"}</td><td>${r.logout_at?esc(fmtTime(r.logout_at)):(online?'<span class="badge" style="background:rgba(34,197,94,.14);color:#8ff0c8;border:1px solid rgba(34,197,94,.4)">online</span>':"—")}</td><td>${attDur(r)}</td></tr>`;}).join("")||'<tr><td colspan="5" class="hint">No attendance in this range.</td></tr>'}</tbody></table></div>`;
+  }
+}
 async function renderAdminLoans(){
   $("admin-pane").innerHTML=`<div class="loans">
-  <div class="ln-hero"><div class="ln-hero-ic">💰</div><div><div class="ln-hero-t">Loans — Tele-calling</div><div class="ln-hero-s">Import numbers, assign to agents, track every call &amp; loan disbursed.</div></div></div>
-  <div class="seg ln-seg" style="margin:0 0 16px"><button id="lntab-dashboard" class="${LOAN_TAB==='dashboard'?'on':''}" onclick="setLoanTab('dashboard')">📊 Dashboard</button><button id="lntab-leads" class="${LOAN_TAB==='leads'?'on':''}" onclick="setLoanTab('leads')">📇 Leads</button><button id="lntab-reports" class="${LOAN_TAB==='reports'?'on':''}" onclick="setLoanTab('reports')">📄 Reports</button><button id="lntab-agents" class="${LOAN_TAB==='agents'?'on':''}" onclick="setLoanTab('agents')">🎧 Agents</button></div>
+  <div class="ln-hero"><div class="ln-hero-ic">💰</div><div style="flex:1;min-width:0"><div class="ln-hero-t">Loans — Tele-calling</div><div class="ln-hero-s">Import numbers, assign to agents, track every call &amp; loan disbursed.</div></div>${ME.role==="manager"?`<button class="btn btn-sm btn-danger" style="width:auto;margin:0" onclick="attendanceLogout('Signed out')">⏻ Logout</button>`:""}</div>
+  <div class="seg ln-seg" style="margin:0 0 16px"><button id="lntab-dashboard" class="${LOAN_TAB==='dashboard'?'on':''}" onclick="setLoanTab('dashboard')">📊 Dashboard</button><button id="lntab-leads" class="${LOAN_TAB==='leads'?'on':''}" onclick="setLoanTab('leads')">📇 Leads</button><button id="lntab-reports" class="${LOAN_TAB==='reports'?'on':''}" onclick="setLoanTab('reports')">📄 Reports</button><button id="lntab-agents" class="${LOAN_TAB==='agents'?'on':''}" onclick="setLoanTab('agents')">🎧 Agents</button><button id="lntab-attendance" class="${LOAN_TAB==='attendance'?'on':''}" onclick="setLoanTab('attendance')">🗓 Attendance</button></div>
   <div id="loan-pane"><div class="hint">Loading…</div></div></div>`;
   await loadLoanAgents(); await loadLoanLeads();
   drawLoanTab();
 }
 function setLoanTab(t){ LOAN_TAB=t; document.querySelectorAll('[id^="lntab-"]').forEach(b=>b.classList.remove("on")); const b=$("lntab-"+t); if(b)b.classList.add("on"); drawLoanTab(); }
-function drawLoanTab(){ if(LOAN_TAB==="agents") drawLoanAgents(); else if(LOAN_TAB==="leads") drawLoanLeads(); else if(LOAN_TAB==="reports") drawLoanReports(); else drawLoanDashboard(); }
+function drawLoanTab(){ if(LOAN_TAB==="agents") drawLoanAgents(); else if(LOAN_TAB==="leads") drawLoanLeads(); else if(LOAN_TAB==="reports") drawLoanReports(); else if(LOAN_TAB==="attendance") drawLoanAttendance(); else drawLoanDashboard(); }
 
 // ---------- Agents ----------
 function drawLoanAgents(){
@@ -2164,7 +2213,7 @@ async function loadAgentLeads(){
   AGENT_LEADS=all; return AGENT_LEADS;
 }
 async function renderTelesales(){
-  $("app-body").innerHTML=`<div class="loans"><div class="ln-hero"><div class="ln-hero-ic">🎧</div><div><div class="ln-hero-t">${esc(ME.full_name||ME.email||"Agent")}</div><div class="ln-hero-s">Tele-sales agent · your assigned leads</div></div></div>
+  $("app-body").innerHTML=`<div class="loans"><div class="ln-hero"><div class="ln-hero-ic">🎧</div><div style="flex:1;min-width:0"><div class="ln-hero-t">${esc(ME.full_name||ME.email||"Agent")}</div><div class="ln-hero-s">Tele-sales agent · your assigned leads</div></div><button class="btn btn-sm btn-danger" style="width:auto;margin:0" onclick="attendanceLogout('Signed out')">⏻ Logout</button></div>
   <div class="ln-stats" id="agent-stats" style="margin-bottom:14px"></div>
   <div class="seg ln-seg" style="margin:0 0 14px"><button id="atab-all" class="on" onclick="setAgentTab('all')">All</button><button id="atab-due" onclick="setAgentTab('due')">⏰ Callbacks due</button><button id="atab-new" onclick="setAgentTab('new')">🆕 New</button><button id="atab-interested" onclick="setAgentTab('interested')">🔥 Interested</button><button id="atab-rem" onclick="setAgentTab('rem')">🔔 Reminders</button></div>
   <div class="card"><input id="ag-q" class="inp" placeholder="🔍 Search name or phone…" oninput="drawAgentLeads()" style="margin-bottom:10px"/><div id="agent-list"><div class="hint">Loading…</div></div></div></div>`;
