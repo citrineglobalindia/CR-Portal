@@ -848,6 +848,8 @@
   .ln-lead{transition:transform .15s,box-shadow .2s}
   .ln-lead:hover{transform:translateY(-2px);box-shadow:0 12px 26px rgba(0,0,0,.28)}
   .loans .scr-actions .btn-ok{text-decoration:none;display:inline-flex;align-items:center}
+  .dist-ags{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+  .dist-chk{display:flex;align-items:center;gap:8px;background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:8px 10px;font-size:13px;cursor:pointer}
   .rem-row{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:7px 10px;border:1px solid var(--line);border-radius:9px;margin-bottom:6px;font-size:12.5px}
   .rem-row.due{border-color:rgba(255,91,107,.5);background:rgba(255,91,107,.08)}
   .rem-due td{background:rgba(255,91,107,.08)}
@@ -1917,7 +1919,7 @@ function drawLoanLeads(){
   const rows=filteredLoans();
   const agentOpts=`<option value="">All agents</option><option value="__none__">Unassigned</option>`+LOAN_AGENTS.map(a=>`<option value="${a.id}" ${LOAN_F.agent===a.id?"selected":""}>${esc(a.full_name)}</option>`).join("");
   el.innerHTML=`<div class="card">
-    <div class="lead-bar" style="margin:0 0 10px"><h2 style="margin:0">Leads <span class="hint" style="font-weight:600">· ${rows.length} of ${LOAN_LEADS.length}</span></h2><button class="btn btn-sm btn-ok" onclick="openLoanImport()">⬆ Import numbers</button></div>
+    <div class="lead-bar" style="margin:0 0 10px"><h2 style="margin:0">Leads <span class="hint" style="font-weight:600">· ${rows.length} of ${LOAN_LEADS.length}</span></h2><div class="row" style="margin:0;gap:8px">${ME.role==="admin"?`<button class="btn btn-sm btn-ok" style="width:auto;margin:0" onclick="openDistribute()">🔀 Distribute</button><button class="btn btn-sm btn-ghost" style="width:auto;margin:0" onclick="openLoanImport()">⬆ Import</button>`:""}</div></div>
     <div class="row" style="gap:8px;flex-wrap:wrap">
       <input id="lf-q" class="inp" placeholder="🔍 Name or phone…" style="min-width:200px;flex:1" value="${esc(LOAN_F.q)}" oninput="LOAN_F.q=this.value;drawLoanLeads()"/>
       <select class="inp" style="max-width:170px" onchange="LOAN_F.agent=this.value;drawLoanLeads()">${agentOpts}</select>
@@ -1966,6 +1968,30 @@ async function assignLoans(){
   if(error){toast(error.message,true);return;}
   toast(LOAN_SEL.size+" lead(s) assigned to "+(ag?ag.full_name:"agent")+".");
   LOAN_SEL.clear(); await loadLoanLeads(); drawLoanLeads();
+}
+function openDistribute(){
+  const un=LOAN_LEADS.filter(function(l){return !l.assigned_to;}).length;
+  $("modal-root").innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()"><div class="modal" style="max-width:460px"><div class="mh"><h2 style="margin:0">🔀 Distribute leads</h2><button class="x" onclick="closeModal()">×</button></div><div class="mb">
+    <div class="ba-note" style="border-color:#22c55e55">Unassigned leads available: <b>${un}</b></div>
+    <label style="margin-top:10px">How many to distribute <span class="hint">(blank = all ${un})</span></label>
+    <input id="dist-n" class="inp" type="number" min="1" placeholder="${un}"/>
+    <label style="margin-top:10px">Distribute evenly to</label>
+    <div class="dist-ags">${LOAN_AGENTS.length?LOAN_AGENTS.map(function(a){return `<label class="dist-chk"><input type="checkbox" class="dist-ag" value="${a.id}" data-name="${esc(a.full_name)}" checked> ${esc(a.full_name)}</label>`;}).join(""):'<div class="hint">No agents yet — add agents first.</div>'}</div>
+    <div class="row" style="margin-top:14px"><button class="btn btn-sm btn-ok" id="dist-btn" onclick="doDistribute()">🔀 Distribute evenly</button><button class="btn btn-sm btn-ghost" onclick="closeModal()">Cancel</button></div>
+    <div class="hint" style="margin-top:8px">Leads are split round-robin across the selected agents. Managers &amp; tele-callers only see leads once assigned.</div>
+  </div></div></div>`;
+}
+async function doDistribute(){
+  const ags=[].slice.call(document.querySelectorAll(".dist-ag:checked")).map(function(c){return {id:c.value,name:c.getAttribute("data-name")};});
+  if(!ags.length){toast("Select at least one agent.",true);return;}
+  let un=LOAN_LEADS.filter(function(l){return !l.assigned_to;});
+  const nv=parseInt(($("dist-n").value||"").trim(),10); if(nv>0) un=un.slice(0,nv);
+  if(!un.length){toast("No unassigned leads to distribute.",true);return;}
+  const btn=$("dist-btn"); if(btn){btn.disabled=true;btn.textContent="Distributing…";}
+  const groups={}; un.forEach(function(l,i){ const a=ags[i%ags.length]; (groups[a.id]||(groups[a.id]=[])).push(l.id); });
+  const now=new Date().toISOString(); const uid=(SESSION&&SESSION.user)?SESSION.user.id:null;
+  for(const a of ags){ const ids=groups[a.id]||[]; for(let i=0;i<ids.length;i+=400){ const {error}=await sb.from("cr_loan_leads").update({assigned_to:a.id,assigned_to_name:a.name,assigned_by:uid,assigned_at:now,updated_at:now}).in("id",ids.slice(i,i+400)); if(error){toast(error.message,true); if(btn){btn.disabled=false;btn.textContent="🔀 Distribute evenly";} return;} } }
+  toast(un.length+" lead(s) distributed across "+ags.length+" agent(s)."); closeModal(); await loadLoanLeads(); drawLoanLeads();
 }
 function openLoanImport(){
   $("modal-root").innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()"><div class="modal" style="max-width:560px"><div class="mh"><h2 style="margin:0">⬆ Import numbers</h2><button class="x" onclick="closeModal()">×</button></div><div class="mb">
