@@ -1158,8 +1158,22 @@ async function doLogin(){
   try{ const {data}=await sb.rpc("cr_resolve_login",{identifier:idv}); if(data) email=data; }catch(_){}
   if(!email){ email = idv.includes("@") ? idv : `${slugify(idv)}@${CLIENT_LOGIN_DOMAIN}`; }
   const {error}=await sb.auth.signInWithPassword({email,password:pass});
+  if(error){ $("li-btn").disabled=false; $("li-btn").textContent="Log in"; authMsg("Invalid username/email or password.");return;}
+  // Managers & tele-callers must use email OTP, not a password
+  try{
+    const {data:ures}=await sb.auth.getUser();
+    const uid=ures&&ures.user?ures.user.id:null;
+    if(uid){ const {data:prof}=await sb.from("cr_profiles").select("role").eq("id",uid).maybeSingle();
+      if(prof&&(prof.role==="manager"||prof.role==="telesales")){
+        await sb.auth.signOut();
+        $("li-btn").disabled=false; $("li-btn").textContent="Log in";
+        authMsg("Managers and tele-callers sign in with email OTP. Tap “Sign in with email OTP” below.");
+        OTP_EMAIL=email; openOtpLogin();
+        return;
+      }
+    }
+  }catch(_){ }
   $("li-btn").disabled=false; $("li-btn").textContent="Log in";
-  if(error){authMsg("Invalid username/email or password.");return;}
   await boot();
 }
 async function doSetup(){
