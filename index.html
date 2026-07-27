@@ -1865,7 +1865,7 @@ async function assignLoans(){
 }
 function openLoanImport(){
   $("modal-root").innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()"><div class="modal" style="max-width:560px"><div class="mh"><h2 style="margin:0">⬆ Import numbers</h2><button class="x" onclick="closeModal()">×</button></div><div class="mb">
-    <div class="hint" style="margin-bottom:8px">Paste rows or choose a CSV. Columns: <b>name, phone, city, source, note</b> (only phone is required). A header row is auto-detected.</div>
+    <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px"><span class="hint">Paste rows or choose a CSV. Columns: <b>name, phone, city, source, note</b> (only phone is required). A header row is auto-detected.</span><button class="btn btn-sm btn-ghost" style="width:auto;margin:0;white-space:nowrap" onclick="downloadLoanSample()">⬇ Sample CSV</button></div>
     <input id="li-file" class="inp" type="file" accept=".csv,text/csv,text/plain" onchange="loanFileToBox(this)"/>
     <textarea id="li-text" class="inp" rows="8" style="margin-top:8px;font-family:monospace" placeholder="Ramesh, 9876543210, Pune, FB\nSuresh, 9876500000"></textarea>
     <label style="margin-top:10px">Batch name <span class="hint">(optional)</span></label><input id="li-batch" class="inp" placeholder="e.g. July FB leads"/>
@@ -1874,6 +1874,10 @@ function openLoanImport(){
 }
 function loanFileToBox(inp){ const f=inp.files&&inp.files[0]; if(!f)return; const r=new FileReader(); r.onload=()=>{ $("li-text").value=r.result; }; r.readAsText(f); }
 function parseCsvLine(line){ const out=[]; let cur="",q=false; for(let i=0;i<line.length;i++){ const ch=line[i]; if(ch==='"'){ if(q&&line[i+1]==='"'){cur+='"';i++;} else q=!q; } else if(ch===','&&!q){ out.push(cur.trim()); cur=""; } else cur+=ch; } out.push(cur.trim()); return out; }
+function downloadLoanSample(){
+  const csv="name,phone,city,source,note\nRamesh Kumar,9876543210,Pune,Facebook,Interested in personal loan\nSuresh Patel,9812345678,Ahmedabad,Website,Call after 6pm\nPriya Sharma,9900011122,Mumbai,Referral,\n";
+  const b=new Blob([csv],{type:"text/csv"}); const a=document.createElement("a"); a.href=URL.createObjectURL(b); a.download="loan_leads_sample.csv"; a.click(); toast("Sample CSV downloaded.");
+}
 async function doLoanImport(){
   const raw=($("li-text").value||"").trim(); if(!raw){toast("Paste some rows or choose a file.",true);return;}
   const batch=($("li-batch").value||"").trim()||null;
