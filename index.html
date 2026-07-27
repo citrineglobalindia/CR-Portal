@@ -1764,7 +1764,7 @@ function isToday(d){ if(!d)return false; const x=new Date(d),n=new Date(); retur
 
 async function loadLoanAgents(){ try{ const j=await callFn("loans-agents",{action:"list"}); LOAN_AGENTS=j.agents||[]; }catch(e){ LOAN_AGENTS=[]; } return LOAN_AGENTS; }
 async function loadLoanLeads(){
-  const tbl=(ME.role==="manager")?"cr_loan_leads":"cr_loan_leads_agent";
+  const tbl=(ME.role==="admin")?"cr_loan_leads":"cr_loan_leads_agent";
   let all=[],from=0; const size=1000;
   while(true){ const {data,error}=await sb.from(tbl).select("*").order("created_at",{ascending:false}).range(from,from+size-1); if(error){toast(error.message,true);break;} all=all.concat(data||[]); if(!data||data.length<size)break; from+=size; }
   LOAN_LEADS=all; return LOAN_LEADS;
@@ -1907,7 +1907,7 @@ async function doLoanImport(){
 function openLoanEdit(id){
   const l=(LOAN_LEADS.find(x=>x.id===id))||(AGENT_LEADS.find(x=>x.id===id)); if(!l)return;
   const isAdmin=ME.role==="admin";
-  $("modal-root").innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()"><div class="modal" style="max-width:520px"><div class="mh"><div style="min-width:0"><h2 style="margin:0">${esc(l.name||l.phone)}</h2><div class="hint">${(ME.role==="manager"||REVEALED[l.id])?`<a href="tel:${esc(REVEALED[l.id]||l.phone)}" style="color:var(--brand2)">📞 ${esc(REVEALED[l.id]||l.phone)}</a>`:`<span class="masked-ph">📞 ${esc(l.phone)}</span> ${(ME.role!=="admin"&&l.call_status==="Not interested")?"🔒":`<button class="btn btn-sm btn-ghost" style="padding:2px 8px;font-size:11px" onclick="revealNumber('${l.id}')">🔓 Reveal</button>`}`}${l.city?" · "+esc(l.city):""}${l.assigned_to_name?" · 🎧 "+esc(l.assigned_to_name):""}</div></div><button class="x" onclick="closeModal()">×</button></div><div class="mb">
+  $("modal-root").innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()"><div class="modal" style="max-width:520px"><div class="mh"><div style="min-width:0"><h2 style="margin:0">${esc(l.name||l.phone)}</h2><div class="hint">${(ME.role==="admin"||REVEALED[l.id])?`<a href="tel:${esc(REVEALED[l.id]||l.phone)}" style="color:var(--brand2)">📞 ${esc(REVEALED[l.id]||l.phone)}</a>`:`<span class="masked-ph">📞 ${esc(l.phone)}</span> ${(ME.role==="telesales"&&l.call_status==="Not interested")?"🔒":`<button class="btn btn-sm btn-ghost" style="padding:2px 8px;font-size:11px" onclick="revealNumber('${l.id}')">🔓 Reveal</button>`}`}${l.city?" · "+esc(l.city):""}${l.assigned_to_name?" · 🎧 "+esc(l.assigned_to_name):""}</div></div><button class="x" onclick="closeModal()">×</button></div><div class="mb">
     ${(ME.role==="admin"||ME.role==="manager"||!l.name)?`<label>Name${!l.name?` <span class="hint">— not saved yet, you can add it</span>`:""}</label><input id="le-name" class="inp" value="${esc(l.name||"")}" placeholder="Contact name" style="margin-bottom:10px"/>`:""}
     <div class="grid2">
       <div><label>Call status</label><select id="le-call" class="inp">${LOAN_CALL.map(x=>`<option ${l.call_status===x?"selected":""}>${x}</option>`).join("")}</select></div>
@@ -1957,9 +1957,19 @@ async function loadDashReminders(){
   const {data}=await sb.from("cr_loan_reminders").select("*").eq("done",false).order("remind_at").limit(100);
   const rem=data||[]; if(!rem.length){ c.innerHTML='<div class="hint">No upcoming reminders.</div>'; return; }
   const ids=[...new Set(rem.map(r=>r.lead_id))];
-  const {data:leads}=await sb.from((ME.role==="manager")?"cr_loan_leads":"cr_loan_leads_agent").select("id,name,phone,assigned_to_name").in("id",ids);
+  const {data:leads}=await sb.from((ME.role==="admin")?"cr_loan_leads":"cr_loan_leads_agent").select("id,name,phone,assigned_to_name").in("id",ids);
   const lm={}; (leads||[]).forEach(l=>lm[l.id]=l);
   c.innerHTML=`<div class="table-wrap"><table class="lead-table"><thead><tr><th>When</th><th>Lead</th><th>Phone</th><th>Agent</th><th>Note</th><th></th></tr></thead><tbody>${rem.map(r=>{const l=lm[r.lead_id]||{};const due=new Date(r.remind_at)<=new Date();return `<tr class="${due?'rem-due':''}"><td style="white-space:nowrap">${due?'⏰ ':'🔔 '}${esc(fmtDate(r.remind_at))}</td><td><b>${esc(l.name||"—")}</b></td><td>${esc(l.phone||"")}</td><td>${esc(r.agent_name||l.assigned_to_name||"")}</td><td>${esc(r.note||"")}</td><td style="white-space:nowrap"><button class="link-btn" onclick="openLoanEdit('${r.lead_id}')">Open</button> <button class="link-btn" onclick="doneReminder('${r.id}','${r.lead_id}')">✓</button></td></tr>`;}).join("")}</tbody></table></div>`;
+}
+async function loadUnmaskAudit(){
+  const c=$("ln-audit-list"); if(!c)return;
+  let all=[],from=0; const size=1000;
+  while(true){ const {data,error}=await sb.from("cr_loan_activity").select("agent_id,agent_name,created_at").eq("action","reveal").order("created_at",{ascending:false}).range(from,from+size-1); if(error){c.innerHTML=`<div class="hint">${esc(error.message)}</div>`;return;} all=all.concat(data||[]); if(!data||data.length<size)break; from+=size; if(from>=5000)break; }
+  if(!all.length){ c.innerHTML='<div class="hint">No numbers unmasked yet.</div>'; return; }
+  const by={}; all.forEach(a=>{ const k=a.agent_name||a.agent_id||"—"; if(!by[k])by[k]={n:0,last:a.created_at}; by[k].n++; if(a.created_at>by[k].last)by[k].last=a.created_at; });
+  const rows=Object.entries(by).sort((x,y)=>y[1].n-x[1].n);
+  const total=all.length;
+  c.innerHTML=`<div class="hint" style="margin-bottom:8px">Total unmasks: <b>${total}</b></div><div class="table-wrap"><table class="lead-table"><thead><tr><th>User</th><th class="num">Times unmasked</th><th>Last unmask</th></tr></thead><tbody>${rows.map(r=>`<tr><td><b>${esc(r[0])}</b></td><td class="num"><span class="rev-badge">👁 ${r[1].n}</span></td><td>${esc(fmtDate(r[1].last))}</td></tr>`).join("")}</tbody></table></div>`;
 }
 let LN_DF={agent:"",from:"",to:""};
 function loanDashSet(k,v){ LN_DF[k]=v; drawLoanDashboard(); }
@@ -2008,6 +2018,7 @@ function drawLoanDashboard(){
     <div class="card"><h2 style="margin:0 0 8px;font-size:15px">Disbursed by agent</h2><div style="position:relative;height:230px"><canvas id="ln-agentamt"></canvas></div></div>
     <div class="card"><h2 style="margin:0 0 8px;font-size:15px">Loan stage split</h2><div style="position:relative;height:230px"><canvas id="ln-stagepie"></canvas></div></div>
   </div>
+  <div class="card" style="margin-top:14px"><h2 style="margin:0 0 6px;font-size:15px">🔓 Unmask audit <span class="hint" style="font-weight:600">— who opened masked numbers &amp; how many times</span></h2><div id="ln-audit-list"><div class="hint">Loading…</div></div></div>
   <div class="card" style="margin-top:14px"><h2 style="margin:0 0 6px;font-size:15px">🔔 Upcoming reminders <span class="hint" style="font-weight:600">— set by tele-callers</span></h2><div id="ln-rem-list"><div class="hint">Loading…</div></div></div>
   <div class="grid2" style="gap:14px;margin-top:14px">
     <div class="card"><h2 style="margin:0 0 6px;font-size:15px">Call status breakdown</h2>${anTable(LOAN_CALL.map(x=>[x,L.filter(l=>l.call_status===x).length]),L.length,LOAN_CC)}</div>
@@ -2022,7 +2033,7 @@ function drawLoanDashboard(){
   const ccL=LOAN_CALL.filter(x=>L.filter(l=>l.call_status===x).length); const ccV=ccL.map(x=>L.filter(l=>l.call_status===x).length);
   try{ if(LN_CHARTS.p)LN_CHARTS.p.destroy(); LN_CHARTS.p=new Chart($("ln-pie"),{type:"pie",data:{labels:ccL,datasets:[{data:ccV,backgroundColor:ccL.map(x=>LOAN_CC[x]),borderColor:"rgba(0,0,0,.25)",borderWidth:1}]},options:{plugins:{legend:{position:"right",labels:{boxWidth:10,boxHeight:10,padding:8,font:{size:11}}}}}}); }catch(_){ }
   const sgL=LOAN_STAGES.filter(x=>L.filter(l=>l.stage===x).length); const sgV=sgL.map(x=>L.filter(l=>l.stage===x).length);
-  loadDashReminders();
+  loadDashReminders(); loadUnmaskAudit();
   try{ if(LN_CHARTS.s)LN_CHARTS.s.destroy(); LN_CHARTS.s=new Chart($("ln-stagepie"),{type:"doughnut",data:{labels:sgL,datasets:[{data:sgV,backgroundColor:sgL.map(x=>LOAN_SC[x]),borderColor:"rgba(0,0,0,.25)",borderWidth:1}]},options:{cutout:"58%",plugins:{legend:{position:"right",labels:{boxWidth:10,boxHeight:10,padding:8,font:{size:11}}}}}}); }catch(_){ }
 }
 function anTable(rows,total,colors){
