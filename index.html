@@ -1433,12 +1433,12 @@ async function boot(){
   $("auth-view").classList.add("hidden");
   $("app-view").classList.remove("hidden");
   $("who-name").textContent=ME.company||ME.full_name||ME.username||ME.email;
-  $("who-role").textContent=ME.role==="admin"?"ADMIN":"CLIENT";
+  $("who-role").textContent=(ME.role||"client").toUpperCase();
   $("who-role").className="pill"+(ME.role==="admin"?" admin":"");
   renderAvatar();
   try{ const bb=$("pm-bio"); if(bb) bb.style.display=(ME.role==="admin"&&bioSupported())?"":"none"; }catch(_){ }
   maybeBioLock();
-  if(ME.role==="admin") renderAdmin(); else renderClient();
+  if(ME.role==="admin") renderAdmin(); else if(ME.role==="telesales") renderTelesales(); else renderClient();
   if(ME.role==="admin"){ try{ setupAssistant(); }catch(_){ } }
   startNotifPolling();
 }
@@ -1689,6 +1689,7 @@ function renderAdmin(){
         <button id="nt-home" class="navside ${ADMIN_TAB==='dashboard'?'active':''}" onclick="setAdminTab('dashboard')"><span><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg></span> Dashboard</button>
         <button id="nt-crs" class="navside ${ADMIN_TAB==='crs'?'active':''}" onclick="setAdminTab('crs')"><span><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="3" width="8" height="4" rx="1"/><path d="M9 5H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-3"/><path d="M8 12h8M8 16h6"/></svg></span> Change Requests</button>
         <button id="nt-leads" class="navside ${ADMIN_TAB==='leads'?'active':''}" onclick="setAdminTab('leads')"><span><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.6"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></span> Leads</button>
+        <button id="nt-loans" class="navside ${ADMIN_TAB==='loans'?'active':''}" onclick="setAdminTab('loans')"><span><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M14.5 9.3c-.5-.8-1.5-1.3-2.6-1.3-1.5 0-2.6.8-2.6 1.9 0 2.6 5.4 1.3 5.4 4 0 1.1-1.2 2-2.8 2-1.2 0-2.2-.5-2.7-1.3M12 6.2v1.8M12 16v1.8"/></svg></span> Loans</button>
         <button id="nt-projects" class="navside ${ADMIN_TAB==='projects'?'active':''}" onclick="setAdminTab('projects')"><span><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></span> Projects</button>
         <button id="nt-clients" class="navside ${ADMIN_TAB==='clients'?'active':''}" onclick="setAdminTab('clients')"><span><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 19v-1a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v1"/><circle cx="9.5" cy="8" r="3.2"/><path d="M21 19v-1a4 4 0 0 0-3-3.85"/><path d="M16 4.15a3.2 3.2 0 0 1 0 6.2"/></svg></span> Clients</button>
         <button id="nt-board" class="navside ${ADMIN_TAB==='board'?'active':''}" onclick="setAdminTab('board')"><span><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="5" height="16" rx="1"/><rect x="9.5" y="4" width="5" height="11" rx="1"/><rect x="16" y="4" width="5" height="14" rx="1"/></svg></span> Board</button>
@@ -1697,12 +1698,248 @@ function renderAdmin(){
       </aside>
       <div class="adminmain"><div id="admin-pane"></div></div>
     </div>`;
-  if(ADMIN_TAB==="clients") renderAdminClients(); else if(ADMIN_TAB==="reports") renderAdminReports(); else if(ADMIN_TAB==="board") renderAdminBoard(); else if(ADMIN_TAB==="leads") renderAdminLeads(); else if(ADMIN_TAB==="projects") renderAdminProjects(); else if(ADMIN_TAB==="gantt") renderAdminGantt(); else if(ADMIN_TAB==="crs") renderAdminDash(); else renderAdminHome();
+  if(ADMIN_TAB==="clients") renderAdminClients(); else if(ADMIN_TAB==="reports") renderAdminReports(); else if(ADMIN_TAB==="board") renderAdminBoard(); else if(ADMIN_TAB==="leads") renderAdminLeads(); else if(ADMIN_TAB==="projects") renderAdminProjects(); else if(ADMIN_TAB==="gantt") renderAdminGantt(); else if(ADMIN_TAB==="loans") renderAdminLoans(); else if(ADMIN_TAB==="crs") renderAdminDash(); else renderAdminHome();
   applySidebar();
 }
 function applySidebar(){ const sb=document.getElementById("sidebar"); if(!sb)return; let c=false; try{c=localStorage.getItem("cr_side_collapsed")==="1";}catch(_){ } sb.classList.toggle("collapsed",c); sb.querySelectorAll(".navside").forEach(b=>{ if(!b.getAttribute("title")) b.setAttribute("title",(b.textContent||"").trim()); }); const t=document.getElementById("side-collapse-btn"); if(t) t.title=c?"Expand menu":"Collapse menu"; }
 function toggleSidebar(){ let c=false; try{c=localStorage.getItem("cr_side_collapsed")==="1";}catch(_){ } c=!c; try{localStorage.setItem("cr_side_collapsed",c?"1":"0");}catch(_){ } applySidebar(); }
 function setAdminTab(t){ ADMIN_TAB=t; renderAdmin(); }
+
+// ===================== LOANS MODULE =====================
+const LOAN_CALL=["New","Not answered","Call back","Interested","Not interested","Wrong number","Do not call"];
+const LOAN_STAGES=["None","Interested","Documents collected","Applied","Approved","Disbursed","Rejected"];
+const LOAN_CC={New:"#8e7cff","Not answered":"#9aa0bd","Call back":"#ffb020",Interested:"#22d3ee","Not interested":"#ff8a3d","Wrong number":"#6b7280","Do not call":"#ff5b6b"};
+const LOAN_SC={None:"#6b7280",Interested:"#22d3ee","Documents collected":"#8e7cff",Applied:"#ffb020",Approved:"#3b82f6",Disbursed:"#22c55e",Rejected:"#ff5b6b"};
+let LOAN_LEADS=[], LOAN_AGENTS=[], LOAN_TAB="dashboard", LOAN_SEL=new Set(), LOAN_ACTS=[];
+function lnBadge(map,v){ const c=map[v]||"#9aa0bd"; return `<span class="badge" style="background:${c}22;color:${c};border:1px solid ${c}66">${esc(v||"—")}</span>`; }
+function money(n){ if(n===null||n===undefined||n==="")return "—"; const x=Number(n); if(isNaN(x))return "—"; return "₹"+x.toLocaleString("en-IN"); }
+function isToday(d){ if(!d)return false; const x=new Date(d),n=new Date(); return x.getFullYear()===n.getFullYear()&&x.getMonth()===n.getMonth()&&x.getDate()===n.getDate(); }
+
+async function loadLoanAgents(){ try{ const j=await callFn("loans-agents",{action:"list"}); LOAN_AGENTS=j.agents||[]; }catch(e){ LOAN_AGENTS=[]; } return LOAN_AGENTS; }
+async function loadLoanLeads(){ const {data,error}=await sb.from("cr_loan_leads").select("*").order("created_at",{ascending:false}); if(error){toast(error.message,true);return[];} LOAN_LEADS=data||[]; return LOAN_LEADS; }
+
+async function renderAdminLoans(){
+  $("admin-pane").innerHTML=`<div class="welcome"><div><div class="w-hi">Loans — Tele-calling</div><div class="w-sub">Import numbers, assign to agents, track calls &amp; loans.</div></div></div>
+  <div class="seg" style="margin:0 0 14px"><button id="lntab-dashboard" class="${LOAN_TAB==='dashboard'?'on':''}" onclick="setLoanTab('dashboard')">📊 Dashboard</button><button id="lntab-leads" class="${LOAN_TAB==='leads'?'on':''}" onclick="setLoanTab('leads')">📇 Leads</button><button id="lntab-agents" class="${LOAN_TAB==='agents'?'on':''}" onclick="setLoanTab('agents')">🎧 Agents</button></div>
+  <div id="loan-pane"><div class="hint">Loading…</div></div>`;
+  await loadLoanAgents(); await loadLoanLeads();
+  drawLoanTab();
+}
+function setLoanTab(t){ LOAN_TAB=t; document.querySelectorAll('[id^="lntab-"]').forEach(b=>b.classList.remove("on")); const b=$("lntab-"+t); if(b)b.classList.add("on"); drawLoanTab(); }
+function drawLoanTab(){ if(LOAN_TAB==="agents") drawLoanAgents(); else if(LOAN_TAB==="leads") drawLoanLeads(); else drawLoanDashboard(); }
+
+// ---------- Agents ----------
+function drawLoanAgents(){
+  const el=$("loan-pane"); if(!el)return;
+  const rows=LOAN_AGENTS.map(a=>{ const n=LOAN_LEADS.filter(l=>l.assigned_to===a.id); const called=n.filter(l=>l.attempts>0).length; const disb=n.filter(l=>l.stage==="Disbursed").length;
+    return `<tr><td><b>${esc(a.full_name||"—")}</b></td><td class="hint">${esc(a.email||"")}</td><td class="num">${n.length}</td><td class="num">${called}</td><td class="num">${disb}</td><td><button class="link-btn" style="color:#ff7b7b" onclick="delLoanAgent('${a.id}','${esc(a.full_name||"")}')">Remove</button></td></tr>`; }).join("");
+  el.innerHTML=`<div class="card"><h2>Tele-sales agents</h2><div class="sub">Create agent logins. Each agent sees only the leads you assign them.</div>
+    <div class="table-wrap"><table class="lead-table"><thead><tr><th>Agent</th><th>Email</th><th>Leads</th><th>Called</th><th>Disbursed</th><th></th></tr></thead><tbody>${rows||'<tr><td colspan="6" class="hint">No agents yet.</td></tr>'}</tbody></table></div>
+    <div class="section-title">Add an agent</div>
+    <div class="grid2"><div><label>Full name <span class="req">*</span></label><input id="la-name" class="inp"/></div><div><label>Email <span class="req">*</span></label><input id="la-email" class="inp" type="email"/></div><div><label>Password <span class="req">*</span></label><input id="la-pass" class="inp" type="password" placeholder="Min 8 characters"/></div></div>
+    <div class="row" style="margin-top:12px"><button class="btn btn-sm btn-ok" id="la-btn" onclick="addLoanAgent()">＋ Add agent</button></div></div>`;
+}
+async function addLoanAgent(){
+  const full_name=($("la-name").value||"").trim(), email=($("la-email").value||"").trim(), password=$("la-pass").value||"";
+  if(!full_name||!email||!password){toast("Name, email and password required.",true);return;}
+  const btn=$("la-btn"); if(btn){btn.disabled=true;btn.textContent="Adding…";}
+  try{ await callFn("loans-agents",{action:"create",full_name,email,password}); toast("Agent added."); await loadLoanAgents(); drawLoanAgents(); }
+  catch(e){ toast(e.message||"Could not add.",true); if(btn){btn.disabled=false;btn.textContent="＋ Add agent";} }
+}
+async function delLoanAgent(id,name){ if(!confirm("Remove agent "+(name||"")+"? Their leads become unassigned."))return; try{ await callFn("loans-agents",{action:"delete",user_id:id}); toast("Removed."); await loadLoanAgents(); await loadLoanLeads(); drawLoanAgents(); }catch(e){ toast(e.message||"Could not remove.",true); } }
+
+// ---------- Leads + import + assign ----------
+let LOAN_F={agent:"",call:"",stage:"",q:"",from:"",to:""};
+function drawLoanLeads(){
+  const el=$("loan-pane"); if(!el)return;
+  const rows=filteredLoans();
+  const agentOpts=`<option value="">All agents</option><option value="__none__">Unassigned</option>`+LOAN_AGENTS.map(a=>`<option value="${a.id}" ${LOAN_F.agent===a.id?"selected":""}>${esc(a.full_name)}</option>`).join("");
+  el.innerHTML=`<div class="card">
+    <div class="lead-bar" style="margin:0 0 10px"><h2 style="margin:0">Leads <span class="hint" style="font-weight:600">· ${rows.length} of ${LOAN_LEADS.length}</span></h2><button class="btn btn-sm btn-ok" onclick="openLoanImport()">⬆ Import numbers</button></div>
+    <div class="row" style="gap:8px;flex-wrap:wrap">
+      <input id="lf-q" class="inp" placeholder="🔍 Name or phone…" style="min-width:200px;flex:1" value="${esc(LOAN_F.q)}" oninput="LOAN_F.q=this.value;drawLoanLeads()"/>
+      <select class="inp" style="max-width:170px" onchange="LOAN_F.agent=this.value;drawLoanLeads()">${agentOpts}</select>
+      <select class="inp" style="max-width:160px" onchange="LOAN_F.call=this.value;drawLoanLeads()"><option value="">All call status</option>${LOAN_CALL.map(x=>`<option ${LOAN_F.call===x?"selected":""}>${x}</option>`).join("")}</select>
+      <select class="inp" style="max-width:160px" onchange="LOAN_F.stage=this.value;drawLoanLeads()"><option value="">All stages</option>${LOAN_STAGES.map(x=>`<option ${LOAN_F.stage===x?"selected":""}>${x}</option>`).join("")}</select>
+      <input type="date" class="inp" style="max-width:150px" value="${LOAN_F.from}" onchange="LOAN_F.from=this.value;drawLoanLeads()"/>
+      <input type="date" class="inp" style="max-width:150px" value="${LOAN_F.to}" onchange="LOAN_F.to=this.value;drawLoanLeads()"/>
+    </div>
+    <div class="row" style="margin-top:10px;gap:8px;flex-wrap:wrap;align-items:center"><span class="hint">Selected: <b id="ln-selc">${LOAN_SEL.size}</b></span>
+      <select id="ln-assign" class="inp" style="max-width:200px"><option value="">Assign selected to…</option>${LOAN_AGENTS.map(a=>`<option value="${a.id}">${esc(a.full_name)}</option>`).join("")}</select>
+      <button class="btn btn-sm btn-ok" style="width:auto;margin:0" onclick="assignLoans()">Assign</button>
+      <button class="btn btn-sm btn-ghost" style="width:auto;margin:0" onclick="loanSelectAllVisible()">Select all shown</button>
+      <button class="btn btn-sm btn-ghost" style="width:auto;margin:0" onclick="LOAN_SEL.clear();drawLoanLeads()">Clear</button>
+    </div>
+    <div class="table-wrap" style="margin-top:10px"><table class="lead-table"><thead><tr><th></th><th>Name</th><th>Phone</th><th>Agent</th><th>Call status</th><th>Stage</th><th>Loan</th><th>Callback</th><th></th></tr></thead>
+    <tbody>${rows.map(l=>`<tr>
+      <td><input type="checkbox" ${LOAN_SEL.has(l.id)?"checked":""} onclick="loanTogSel('${l.id}')"></td>
+      <td><b>${esc(l.name||"—")}</b>${l.city?`<div class="hint">${esc(l.city)}</div>`:""}</td>
+      <td>${esc(l.phone||"")}</td>
+      <td>${l.assigned_to_name?esc(l.assigned_to_name):`<span class="hint">Unassigned</span>`}</td>
+      <td>${lnBadge(LOAN_CC,l.call_status)}</td>
+      <td>${lnBadge(LOAN_SC,l.stage)}</td>
+      <td>${l.stage==="Disbursed"?money(l.disbursed_amount||l.loan_amount):money(l.loan_amount)}</td>
+      <td>${l.callback_at?esc(fmtDate(l.callback_at)):"—"}</td>
+      <td><button class="link-btn" onclick="openLoanEdit('${l.id}')">Open</button></td>
+    </tr>`).join("")||'<tr><td colspan="9" class="hint">No leads match.</td></tr>'}</tbody></table></div></div>`;
+}
+function filteredLoans(){
+  return LOAN_LEADS.filter(l=>{
+    if(LOAN_F.agent==="__none__"){ if(l.assigned_to) return false; } else if(LOAN_F.agent && l.assigned_to!==LOAN_F.agent) return false;
+    if(LOAN_F.call && l.call_status!==LOAN_F.call) return false;
+    if(LOAN_F.stage && l.stage!==LOAN_F.stage) return false;
+    if(LOAN_F.q){ const q=LOAN_F.q.toLowerCase(); if(((l.name||"")+(l.phone||"")).toLowerCase().indexOf(q)<0) return false; }
+    if(LOAN_F.from && new Date(l.created_at) < new Date(LOAN_F.from)) return false;
+    if(LOAN_F.to){ const t=new Date(LOAN_F.to); t.setHours(23,59,59); if(new Date(l.created_at) > t) return false; }
+    return true;
+  });
+}
+function loanTogSel(id){ if(LOAN_SEL.has(id))LOAN_SEL.delete(id); else LOAN_SEL.add(id); const c=$("ln-selc"); if(c)c.textContent=LOAN_SEL.size; }
+function loanSelectAllVisible(){ filteredLoans().forEach(l=>LOAN_SEL.add(l.id)); drawLoanLeads(); }
+async function assignLoans(){
+  const aid=$("ln-assign").value; if(!aid){toast("Choose an agent.",true);return;}
+  if(!LOAN_SEL.size){toast("Select some leads first.",true);return;}
+  const ag=LOAN_AGENTS.find(a=>a.id===aid);
+  const {error}=await sb.from("cr_loan_leads").update({assigned_to:aid,assigned_to_name:ag?ag.full_name:null,assigned_by:(SESSION&&SESSION.user)?SESSION.user.id:null,assigned_at:new Date().toISOString(),updated_at:new Date().toISOString()}).in("id",[...LOAN_SEL]);
+  if(error){toast(error.message,true);return;}
+  toast(LOAN_SEL.size+" lead(s) assigned to "+(ag?ag.full_name:"agent")+".");
+  LOAN_SEL.clear(); await loadLoanLeads(); drawLoanLeads();
+}
+function openLoanImport(){
+  $("modal-root").innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()"><div class="modal" style="max-width:560px"><div class="mh"><h2 style="margin:0">⬆ Import numbers</h2><button class="x" onclick="closeModal()">×</button></div><div class="mb">
+    <div class="hint" style="margin-bottom:8px">Paste rows or choose a CSV. Columns: <b>name, phone, city, source, note</b> (only phone is required). A header row is auto-detected.</div>
+    <input id="li-file" class="inp" type="file" accept=".csv,text/csv,text/plain" onchange="loanFileToBox(this)"/>
+    <textarea id="li-text" class="inp" rows="8" style="margin-top:8px;font-family:monospace" placeholder="Ramesh, 9876543210, Pune, FB\nSuresh, 9876500000"></textarea>
+    <label style="margin-top:10px">Batch name <span class="hint">(optional)</span></label><input id="li-batch" class="inp" placeholder="e.g. July FB leads"/>
+    <div class="row" style="margin-top:14px"><button class="btn btn-sm btn-ok" id="li-btn" onclick="doLoanImport()">Import</button><button class="btn btn-sm btn-ghost" onclick="closeModal()">Cancel</button></div>
+  </div></div></div>`;
+}
+function loanFileToBox(inp){ const f=inp.files&&inp.files[0]; if(!f)return; const r=new FileReader(); r.onload=()=>{ $("li-text").value=r.result; }; r.readAsText(f); }
+function parseCsvLine(line){ const out=[]; let cur="",q=false; for(let i=0;i<line.length;i++){ const ch=line[i]; if(ch==='"'){ if(q&&line[i+1]==='"'){cur+='"';i++;} else q=!q; } else if(ch===','&&!q){ out.push(cur.trim()); cur=""; } else cur+=ch; } out.push(cur.trim()); return out; }
+async function doLoanImport(){
+  const raw=($("li-text").value||"").trim(); if(!raw){toast("Paste some rows or choose a file.",true);return;}
+  const batch=($("li-batch").value||"").trim()||null;
+  let lines=raw.split(/\r?\n/).filter(x=>x.trim());
+  if(lines.length && /phone|mobile|number/i.test(lines[0]) && /name|city|source/i.test(lines[0])) lines=lines.slice(1);
+  const rows=[]; const uid=(SESSION&&SESSION.user)?SESSION.user.id:null;
+  for(const ln of lines){ const c=parseCsvLine(ln); let name=null,phone=null,city=null,source=null,note=null;
+    if(c.length===1){ phone=c[0]; } else { name=c[0]||null; phone=c[1]||null; city=c[2]||null; source=c[3]||null; note=c[4]||null; }
+    if(name && !/\d/.test(phone||"") && /\d/.test(name)){ const t=name; name=phone; phone=t; }
+    phone=(phone||"").replace(/[^0-9+]/g,""); if(!phone) continue;
+    rows.push({name,phone,city,source,note,batch,created_by:uid,call_status:"New",stage:"None"});
+  }
+  if(!rows.length){toast("No valid phone numbers found.",true);return;}
+  const btn=$("li-btn"); if(btn){btn.disabled=true;btn.textContent="Importing…";}
+  let done=0;
+  for(let i=0;i<rows.length;i+=200){ const {error}=await sb.from("cr_loan_leads").insert(rows.slice(i,i+200)); if(error){toast(error.message,true); if(btn){btn.disabled=false;btn.textContent="Import";} return;} done+=Math.min(200,rows.length-i); }
+  toast(done+" number(s) imported."); closeModal(); await loadLoanLeads(); LOAN_TAB="leads"; setLoanTab("leads");
+}
+function openLoanEdit(id){
+  const l=(LOAN_LEADS.find(x=>x.id===id))||(AGENT_LEADS.find(x=>x.id===id)); if(!l)return;
+  const isAdmin=ME.role==="admin";
+  $("modal-root").innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()"><div class="modal" style="max-width:520px"><div class="mh"><div style="min-width:0"><h2 style="margin:0">${esc(l.name||l.phone)}</h2><div class="hint"><a href="tel:${esc(l.phone)}" style="color:var(--brand2)">📞 ${esc(l.phone)}</a>${l.city?" · "+esc(l.city):""}${l.assigned_to_name?" · 🎧 "+esc(l.assigned_to_name):""}</div></div><button class="x" onclick="closeModal()">×</button></div><div class="mb">
+    <div class="grid2">
+      <div><label>Call status</label><select id="le-call" class="inp">${LOAN_CALL.map(x=>`<option ${l.call_status===x?"selected":""}>${x}</option>`).join("")}</select></div>
+      <div><label>Loan stage</label><select id="le-stage" class="inp">${LOAN_STAGES.map(x=>`<option ${l.stage===x?"selected":""}>${x}</option>`).join("")}</select></div>
+      <div><label>Loan amount (₹)</label><input id="le-amt" class="inp" type="number" value="${l.loan_amount!=null?l.loan_amount:""}"/></div>
+      <div><label>Disbursed amount (₹)</label><input id="le-disb" class="inp" type="number" value="${l.disbursed_amount!=null?l.disbursed_amount:""}"/></div>
+      <div><label>Callback date/time</label><input id="le-cb" class="inp" type="datetime-local" value="${l.callback_at?new Date(l.callback_at).toISOString().slice(0,16):""}"/></div>
+      <div><label>Attempts</label><input class="inp" value="${l.attempts||0}" disabled/></div>
+    </div>
+    <label style="margin-top:10px">Remarks</label><textarea id="le-rem" class="inp" rows="2">${esc(l.remarks||"")}</textarea>
+    <label style="margin-top:8px" class="hint"><input type="checkbox" id="le-log" checked> Count this as a call attempt</label>
+    <div class="row" style="margin-top:12px"><button class="btn btn-sm btn-ok" id="le-btn" onclick="saveLoanEdit('${id}')">Save</button>${isAdmin?`<button class="btn btn-sm btn-danger" style="width:auto" onclick="delLoanLead('${id}')">Delete</button>`:""}<button class="btn btn-sm btn-ghost" onclick="closeModal()">Close</button></div>
+    ${(l.activity_loaded)?"":`<div id="le-hist" class="hint" style="margin-top:12px">Loading history…</div>`}
+  </div></div></div>`;
+  sb.from("cr_loan_activity").select("*").eq("lead_id",id).order("created_at",{ascending:false}).limit(20).then(({data})=>{ const h=$("le-hist"); if(!h)return; h.innerHTML=(data&&data.length)?`<div class="section-title">History</div>`+data.map(a=>`<div class="hist">${esc(a.agent_name||"")} · ${a.from_status&&a.to_status&&a.from_status!==a.to_status?esc(a.from_status)+" → "+esc(a.to_status):esc(a.action||"update")} · ${fmtDate(a.created_at)}${a.note?`<br><em>${esc(a.note)}</em>`:""}</div>`).join(""):`<div class="hint">No history yet.</div>`; });
+}
+async function saveLoanEdit(id){
+  const cb=$("le-cb").value?new Date($("le-cb").value).toISOString():null;
+  const amt=$("le-amt").value!==""?parseFloat($("le-amt").value):null;
+  const disb=$("le-disb").value!==""?parseFloat($("le-disb").value):null;
+  const btn=$("le-btn"); if(btn){btn.disabled=true;btn.textContent="Saving…";}
+  const {error}=await sb.rpc("cr_loan_update",{p_id:id,p_call_status:$("le-call").value,p_stage:$("le-stage").value,p_loan_amount:amt,p_disbursed:disb,p_callback:cb,p_remarks:($("le-rem").value||"").trim()||null,p_log_call:$("le-log").checked});
+  if(error){toast(error.message||"Could not save.",true); if(btn){btn.disabled=false;btn.textContent="Save";} return;}
+  toast("Saved."); closeModal();
+  if(ME.role==="telesales"){ await loadAgentLeads(); drawAgentLeads(); } else { await loadLoanLeads(); drawLoanTab(); }
+}
+async function delLoanLead(id){ if(!confirm("Delete this lead?"))return; const {error}=await sb.from("cr_loan_leads").delete().eq("id",id); if(error){toast(error.message,true);return;} toast("Deleted."); closeModal(); await loadLoanLeads(); drawLoanTab(); }
+
+// ---------- Dashboard ----------
+let LN_CHARTS={};
+function drawLoanDashboard(){
+  const el=$("loan-pane"); if(!el)return;
+  const L=LOAN_LEADS;
+  const total=L.length, assigned=L.filter(l=>l.assigned_to).length, called=L.filter(l=>l.attempts>0).length, untouched=L.filter(l=>!l.attempts).length;
+  const interested=L.filter(l=>l.call_status==="Interested").length;
+  const disbursed=L.filter(l=>l.stage==="Disbursed");
+  const disbAmt=disbursed.reduce((s,l)=>s+(Number(l.disbursed_amount||l.loan_amount)||0),0);
+  const callsToday=L.filter(l=>isToday(l.last_call_at)).length;
+  const cbDue=L.filter(l=>l.callback_at && new Date(l.callback_at)<=new Date() && ["Disbursed","Rejected","Do not call"].indexOf(l.stage)<0 && l.call_status!=="Do not call").length;
+  const stageCounts=LOAN_STAGES.map(st=>L.filter(l=>l.stage===st).length);
+  const board=LOAN_AGENTS.map(a=>{ const n=L.filter(l=>l.assigned_to===a.id); const c=n.filter(l=>l.attempts>0).length; const intr=n.filter(l=>l.call_status==="Interested").length; const dz=n.filter(l=>l.stage==="Disbursed"); const amt=dz.reduce((s,l)=>s+(Number(l.disbursed_amount||l.loan_amount)||0),0);
+    return {name:a.full_name,leads:n.length,called:c,interested:intr,disb:dz.length,amt,conv:n.length?Math.round(dz.length/n.length*100):0}; }).sort((x,y)=>y.amt-x.amt||y.disb-x.disb);
+  el.innerHTML=`
+  <div class="stats" style="margin-bottom:14px">
+    ${statCard("📇","#8e7cff",total,"Total leads")}
+    ${statCard("🎧","#22d3ee",assigned,"Assigned")}
+    ${statCard("📞","#ffb020",callsToday,"Calls today")}
+    ${statCard("🔥","#ff8a3d",interested,"Interested")}
+    ${statCard("💰","#22c55e",disbursed.length,"Disbursed")}
+  </div>
+  <div class="stats" style="margin-bottom:16px">
+    ${statCard("💵","#22c55e",money(disbAmt),"Disbursed amount")}
+    ${statCard("⏰","#ff5b6b",cbDue,"Callbacks due")}
+    ${statCard("🆕","#6c5ce7",untouched,"Untouched")}
+    ${statCard("✅","#00d2a8",called,"Called")}
+  </div>
+  <div class="grid2" style="gap:14px">
+    <div class="card"><h2 style="margin:0 0 8px;font-size:15px">Loan pipeline</h2><div style="position:relative;height:230px"><canvas id="ln-funnel"></canvas></div></div>
+    <div class="card"><h2 style="margin:0 0 8px;font-size:15px">Disbursed by agent</h2><div style="position:relative;height:230px"><canvas id="ln-agentamt"></canvas></div></div>
+  </div>
+  <div class="card" style="margin-top:14px"><h2 style="margin:0 0 6px;font-size:15px">Agent performance</h2>
+    <div class="table-wrap"><table class="lead-table"><thead><tr><th>Agent</th><th class="num">Leads</th><th class="num">Called</th><th class="num">Interested</th><th class="num">Disbursed</th><th class="num">Amount</th><th class="num">Conv%</th></tr></thead>
+    <tbody>${board.map(b=>`<tr><td><b>${esc(b.name)}</b></td><td class="num">${b.leads}</td><td class="num">${b.called}</td><td class="num">${b.interested}</td><td class="num">${b.disb}</td><td class="num">${money(b.amt)}</td><td class="num">${b.conv}%</td></tr>`).join("")||'<tr><td colspan="7" class="hint">No agents yet.</td></tr>'}</tbody></table></div>
+  </div>`;
+  try{ if(LN_CHARTS.f)LN_CHARTS.f.destroy(); LN_CHARTS.f=new Chart($("ln-funnel"),{type:"bar",data:{labels:LOAN_STAGES,datasets:[{data:stageCounts,backgroundColor:LOAN_STAGES.map(s=>LOAN_SC[s]),borderRadius:5,maxBarThickness:26}]},options:{indexAxis:"y",plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,ticks:{precision:0}}}}}); }catch(_){ }
+  try{ if(LN_CHARTS.a)LN_CHARTS.a.destroy(); LN_CHARTS.a=new Chart($("ln-agentamt"),{type:"bar",data:{labels:board.map(b=>b.name),datasets:[{data:board.map(b=>b.amt),backgroundColor:"#22c55e",borderRadius:5,maxBarThickness:26}]},options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}}); }catch(_){ }
+}
+
+// ===================== TELESALES AGENT VIEW =====================
+let AGENT_LEADS=[], AGENT_TAB="all";
+async function loadAgentLeads(){ const {data,error}=await sb.from("cr_loan_leads").select("*").eq("assigned_to",(SESSION&&SESSION.user)?SESSION.user.id:null).order("callback_at",{ascending:true,nullsFirst:false}).order("created_at",{ascending:false}); if(error){toast(error.message,true);return[];} AGENT_LEADS=data||[]; return AGENT_LEADS; }
+async function renderTelesales(){
+  $("app-body").innerHTML=`<div class="hero"><div class="lg ph">🎧</div><div><div class="h-name">${esc(ME.full_name||ME.email||"Agent")}</div><div class="h-sub">Tele-sales agent · your assigned leads</div></div></div>
+  <div class="stats" id="agent-stats"></div>
+  <div class="seg" style="margin:8px 0 14px"><button id="atab-all" class="on" onclick="setAgentTab('all')">All</button><button id="atab-due" onclick="setAgentTab('due')">⏰ Callbacks due</button><button id="atab-new" onclick="setAgentTab('new')">🆕 New</button><button id="atab-interested" onclick="setAgentTab('interested')">🔥 Interested</button></div>
+  <div class="card"><input id="ag-q" class="inp" placeholder="🔍 Search name or phone…" oninput="drawAgentLeads()" style="margin-bottom:10px"/><div id="agent-list"><div class="hint">Loading…</div></div></div>`;
+  await loadAgentLeads(); drawAgentStats(); drawAgentLeads();
+}
+function drawAgentStats(){
+  const L=AGENT_LEADS;
+  $("agent-stats").innerHTML=
+    statCard("📇","#8e7cff",L.length,"My leads")+
+    statCard("📞","#ffb020",L.filter(l=>isToday(l.last_call_at)).length,"Called today")+
+    statCard("⏰","#ff5b6b",L.filter(l=>l.callback_at&&new Date(l.callback_at)<=new Date()&&l.call_status!=="Do not call"&&l.stage!=="Disbursed").length,"Callbacks due")+
+    statCard("🔥","#22d3ee",L.filter(l=>l.call_status==="Interested").length,"Interested")+
+    statCard("💰","#22c55e",L.filter(l=>l.stage==="Disbursed").length,"Disbursed");
+}
+function setAgentTab(t){ AGENT_TAB=t; document.querySelectorAll('[id^="atab-"]').forEach(b=>b.classList.remove("on")); const b=$("atab-"+t); if(b)b.classList.add("on"); drawAgentLeads(); }
+function drawAgentLeads(){
+  const el=$("agent-list"); if(!el)return;
+  const q=(($("ag-q")&&$("ag-q").value)||"").toLowerCase();
+  let L=AGENT_LEADS.filter(l=>!q||((l.name||"")+(l.phone||"")).toLowerCase().indexOf(q)>=0);
+  if(AGENT_TAB==="due") L=L.filter(l=>l.callback_at&&new Date(l.callback_at)<=new Date()&&l.call_status!=="Do not call"&&l.stage!=="Disbursed");
+  else if(AGENT_TAB==="new") L=L.filter(l=>l.call_status==="New"||!l.attempts);
+  else if(AGENT_TAB==="interested") L=L.filter(l=>l.call_status==="Interested"||["Interested","Documents collected","Applied","Approved"].indexOf(l.stage)>=0);
+  el.innerHTML=`<div class="hint" style="margin-bottom:8px">${L.length} lead${L.length===1?"":"s"}</div>`+ (L.length?L.map(l=>`<div class="scr-card">
+    <div class="scr-head"><div style="min-width:0"><div class="scr-name">${esc(l.name||"—")}</div><a href="tel:${esc(l.phone)}" class="hint" style="color:var(--brand2)">📞 ${esc(l.phone)}</a>${l.city?`<span class="hint"> · ${esc(l.city)}</span>`:""}</div><div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">${lnBadge(LOAN_CC,l.call_status)}${l.stage&&l.stage!=="None"?lnBadge(LOAN_SC,l.stage):""}</div></div>
+    ${l.remarks?`<div class="scr-desc">${esc(l.remarks)}</div>`:""}
+    <div class="scr-meta">${l.callback_at?`⏰ Callback ${esc(fmtDate(l.callback_at))}`:""}${l.attempts?` · 📞 ${l.attempts} attempt${l.attempts===1?"":"s"}`:""}${l.loan_amount?` · ${money(l.loan_amount)}`:""}</div>
+    <div class="scr-actions"><a class="btn btn-sm btn-ok" href="tel:${esc(l.phone)}">📞 Call</a><button class="btn btn-sm btn-ghost" onclick="openLoanEdit('${l.id}')">✎ Update</button></div>
+  </div>`).join(""):`<div class="empty">No leads here.</div>`);
+}
+
 
 let ADMIN_QUICK="pending";
 function setAdminQuick(v){ ADMIN_QUICK=v; document.querySelectorAll('#a-quick button').forEach((b,i)=>b.classList.toggle('on',['pending','all','completed','overdue','deleted'][i]===v)); renderAdminTable(); }
