@@ -1763,7 +1763,11 @@ function money(n){ if(n===null||n===undefined||n==="")return "—"; const x=Numb
 function isToday(d){ if(!d)return false; const x=new Date(d),n=new Date(); return x.getFullYear()===n.getFullYear()&&x.getMonth()===n.getMonth()&&x.getDate()===n.getDate(); }
 
 async function loadLoanAgents(){ try{ const j=await callFn("loans-agents",{action:"list"}); LOAN_AGENTS=j.agents||[]; }catch(e){ LOAN_AGENTS=[]; } return LOAN_AGENTS; }
-async function loadLoanLeads(){ const {data,error}=await sb.from("cr_loan_leads").select("*").order("created_at",{ascending:false}); if(error){toast(error.message,true);return[];} LOAN_LEADS=data||[]; return LOAN_LEADS; }
+async function loadLoanLeads(){
+  let all=[],from=0; const size=1000;
+  while(true){ const {data,error}=await sb.from("cr_loan_leads").select("*").order("created_at",{ascending:false}).range(from,from+size-1); if(error){toast(error.message,true);break;} all=all.concat(data||[]); if(!data||data.length<size)break; from+=size; }
+  LOAN_LEADS=all; return LOAN_LEADS;
+}
 
 function renderManager(){ $("app-body").innerHTML=`<div id="admin-pane"></div>`; renderAdminLoans(); }
 async function renderAdminLoans(){
@@ -2095,7 +2099,11 @@ function lnExport(fmt){
 // ===================== TELESALES AGENT VIEW =====================
 let AGENT_LEADS=[], AGENT_TAB="all";
 let REVEALED={};
-async function loadAgentLeads(){ const {data,error}=await sb.from("cr_loan_leads_agent").select("*").eq("assigned_to",(SESSION&&SESSION.user)?SESSION.user.id:null).order("callback_at",{ascending:true,nullsFirst:false}).order("created_at",{ascending:false}); if(error){toast(error.message,true);return[];} AGENT_LEADS=data||[]; return AGENT_LEADS; }
+async function loadAgentLeads(){
+  const uid=(SESSION&&SESSION.user)?SESSION.user.id:null; let all=[],from=0; const size=1000;
+  while(true){ const {data,error}=await sb.from("cr_loan_leads_agent").select("*").eq("assigned_to",uid).order("callback_at",{ascending:true,nullsFirst:false}).order("created_at",{ascending:false}).range(from,from+size-1); if(error){toast(error.message,true);break;} all=all.concat(data||[]); if(!data||data.length<size)break; from+=size; }
+  AGENT_LEADS=all; return AGENT_LEADS;
+}
 async function renderTelesales(){
   $("app-body").innerHTML=`<div class="loans"><div class="ln-hero"><div class="ln-hero-ic">🎧</div><div><div class="ln-hero-t">${esc(ME.full_name||ME.email||"Agent")}</div><div class="ln-hero-s">Tele-sales agent · your assigned leads</div></div></div>
   <div class="ln-stats" id="agent-stats" style="margin-bottom:14px"></div>
