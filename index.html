@@ -897,6 +897,7 @@
       </div>
       <button class="btn" id="li-btn" onclick="doLogin()">Log in</button>
       <button class="btn btn-ghost" id="li-passkey" onclick="loginWithPasskey()" style="width:100%;margin-top:10px">👆 Sign in with fingerprint / passkey</button>
+      <button class="btn btn-ghost" onclick="openOtpLogin()" style="width:100%;margin-top:8px">✉️ Sign in with email OTP</button>
     </div>
 
     <div id="form-setup" class="hidden">
@@ -1460,6 +1461,34 @@ function openBioSetup(){
     `<div class="hint" style="margin-top:12px">Register on each device you want to use. Removing passkeys affects all your devices.</div></div></div></div>`;
 }
 function maybeBioLock(){ /* passwordless passkey now handles sign-in; no device lock needed */ }
+let OTP_EMAIL="";
+function openOtpLogin(){
+  OTP_EMAIL=(($("li-id")&&$("li-id").value)||"").trim();
+  $("modal-root").innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()"><div class="modal" style="max-width:400px"><div class="mh"><h2 style="margin:0">✉️ Login with OTP</h2><button class="x" onclick="closeModal()">×</button></div><div class="mb">
+    <div id="otp-step1"><label>Email</label><input id="otp-email" class="inp" type="email" placeholder="you@company.com" value="${(/@/.test(OTP_EMAIL))?OTP_EMAIL:""}"/><div class="row" style="margin-top:12px"><button class="btn btn-sm btn-ok" id="otp-send" onclick="otpSend()">Send code</button></div><div class="hint" style="margin-top:8px">We'll email you a 6-digit code and a login link. Works for tele-callers &amp; managers.</div></div>
+    <div id="otp-step2" class="hidden"><label>Enter the 6-digit code</label><input id="otp-code" class="inp" inputmode="numeric" autocomplete="one-time-code" placeholder="123456" onkeydown="if(event.key==='Enter')otpVerify()"/><div class="row" style="margin-top:12px"><button class="btn btn-sm btn-ok" id="otp-verify" onclick="otpVerify()">Verify &amp; sign in</button><button class="btn btn-sm btn-ghost" onclick="otpSend()">Resend</button></div><div class="hint" style="margin-top:8px">Didn't get a code? Click the login link in the same email instead.</div></div>
+    <div id="otp-msg" class="msg"></div>
+  </div></div></div>`;
+}
+function otpMsg(m,t){ const e=$("otp-msg"); if(e){ e.textContent=m; e.className="msg show "+(t||"err"); } }
+async function otpSend(){
+  const em=(($("otp-email")&&$("otp-email").value)||OTP_EMAIL||"").trim().toLowerCase();
+  if(!em||!/@/.test(em)){ otpMsg("Enter a valid email."); return; }
+  OTP_EMAIL=em; const b=$("otp-send")||$("otp-verify"); const t0=b?b.textContent:""; if(b){b.disabled=true;b.textContent="Sending…";}
+  const {error}=await sb.auth.signInWithOtp({email:em,options:{shouldCreateUser:false}});
+  if(b){b.disabled=false;b.textContent=t0||"Send code";}
+  if(error){ otpMsg(error.message||"Could not send the code."); return; }
+  const s1=$("otp-step1"), s2=$("otp-step2"); if(s1)s1.classList.add("hidden"); if(s2)s2.classList.remove("hidden");
+  otpMsg("Code sent to "+em+". Check your inbox.","ok");
+}
+async function otpVerify(){
+  const code=(($("otp-code")&&$("otp-code").value)||"").trim();
+  if(!code){ otpMsg("Enter the code from your email."); return; }
+  const b=$("otp-verify"); if(b){b.disabled=true;b.textContent="Verifying…";}
+  const {error}=await sb.auth.verifyOtp({email:OTP_EMAIL,token:code,type:"email"});
+  if(error){ if(b){b.disabled=false;b.textContent="Verify & sign in";} otpMsg(error.message||"Invalid or expired code."); return; }
+  location.reload();
+}
 async function boot(){
   if(!CONFIGURED){ showConfigWarning(); return; }
   const {data:{session}}=await sb.auth.getSession();
