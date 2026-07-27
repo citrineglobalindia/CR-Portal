@@ -1840,7 +1840,7 @@ function drawLoanLeads(){
     <tbody>${rows.map(l=>`<tr>
       <td><input type="checkbox" ${LOAN_SEL.has(l.id)?"checked":""} onclick="loanTogSel('${l.id}')"></td>
       <td><b>${esc(l.name||"—")}</b>${l.city?`<div class="hint">${esc(l.city)}</div>`:""}</td>
-      <td>${esc(l.phone||"")}${l.reveal_count?` <span class="rev-badge" title="Unmasked ${l.reveal_count} time(s) by the agent">👁 ${l.reveal_count}</span>`:""}</td>
+      <td style="white-space:nowrap">${(ME.role==="admin"||REVEALED[l.id])?esc(REVEALED[l.id]||l.phone||""):`<span class="masked-ph">${esc(l.phone||"")}</span> <button class="btn btn-sm btn-ghost" style="padding:1px 7px;font-size:11px;margin:0" onclick="revealNumber('${l.id}')">🔓</button>`}${l.reveal_count?` <span class="rev-badge" title="Unmasked ${l.reveal_count} time(s)">👁 ${l.reveal_count}</span>`:""}</td>
       <td>${l.assigned_to_name?esc(l.assigned_to_name):`<span class="hint">Unassigned</span>`}</td>
       <td>${lnBadge(LOAN_CC,l.call_status)}</td>
       <td>${lnBadge(LOAN_SC,l.stage)}</td>
@@ -1908,7 +1908,7 @@ function openLoanEdit(id){
   const l=(LOAN_LEADS.find(x=>x.id===id))||(AGENT_LEADS.find(x=>x.id===id)); if(!l)return;
   const isAdmin=ME.role==="admin";
   $("modal-root").innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()"><div class="modal" style="max-width:520px"><div class="mh"><div style="min-width:0"><h2 style="margin:0">${esc(l.name||l.phone)}</h2><div class="hint">${(ME.role==="admin"||REVEALED[l.id])?`<a href="tel:${esc(REVEALED[l.id]||l.phone)}" style="color:var(--brand2)">📞 ${esc(REVEALED[l.id]||l.phone)}</a>`:`<span class="masked-ph">📞 ${esc(l.phone)}</span> ${(ME.role==="telesales"&&l.call_status==="Not interested")?"🔒":`<button class="btn btn-sm btn-ghost" style="padding:2px 8px;font-size:11px" onclick="revealNumber('${l.id}')">🔓 Reveal</button>`}`}${l.city?" · "+esc(l.city):""}${l.assigned_to_name?" · 🎧 "+esc(l.assigned_to_name):""}</div></div><button class="x" onclick="closeModal()">×</button></div><div class="mb">
-    ${(ME.role==="admin"||ME.role==="manager"||!l.name)?`<label>Name${!l.name?` <span class="hint">— not saved yet, you can add it</span>`:""}</label><input id="le-name" class="inp" value="${esc(l.name||"")}" placeholder="Contact name" style="margin-bottom:10px"/>`:""}
+    ${(ME.role==="admin"||ME.role==="manager"||!l.name)?`<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><label style="margin:0;white-space:nowrap">Name${!l.name?` <span class="hint">(add)</span>`:""}</label><input id="le-name" class="inp" value="${esc(l.name||"")}" placeholder="Contact name" style="max-width:240px;padding:6px 9px;margin:0"/></div>`:""}
     <div class="grid2">
       <div><label>Call status</label><select id="le-call" class="inp">${LOAN_CALL.map(x=>`<option ${l.call_status===x?"selected":""}>${x}</option>`).join("")}</select></div>
       <div><label>Loan stage</label><select id="le-stage" class="inp">${LOAN_STAGES.map(x=>`<option ${l.stage===x?"selected":""}>${x}</option>`).join("")}</select></div>
@@ -2141,7 +2141,7 @@ async function revealNumber(id){
   const {data,error}=await sb.rpc("cr_loan_reveal",{p_id:id});
   if(error){ toast(error.message||"Could not open the number.",true); return; }
   REVEALED[id]=data; toast("Number opened — the admin is notified of this.");
-  if(document.getElementById("le-call")) openLoanEdit(id); else if(ME.role==="telesales") drawAgentLeads();
+  if(document.getElementById("le-remind")||document.getElementById("le-call")) openLoanEdit(id); else if(ME.role==="telesales") drawAgentLeads(); else if(typeof LOAN_TAB!=="undefined"&&LOAN_TAB==="leads"&&$("loan-pane")) drawLoanLeads();
 }
 async function drawAgentReminders(){
   const el=$("agent-list"); if(!el)return; el.innerHTML=`<div class="hint">Loading…</div>`;
