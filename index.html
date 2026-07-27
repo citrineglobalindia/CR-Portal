@@ -819,6 +819,35 @@
   .lb-x{position:fixed;top:16px;right:18px;background:rgba(255,255,255,.16);border:0;color:#fff;width:42px;height:42px;border-radius:50%;font-size:22px;cursor:pointer}
   .lb-x:hover{background:rgba(255,255,255,.28)}
   .photo-grid img.thumb,.photo-grid img{cursor:zoom-in}
+
+  /* ===== Loans module ===== */
+  .ln-hero{display:flex;align-items:center;gap:16px;background:linear-gradient(120deg,color-mix(in srgb,var(--brand) 26%,var(--panel)),var(--panel2));border:1px solid var(--line);border-radius:20px;padding:18px 22px;margin-bottom:16px;position:relative;overflow:hidden}
+  .ln-hero::after{content:"";position:absolute;right:-40px;top:-40px;width:160px;height:160px;border-radius:50%;background:radial-gradient(circle,var(--g1),transparent 70%)}
+  .ln-hero-ic{width:56px;height:56px;border-radius:16px;display:grid;place-items:center;font-size:30px;background:rgba(255,255,255,.08);box-shadow:inset 0 0 0 1px rgba(255,255,255,.14);flex:0 0 auto}
+  .ln-hero-t{font-size:22px;font-weight:900;color:var(--txt);line-height:1.1}
+  .ln-hero-s{font-size:13px;color:var(--muted);margin-top:3px}
+  .ln-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:12px}
+  .ln-stat{display:flex;align-items:center;gap:12px;background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:16px;padding:13px 15px;position:relative;transition:transform .16s,box-shadow .2s}
+  .ln-stat:hover{transform:translateY(-3px);box-shadow:0 14px 30px rgba(0,0,0,.3)}
+  .ln-ic{width:44px;height:44px;border-radius:13px;display:grid;place-items:center;font-size:21px;flex:0 0 auto}
+  .ln-val{font-size:21px;font-weight:900;color:var(--txt);line-height:1.05}
+  .ln-lb{font-size:10.5px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.05em;margin-top:3px}
+  .loans .ln-seg{display:inline-flex;background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:5px;gap:4px;flex-wrap:wrap}
+  .loans .ln-seg button{border:0;background:transparent;color:var(--muted);border-radius:10px;font-weight:800;font-size:13px;padding:9px 16px;cursor:pointer;transition:.16s}
+  .loans .ln-seg button:hover{color:var(--txt)}
+  .loans .ln-seg button.on{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;box-shadow:0 8px 20px -7px var(--brand)}
+  .loans .btn-ok{background:linear-gradient(135deg,#22c55e,#12a150);border:0;color:#fff;box-shadow:0 8px 20px -9px #22c55e;font-weight:800}
+  .loans .btn-ok:hover{filter:brightness(1.08);transform:translateY(-1px)}
+  .loans .card{border-radius:16px}
+  .loans .lead-table thead th{font-size:10.5px;letter-spacing:.05em}
+  .loans .lead-table tbody tr{transition:background .15s}
+  .loans .lead-table tbody tr:hover{background:color-mix(in srgb,var(--brand) 8%,transparent)}
+  .ln-rank{display:inline-grid;place-items:center;min-width:22px;height:22px;font-size:12px;font-weight:900;vertical-align:middle}
+  .ln-rank-1,.ln-rank-2,.ln-rank-3{font-size:15px}
+  .ln-conv{background:rgba(34,197,94,.15);color:#8ff0c8;border:1px solid rgba(34,197,94,.4);border-radius:8px;padding:2px 8px;font-weight:800;font-size:12px}
+  .ln-lead{transition:transform .15s,box-shadow .2s}
+  .ln-lead:hover{transform:translateY(-2px);box-shadow:0 12px 26px rgba(0,0,0,.28)}
+  .loans .scr-actions .btn-ok{text-decoration:none;display:inline-flex;align-items:center}
 </style>
 </head>
 <body>
@@ -1711,6 +1740,7 @@ const LOAN_STAGES=["None","Interested","Documents collected","Applied","Approved
 const LOAN_CC={New:"#8e7cff","Not answered":"#9aa0bd","Call back":"#ffb020",Interested:"#22d3ee","Not interested":"#ff8a3d","Wrong number":"#6b7280","Do not call":"#ff5b6b"};
 const LOAN_SC={None:"#6b7280",Interested:"#22d3ee","Documents collected":"#8e7cff",Applied:"#ffb020",Approved:"#3b82f6",Disbursed:"#22c55e",Rejected:"#ff5b6b"};
 let LOAN_LEADS=[], LOAN_AGENTS=[], LOAN_TAB="dashboard", LOAN_SEL=new Set(), LOAN_ACTS=[];
+function lnStat(icon,color,val,label){ return `<div class="ln-stat" style="border-color:${color}33"><div class="ln-ic" style="color:${color};background:${color}1f;box-shadow:inset 0 0 0 1px ${color}55">${icon}</div><div style="min-width:0"><div class="ln-val">${val}</div><div class="ln-lb">${esc(label)}</div></div></div>`; }
 function lnBadge(map,v){ const c=map[v]||"#9aa0bd"; return `<span class="badge" style="background:${c}22;color:${c};border:1px solid ${c}66">${esc(v||"—")}</span>`; }
 function money(n){ if(n===null||n===undefined||n==="")return "—"; const x=Number(n); if(isNaN(x))return "—"; return "₹"+x.toLocaleString("en-IN"); }
 function isToday(d){ if(!d)return false; const x=new Date(d),n=new Date(); return x.getFullYear()===n.getFullYear()&&x.getMonth()===n.getMonth()&&x.getDate()===n.getDate(); }
@@ -1719,9 +1749,10 @@ async function loadLoanAgents(){ try{ const j=await callFn("loans-agents",{actio
 async function loadLoanLeads(){ const {data,error}=await sb.from("cr_loan_leads").select("*").order("created_at",{ascending:false}); if(error){toast(error.message,true);return[];} LOAN_LEADS=data||[]; return LOAN_LEADS; }
 
 async function renderAdminLoans(){
-  $("admin-pane").innerHTML=`<div class="welcome"><div><div class="w-hi">Loans — Tele-calling</div><div class="w-sub">Import numbers, assign to agents, track calls &amp; loans.</div></div></div>
-  <div class="seg" style="margin:0 0 14px"><button id="lntab-dashboard" class="${LOAN_TAB==='dashboard'?'on':''}" onclick="setLoanTab('dashboard')">📊 Dashboard</button><button id="lntab-leads" class="${LOAN_TAB==='leads'?'on':''}" onclick="setLoanTab('leads')">📇 Leads</button><button id="lntab-agents" class="${LOAN_TAB==='agents'?'on':''}" onclick="setLoanTab('agents')">🎧 Agents</button></div>
-  <div id="loan-pane"><div class="hint">Loading…</div></div>`;
+  $("admin-pane").innerHTML=`<div class="loans">
+  <div class="ln-hero"><div class="ln-hero-ic">💰</div><div><div class="ln-hero-t">Loans — Tele-calling</div><div class="ln-hero-s">Import numbers, assign to agents, track every call &amp; loan disbursed.</div></div></div>
+  <div class="seg ln-seg" style="margin:0 0 16px"><button id="lntab-dashboard" class="${LOAN_TAB==='dashboard'?'on':''}" onclick="setLoanTab('dashboard')">📊 Dashboard</button><button id="lntab-leads" class="${LOAN_TAB==='leads'?'on':''}" onclick="setLoanTab('leads')">📇 Leads</button><button id="lntab-agents" class="${LOAN_TAB==='agents'?'on':''}" onclick="setLoanTab('agents')">🎧 Agents</button></div>
+  <div id="loan-pane"><div class="hint">Loading…</div></div></div>`;
   await loadLoanAgents(); await loadLoanLeads();
   drawLoanTab();
 }
@@ -1880,18 +1911,16 @@ function drawLoanDashboard(){
   const board=LOAN_AGENTS.map(a=>{ const n=L.filter(l=>l.assigned_to===a.id); const c=n.filter(l=>l.attempts>0).length; const intr=n.filter(l=>l.call_status==="Interested").length; const dz=n.filter(l=>l.stage==="Disbursed"); const amt=dz.reduce((s,l)=>s+(Number(l.disbursed_amount||l.loan_amount)||0),0);
     return {name:a.full_name,leads:n.length,called:c,interested:intr,disb:dz.length,amt,conv:n.length?Math.round(dz.length/n.length*100):0}; }).sort((x,y)=>y.amt-x.amt||y.disb-x.disb);
   el.innerHTML=`
-  <div class="stats" style="margin-bottom:14px">
-    ${statCard("📇","#8e7cff",total,"Total leads")}
-    ${statCard("🎧","#22d3ee",assigned,"Assigned")}
-    ${statCard("📞","#ffb020",callsToday,"Calls today")}
-    ${statCard("🔥","#ff8a3d",interested,"Interested")}
-    ${statCard("💰","#22c55e",disbursed.length,"Disbursed")}
-  </div>
-  <div class="stats" style="margin-bottom:16px">
-    ${statCard("💵","#22c55e",money(disbAmt),"Disbursed amount")}
-    ${statCard("⏰","#ff5b6b",cbDue,"Callbacks due")}
-    ${statCard("🆕","#6c5ce7",untouched,"Untouched")}
-    ${statCard("✅","#00d2a8",called,"Called")}
+  <div class="ln-stats" style="margin-bottom:14px">
+    ${lnStat("📇","#8e7cff",total,"Total leads")}
+    ${lnStat("🎧","#22d3ee",assigned,"Assigned")}
+    ${lnStat("📞","#ffb020",callsToday,"Calls today")}
+    ${lnStat("🔥","#ff8a3d",interested,"Interested")}
+    ${lnStat("💰","#22c55e",disbursed.length,"Disbursed")}
+    ${lnStat("💵","#22c55e",money(disbAmt),"Disbursed amount")}
+    ${lnStat("⏰","#ff5b6b",cbDue,"Callbacks due")}
+    ${lnStat("🆕","#6c5ce7",untouched,"Untouched")}
+    ${lnStat("✅","#00d2a8",called,"Called")}
   </div>
   <div class="grid2" style="gap:14px">
     <div class="card"><h2 style="margin:0 0 8px;font-size:15px">Loan pipeline</h2><div style="position:relative;height:230px"><canvas id="ln-funnel"></canvas></div></div>
@@ -1899,7 +1928,7 @@ function drawLoanDashboard(){
   </div>
   <div class="card" style="margin-top:14px"><h2 style="margin:0 0 6px;font-size:15px">Agent performance</h2>
     <div class="table-wrap"><table class="lead-table"><thead><tr><th>Agent</th><th class="num">Leads</th><th class="num">Called</th><th class="num">Interested</th><th class="num">Disbursed</th><th class="num">Amount</th><th class="num">Conv%</th></tr></thead>
-    <tbody>${board.map(b=>`<tr><td><b>${esc(b.name)}</b></td><td class="num">${b.leads}</td><td class="num">${b.called}</td><td class="num">${b.interested}</td><td class="num">${b.disb}</td><td class="num">${money(b.amt)}</td><td class="num">${b.conv}%</td></tr>`).join("")||'<tr><td colspan="7" class="hint">No agents yet.</td></tr>'}</tbody></table></div>
+    <tbody>${board.map((b,i)=>`<tr><td><span class="ln-rank ln-rank-${i+1}">${i<3?["🥇","🥈","🥉"][i]:(i+1)}</span> <b>${esc(b.name)}</b></td><td class="num">${b.leads}</td><td class="num">${b.called}</td><td class="num">${b.interested}</td><td class="num">${b.disb}</td><td class="num" style="color:#22c55e;font-weight:800">${money(b.amt)}</td><td class="num"><span class="ln-conv">${b.conv}%</span></td></tr>`).join("")||'<tr><td colspan="7" class="hint">No agents yet.</td></tr>'}</tbody></table></div>
   </div>`;
   try{ if(LN_CHARTS.f)LN_CHARTS.f.destroy(); LN_CHARTS.f=new Chart($("ln-funnel"),{type:"bar",data:{labels:LOAN_STAGES,datasets:[{data:stageCounts,backgroundColor:LOAN_STAGES.map(s=>LOAN_SC[s]),borderRadius:5,maxBarThickness:26}]},options:{indexAxis:"y",plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,ticks:{precision:0}}}}}); }catch(_){ }
   try{ if(LN_CHARTS.a)LN_CHARTS.a.destroy(); LN_CHARTS.a=new Chart($("ln-agentamt"),{type:"bar",data:{labels:board.map(b=>b.name),datasets:[{data:board.map(b=>b.amt),backgroundColor:"#22c55e",borderRadius:5,maxBarThickness:26}]},options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}}); }catch(_){ }
@@ -1909,20 +1938,20 @@ function drawLoanDashboard(){
 let AGENT_LEADS=[], AGENT_TAB="all";
 async function loadAgentLeads(){ const {data,error}=await sb.from("cr_loan_leads").select("*").eq("assigned_to",(SESSION&&SESSION.user)?SESSION.user.id:null).order("callback_at",{ascending:true,nullsFirst:false}).order("created_at",{ascending:false}); if(error){toast(error.message,true);return[];} AGENT_LEADS=data||[]; return AGENT_LEADS; }
 async function renderTelesales(){
-  $("app-body").innerHTML=`<div class="hero"><div class="lg ph">🎧</div><div><div class="h-name">${esc(ME.full_name||ME.email||"Agent")}</div><div class="h-sub">Tele-sales agent · your assigned leads</div></div></div>
-  <div class="stats" id="agent-stats"></div>
-  <div class="seg" style="margin:8px 0 14px"><button id="atab-all" class="on" onclick="setAgentTab('all')">All</button><button id="atab-due" onclick="setAgentTab('due')">⏰ Callbacks due</button><button id="atab-new" onclick="setAgentTab('new')">🆕 New</button><button id="atab-interested" onclick="setAgentTab('interested')">🔥 Interested</button></div>
-  <div class="card"><input id="ag-q" class="inp" placeholder="🔍 Search name or phone…" oninput="drawAgentLeads()" style="margin-bottom:10px"/><div id="agent-list"><div class="hint">Loading…</div></div></div>`;
+  $("app-body").innerHTML=`<div class="loans"><div class="ln-hero"><div class="ln-hero-ic">🎧</div><div><div class="ln-hero-t">${esc(ME.full_name||ME.email||"Agent")}</div><div class="ln-hero-s">Tele-sales agent · your assigned leads</div></div></div>
+  <div class="ln-stats" id="agent-stats" style="margin-bottom:14px"></div>
+  <div class="seg ln-seg" style="margin:0 0 14px"><button id="atab-all" class="on" onclick="setAgentTab('all')">All</button><button id="atab-due" onclick="setAgentTab('due')">⏰ Callbacks due</button><button id="atab-new" onclick="setAgentTab('new')">🆕 New</button><button id="atab-interested" onclick="setAgentTab('interested')">🔥 Interested</button></div>
+  <div class="card"><input id="ag-q" class="inp" placeholder="🔍 Search name or phone…" oninput="drawAgentLeads()" style="margin-bottom:10px"/><div id="agent-list"><div class="hint">Loading…</div></div></div></div>`;
   await loadAgentLeads(); drawAgentStats(); drawAgentLeads();
 }
 function drawAgentStats(){
   const L=AGENT_LEADS;
   $("agent-stats").innerHTML=
-    statCard("📇","#8e7cff",L.length,"My leads")+
-    statCard("📞","#ffb020",L.filter(l=>isToday(l.last_call_at)).length,"Called today")+
-    statCard("⏰","#ff5b6b",L.filter(l=>l.callback_at&&new Date(l.callback_at)<=new Date()&&l.call_status!=="Do not call"&&l.stage!=="Disbursed").length,"Callbacks due")+
-    statCard("🔥","#22d3ee",L.filter(l=>l.call_status==="Interested").length,"Interested")+
-    statCard("💰","#22c55e",L.filter(l=>l.stage==="Disbursed").length,"Disbursed");
+    lnStat("📇","#8e7cff",L.length,"My leads")+
+    lnStat("📞","#ffb020",L.filter(l=>isToday(l.last_call_at)).length,"Called today")+
+    lnStat("⏰","#ff5b6b",L.filter(l=>l.callback_at&&new Date(l.callback_at)<=new Date()&&l.call_status!=="Do not call"&&l.stage!=="Disbursed").length,"Callbacks due")+
+    lnStat("🔥","#22d3ee",L.filter(l=>l.call_status==="Interested").length,"Interested")+
+    lnStat("💰","#22c55e",L.filter(l=>l.stage==="Disbursed").length,"Disbursed");
 }
 function setAgentTab(t){ AGENT_TAB=t; document.querySelectorAll('[id^="atab-"]').forEach(b=>b.classList.remove("on")); const b=$("atab-"+t); if(b)b.classList.add("on"); drawAgentLeads(); }
 function drawAgentLeads(){
@@ -1932,7 +1961,7 @@ function drawAgentLeads(){
   if(AGENT_TAB==="due") L=L.filter(l=>l.callback_at&&new Date(l.callback_at)<=new Date()&&l.call_status!=="Do not call"&&l.stage!=="Disbursed");
   else if(AGENT_TAB==="new") L=L.filter(l=>l.call_status==="New"||!l.attempts);
   else if(AGENT_TAB==="interested") L=L.filter(l=>l.call_status==="Interested"||["Interested","Documents collected","Applied","Approved"].indexOf(l.stage)>=0);
-  el.innerHTML=`<div class="hint" style="margin-bottom:8px">${L.length} lead${L.length===1?"":"s"}</div>`+ (L.length?L.map(l=>`<div class="scr-card">
+  el.innerHTML=`<div class="hint" style="margin-bottom:8px">${L.length} lead${L.length===1?"":"s"}</div>`+ (L.length?L.map(l=>`<div class="scr-card ln-lead" style="border-left:4px solid ${LOAN_CC[l.call_status]||'#6b7280'}">
     <div class="scr-head"><div style="min-width:0"><div class="scr-name">${esc(l.name||"—")}</div><a href="tel:${esc(l.phone)}" class="hint" style="color:var(--brand2)">📞 ${esc(l.phone)}</a>${l.city?`<span class="hint"> · ${esc(l.city)}</span>`:""}</div><div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">${lnBadge(LOAN_CC,l.call_status)}${l.stage&&l.stage!=="None"?lnBadge(LOAN_SC,l.stage):""}</div></div>
     ${l.remarks?`<div class="scr-desc">${esc(l.remarks)}</div>`:""}
     <div class="scr-meta">${l.callback_at?`⏰ Callback ${esc(fmtDate(l.callback_at))}`:""}${l.attempts?` · 📞 ${l.attempts} attempt${l.attempts===1?"":"s"}`:""}${l.loan_amount?` · ${money(l.loan_amount)}`:""}</div>
