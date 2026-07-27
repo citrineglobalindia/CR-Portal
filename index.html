@@ -1833,15 +1833,15 @@ function drawLoanAgents(){
   el.innerHTML=`<div class="card"><h2>Tele-sales agents</h2><div class="sub">Create agent logins. Each agent sees only the leads you assign them.</div>
     <div class="table-wrap"><table class="lead-table"><thead><tr><th>Agent</th><th>Email</th><th>Leads</th><th>Called</th><th>Disbursed</th><th></th></tr></thead><tbody>${rows||'<tr><td colspan="6" class="hint">No agents yet.</td></tr>'}</tbody></table></div>
     <div class="section-title">Add an agent</div>
-    <div class="grid2"><div><label>Full name <span class="req">*</span></label><input id="la-name" class="inp"/></div><div><label>Email <span class="req">*</span></label><input id="la-email" class="inp" type="email"/></div><div><label>Password <span class="req">*</span></label><input id="la-pass" class="inp" type="password" placeholder="Min 8 characters"/></div></div>
+    <div class="grid2"><div><label>Full name <span class="req">*</span></label><input id="la-name" class="inp"/></div><div><label>Email <span class="req">*</span></label><input id="la-email" class="inp" type="email"/></div></div><div class="hint" style="margin-top:6px">Tele-callers sign in with an email OTP — no password needed.</div>
     <div class="row" style="margin-top:12px"><button class="btn btn-sm btn-ok" id="la-btn" onclick="addLoanAgent()">＋ Add agent</button></div></div>`+(ME.role==="admin"?`<div id="mgr-card" class="card" style="margin-top:14px"><div class="hint">Loading managers…</div></div>`:"");
   if(ME.role==="admin") loadLoanManagers();
 }
 async function addLoanAgent(){
-  const full_name=($("la-name").value||"").trim(), email=($("la-email").value||"").trim(), password=$("la-pass").value||"";
-  if(!full_name||!email||!password){toast("Name, email and password required.",true);return;}
+  const full_name=($("la-name").value||"").trim(), email=($("la-email").value||"").trim();
+  if(!full_name||!email){toast("Name and email are required.",true);return;}
   const btn=$("la-btn"); if(btn){btn.disabled=true;btn.textContent="Adding…";}
-  try{ await callFn("loans-agents",{action:"create",full_name,email,password}); toast("Agent added."); await loadLoanAgents(); drawLoanAgents(); }
+  try{ await callFn("loans-agents",{action:"create",full_name,email}); toast("Agent added — they sign in with email OTP."); await loadLoanAgents(); drawLoanAgents(); }
   catch(e){ toast(e.message||"Could not add.",true); if(btn){btn.disabled=false;btn.textContent="＋ Add agent";} }
 }
 async function delLoanAgent(id,name){ if(!confirm("Remove agent "+(name||"")+"? Their leads become unassigned."))return; try{ await callFn("loans-agents",{action:"delete",user_id:id}); toast("Removed."); await loadLoanAgents(); await loadLoanLeads(); drawLoanAgents(); }catch(e){ toast(e.message||"Could not remove.",true); } }
@@ -1851,10 +1851,10 @@ async function loadLoanManagers(){
   c.innerHTML=`<h2>Managers <span class="hint" style="font-weight:600">— loans-only access</span></h2><div class="sub">Managers see and manage only the Loans module (dashboard, leads, agents, reports). Full numbers are visible to managers.</div>
   <div class="table-wrap"><table class="lead-table"><thead><tr><th>Manager</th><th>Email</th><th></th></tr></thead><tbody>${mgrs.map(m=>`<tr><td><b>${esc(m.full_name)}</b></td><td class="hint">${esc(m.email)}</td><td><button class="link-btn" style="color:#ff7b7b" onclick="delLoanManager('${m.id}','${esc(m.full_name)}')">Remove</button></td></tr>`).join("")||'<tr><td colspan="3" class="hint">No managers yet.</td></tr>'}</tbody></table></div>
   <div class="section-title">Add a manager</div>
-  <div class="grid2"><div><label>Full name <span class="req">*</span></label><input id="mg-name" class="inp"/></div><div><label>Email <span class="req">*</span></label><input id="mg-email" class="inp" type="email"/></div><div><label>Password <span class="req">*</span></label><input id="mg-pass" class="inp" type="password" placeholder="Min 8 characters"/></div></div>
+  <div class="grid2"><div><label>Full name <span class="req">*</span></label><input id="mg-name" class="inp"/></div><div><label>Email <span class="req">*</span></label><input id="mg-email" class="inp" type="email"/></div></div><div class="hint" style="margin-top:6px">Managers sign in with an email OTP — no password needed.</div>
   <div class="row" style="margin-top:12px"><button class="btn btn-sm btn-ok" id="mg-btn" onclick="addLoanManager()">＋ Add manager</button></div>`;
 }
-async function addLoanManager(){ const full_name=($("mg-name").value||"").trim(),email=($("mg-email").value||"").trim(),password=$("mg-pass").value||""; if(!full_name||!email||!password){toast("Name, email and password required.",true);return;} const b=$("mg-btn"); if(b){b.disabled=true;b.textContent="Adding…";} try{ await callFn("loans-agents",{action:"create-manager",full_name,email,password}); toast("Manager added."); loadLoanManagers(); }catch(e){ toast(e.message||"Could not add.",true); if(b){b.disabled=false;b.textContent="＋ Add manager";} } }
+async function addLoanManager(){ const full_name=($("mg-name").value||"").trim(),email=($("mg-email").value||"").trim(); if(!full_name||!email){toast("Name and email are required.",true);return;} const b=$("mg-btn"); if(b){b.disabled=true;b.textContent="Adding…";} try{ await callFn("loans-agents",{action:"create-manager",full_name,email}); toast("Manager added — they sign in with email OTP."); loadLoanManagers(); }catch(e){ toast(e.message||"Could not add.",true); if(b){b.disabled=false;b.textContent="＋ Add manager";} } }
 async function delLoanManager(id,name){ if(!confirm("Remove manager "+(name||"")+"?"))return; try{ await callFn("loans-agents",{action:"delete-manager",user_id:id}); toast("Removed."); loadLoanManagers(); }catch(e){ toast(e.message||"Could not remove.",true); } }
 
 // ---------- Leads + import + assign ----------
