@@ -854,6 +854,15 @@
   .rem-row.due{border-color:rgba(255,91,107,.5);background:rgba(255,91,107,.08)}
   .rem-due td{background:rgba(255,91,107,.08)}
   .masked-ph{font-family:monospace;letter-spacing:1px;color:var(--muted)}
+  .dm-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+  .dm-card{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:16px;padding:16px;transition:transform .16s,border-color .2s}
+  .dm-card:hover{transform:translateY(-3px);border-color:var(--brand)}
+  .dm-card-top{display:flex;align-items:center;gap:12px}
+  .dm-ic{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;font-size:22px;background:var(--chip);flex:0 0 auto}
+  .dm-nm{font-weight:800;color:var(--txt);font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .dm-stats3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:12px;text-align:center}
+  .dm-stats3 b{display:block;font-size:18px;color:var(--txt)}
+  .dm-stats3 span{font-size:10.5px;color:var(--muted);font-weight:700}
   .enq-key{font-family:monospace;font-size:11.5px;background:var(--chip);border:1px solid var(--line);border-radius:6px;padding:2px 6px;color:var(--brand2)}
   .rev-badge{display:inline-block;background:rgba(255,176,32,.16);color:#ffd27a;border:1px solid rgba(255,176,32,.4);border-radius:7px;padding:1px 6px;font-size:11px;font-weight:800;vertical-align:middle}
   .ln-filter{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:9px 12px;margin-bottom:14px}
@@ -1809,53 +1818,113 @@ function setAdminTab(t){ ADMIN_TAB=t; renderAdmin(); }
 let ENQ=[], ENQ_SITES=[], ENQ_F={site:"",q:"",from:"",to:""};
 async function renderAdminEnquiries(){
   $("admin-pane").innerHTML=`<div class="welcome"><div><div class="w-hi">Digital Marketing</div><div class="w-sub">Lead-generation projects &amp; website leads, per client.</div></div></div><div id="enq-pane"><div class="hint">Loading…</div></div>`;
-  await loadClients(); await loadLeadSites(); await loadEnquiries(); drawEnquiries();
+  await loadClients(); await loadLeadSites(); await loadEnquiries(); try{ const j=await callFn("loans-agents",{action:"list"}); DM_AGENTS=j.agents||[]; }catch(_){ DM_AGENTS=[]; } DM_PROJECT=null; drawEnquiries();
 }
 async function loadLeadSites(){ const {data}=await sb.from("cr_lead_sites").select("*").order("created_at",{ascending:false}); ENQ_SITES=data||[]; }
 async function loadEnquiries(){ let all=[],from=0; const size=1000; while(true){ const {data,error}=await sb.from("cr_web_enquiries").select("*").order("created_at",{ascending:false}).range(from,from+size-1); if(error){toast(error.message,true);break;} all=all.concat(data||[]); if(!data||data.length<size)break; from+=size; } ENQ=all; }
 function enqClientName(id){ const c=(CLIENTS||[]).find(function(x){return x.id===id;}); return c?(c.company||c.full_name||c.email):"—"; }
 function enqCopy(t){ try{ navigator.clipboard.writeText(t); toast("Copied."); }catch(_){ } }
-function drawEnquiries(){
-  const el=$("enq-pane"); if(!el)return;
-  let rows=ENQ.filter(function(e){
-    if(ENQ_F.site && e.site_key!==ENQ_F.site) return false;
-    if(ENQ_F.q){ const q=ENQ_F.q.toLowerCase(); if(((e.name||"")+(e.phone||"")+(e.email||"")+(e.project_name||"")).toLowerCase().indexOf(q)<0) return false; }
-    if(ENQ_F.from && new Date(e.created_at)<new Date(ENQ_F.from)) return false;
-    if(ENQ_F.to){ const t=new Date(ENQ_F.to); t.setHours(23,59,59); if(new Date(e.created_at)>t) return false; }
-    return true;
-  });
-  const cnt={}; ENQ.forEach(function(e){ cnt[e.site_key]=(cnt[e.site_key]||0)+1; });
-  const cOpts=function(cur){ return `<option value="">— map to client —</option>`+(CLIENTS||[]).map(function(c){return `<option value="${c.id}" ${cur===c.id?"selected":""}>${esc(c.company||c.full_name||c.email)}</option>`;}).join(""); };
-  const sitesHtml=ENQ_SITES.map(function(st){ return `<tr><td><b>${esc(st.name)}</b></td><td><code class="enq-key">${esc(st.site_key)}</code> <button class="link-btn" onclick="enqCopy('${esc(st.site_key)}')">copy</button></td><td class="num">${cnt[st.site_key]||0}</td><td><select class="inp" style="max-width:210px;padding:5px 8px" onchange="mapSiteClient('${st.id}','${esc(st.site_key)}',this.value)">${cOpts(st.client_id)}</select></td><td><button class="link-btn" style="color:#ff7b7b" onclick="deleteSite('${st.id}','${esc(st.name)}')">Remove</button></td></tr>`; }).join("");
-  const siteOpts=`<option value="">All sites</option>`+ENQ_SITES.map(function(st){return `<option value="${esc(st.site_key)}" ${ENQ_F.site===st.site_key?"selected":""}>${esc(st.name)}</option>`;}).join("");
+let DM_PROJECT=null, DM_AGENTS=[], DM_LF={source:"",status:"",assigned:"",q:""}, DM_CHARTS={};
+const DM_ST=["New","Contacted","Follow-up","Interested","Converted","Lost"];
+const DM_STC={New:"#8e7cff",Contacted:"#22d3ee","Follow-up":"#ffb020",Interested:"#ff8a3d",Converted:"#22c55e",Lost:"#ff5b6b"};
+function dmStatusBadge(v){ const c=DM_STC[v]||"#9aa0bd"; return `<span class="badge" style="background:${c}22;color:${c};border:1px solid ${c}66">${esc(v||"New")}</span>`; }
+function dmSrcBadge(ch){ const web=ch!=="digital"; const c=web?"#3b82f6":"#e879f9"; return `<span class="badge" style="background:${c}22;color:${c};border:1px solid ${c}66">${web?"🌐 Website":"📣 Digital"}</span>`; }
+function openDMProject(key){ DM_PROJECT=key; DM_LF={source:"",status:"",assigned:"",q:""}; drawEnquiries(); }
+function backDM(){ DM_PROJECT=null; drawEnquiries(); }
+function drawEnquiries(){ const el=$("enq-pane"); if(!el)return; if(!DM_PROJECT) drawDMHome(el); else drawDMProject(el); }
+function drawDMHome(el){
   const _now=Date.now();
   const _today=ENQ.filter(function(e){return isToday(e.created_at);}).length;
   const _week=ENQ.filter(function(e){return (_now-new Date(e.created_at).getTime())<7*864e5;}).length;
+  const cnt={},web={},dig={}; ENQ.forEach(function(e){ cnt[e.site_key]=(cnt[e.site_key]||0)+1; if(e.channel==="digital")dig[e.site_key]=(dig[e.site_key]||0)+1; else web[e.site_key]=(web[e.site_key]||0)+1; });
+  const cOpts=function(cur){ return `<option value="">— map to client —</option>`+(CLIENTS||[]).map(function(c){return `<option value="${c.id}" ${cur===c.id?"selected":""}>${esc(c.company||c.full_name||c.email)}</option>`;}).join(""); };
+  const cards=ENQ_SITES.map(function(st){ const c=(CLIENTS||[]).find(function(x){return x.id===st.client_id;}); return `<div class="dm-card"><div class="dm-card-top"><div class="dm-ic">📁</div><div style="flex:1;min-width:0"><div class="dm-nm">${esc(st.name)}</div><div class="hint">${c?esc(c.company||c.full_name):'<span style="color:#ff9b9b">unmapped</span>'}</div></div></div><div class="dm-stats3"><div><b>${cnt[st.site_key]||0}</b><span>Total</span></div><div><b>${web[st.site_key]||0}</b><span>🌐 Web</span></div><div><b>${dig[st.site_key]||0}</b><span>📣 Digital</span></div></div><button class="btn btn-sm btn-ok" style="width:100%;margin-top:10px" onclick="openDMProject('${esc(st.site_key)}')">Open dashboard →</button></div>`; }).join("");
   el.innerHTML=`
   <div class="ln-stats" style="margin-bottom:14px">${lnStat("📥","#8e7cff",ENQ.length,"Total leads")}${lnStat("📁","#22d3ee",ENQ_SITES.length,"Projects")}${lnStat("📅","#ffb020",_today,"Today")}${lnStat("🗓","#22c55e",_week,"Last 7 days")}</div>
-  <div class="card"><h2 style="margin:0 0 6px;font-size:16px">Projects</h2><div class="sub">Each project is a website/campaign that posts leads to the intake endpoint with its key. Map a project to a client so that client sees its leads.</div>
-    <div class="ba-note" style="margin:0 0 10px">Endpoint: <code>${SUPABASE_URL}/functions/v1/web-enquiry-intake</code></div>
-    <div class="table-wrap"><table class="lead-table"><thead><tr><th>Project</th><th>Key</th><th>Leads</th><th>Client</th><th></th></tr></thead><tbody>${sitesHtml||'<tr><td colspan="5" class="hint">No sites yet.</td></tr>'}</tbody></table></div>
-    <div class="row" style="margin-top:10px;gap:8px"><input id="ls-name" class="inp" placeholder="New project / website name…" style="max-width:260px"/><button class="btn btn-sm btn-ok" style="width:auto;margin:0" onclick="addLeadSite()">＋ Add site</button></div>
-  </div>
-  <div class="card" style="margin-top:14px">
-    <div class="lead-bar" style="margin:0 0 10px"><h2 style="margin:0">Enquiries <span class="hint" style="font-weight:600">· ${rows.length} of ${ENQ.length}</span></h2></div>
-    <div class="row" style="gap:8px;flex-wrap:wrap"><input class="inp" placeholder="🔍 Name, phone, email, project…" style="min-width:220px;flex:1" value="${esc(ENQ_F.q)}" oninput="ENQ_F.q=this.value;drawEnquiries()"/><select class="inp" style="max-width:180px" onchange="ENQ_F.site=this.value;drawEnquiries()">${siteOpts}</select><input type="date" class="inp" style="max-width:150px" value="${ENQ_F.from}" onchange="ENQ_F.from=this.value;drawEnquiries()"/><input type="date" class="inp" style="max-width:150px" value="${ENQ_F.to}" onchange="ENQ_F.to=this.value;drawEnquiries()"/></div>
-    <div class="table-wrap" style="margin-top:10px"><table class="lead-table"><thead><tr><th>Date</th><th>Name</th><th>Phone</th><th>Email</th><th>Project</th><th>Client</th><th></th></tr></thead><tbody>${rows.map(function(e){return `<tr>
-      <td style="white-space:nowrap">${esc(fmtDay(e.created_at))}<div class="hint">${esc(fmtTime(e.created_at))}</div></td>
-      <td><b>${esc(e.name||"—")}</b></td><td>${esc(e.phone||"—")}</td><td class="hint">${esc(e.email||"—")}</td>
-      <td>${e.project_name?`<span class="badge" style="background:rgba(255,176,32,.14);color:#ffd27a;border:1px solid rgba(255,176,32,.4)">${esc(e.project_name)}</span>`:"—"}${e.config?`<div class="hint" style="margin-top:2px">${esc(e.config)}</div>`:""}</td>
-      <td>${e.client_id?esc(enqClientName(e.client_id)):`<span class="hint">Unmapped</span>`}</td>
-      <td style="white-space:nowrap"><button class="link-btn" onclick="openEnquiry('${e.id}')">View</button> <button class="link-btn" style="color:#ff7b7b" onclick="deleteEnquiry('${e.id}')">🗑</button></td>
-    </tr>`;}).join("")||'<tr><td colspan="7" class="hint">No enquiries yet.</td></tr>'}</tbody></table></div>
+  <div class="section-title" style="margin-top:4px">Projects</div>
+  <div class="dm-grid">${cards||'<div class="hint">No projects yet.</div>'}</div>
+  <div class="card" style="margin-top:14px"><h2 style="margin:0 0 6px;font-size:15px">Manage projects</h2><div class="ba-note" style="margin:0 0 10px">Intake endpoint: <code>${SUPABASE_URL}/functions/v1/web-enquiry-intake</code> · send <code>channel:"digital"</code> for Meta leads.</div>
+    <div class="table-wrap"><table class="lead-table"><thead><tr><th>Project</th><th>Key</th><th>Client</th><th></th></tr></thead><tbody>${ENQ_SITES.map(function(st){return `<tr><td><b>${esc(st.name)}</b></td><td><code class="enq-key">${esc(st.site_key)}</code> <button class="link-btn" onclick="enqCopy('${esc(st.site_key)}')">copy</button></td><td><select class="inp" style="max-width:210px;padding:5px 8px" onchange="mapSiteClient('${st.id}','${esc(st.site_key)}',this.value)">${cOpts(st.client_id)}</select></td><td><button class="link-btn" style="color:#ff7b7b" onclick="deleteSite('${st.id}','${esc(st.name)}')">Remove</button></td></tr>`;}).join("")||'<tr><td colspan="4" class="hint">No projects.</td></tr>'}</tbody></table></div>
+    <div class="row" style="margin-top:10px;gap:8px"><input id="ls-name" class="inp" placeholder="New project / website name…" style="max-width:260px"/><button class="btn btn-sm btn-ok" style="width:auto;margin:0" onclick="addLeadSite()">＋ Add project</button></div>
   </div>`;
 }
+function drawDMProject(el){
+  const st=ENQ_SITES.find(function(x){return x.site_key===DM_PROJECT;});
+  const leads=ENQ.filter(function(e){return e.site_key===DM_PROJECT;});
+  const total=leads.length, web=leads.filter(function(e){return e.channel!=="digital";}).length, dig=total-web;
+  const byStatus={}; DM_ST.forEach(function(x){byStatus[x]=leads.filter(function(e){return (e.status||"New")===x;}).length;});
+  let rows=leads.filter(function(e){
+    if(DM_LF.source==="website"&&e.channel==="digital")return false;
+    if(DM_LF.source==="digital"&&e.channel!=="digital")return false;
+    if(DM_LF.status&&(e.status||"New")!==DM_LF.status)return false;
+    if(DM_LF.assigned==="__none__"&&e.assigned_to)return false;
+    if(DM_LF.assigned&&DM_LF.assigned!=="__none__"&&e.assigned_to!==DM_LF.assigned)return false;
+    if(DM_LF.q){const q=DM_LF.q.toLowerCase(); if(((e.name||"")+(e.phone||"")+(e.email||"")).toLowerCase().indexOf(q)<0)return false;}
+    return true;
+  });
+  const agFilter=`<option value="">All agents</option><option value="__none__" ${DM_LF.assigned==="__none__"?"selected":""}>Unassigned</option>`+DM_AGENTS.map(function(a){return `<option value="${a.id}" ${DM_LF.assigned===a.id?"selected":""}>${esc(a.full_name)}</option>`;}).join("");
+  el.innerHTML=`
+  <div class="fold-crumb"><button onclick="backDM()">📁 Digital Marketing</button><span>›</span><button class="on">${esc(st?st.name:"Project")}</button></div>
+  <div class="ln-stats" style="margin-bottom:14px">${lnStat("📥","#8e7cff",total,"Total")}${lnStat("🌐","#3b82f6",web,"Website")}${lnStat("📣","#e879f9",dig,"Digital")}${lnStat("🕒","#ffb020",(byStatus["New"]+byStatus["Follow-up"]),"Open")}${lnStat("✅","#22c55e",byStatus["Converted"],"Converted")}</div>
+  <div class="grid2" style="gap:14px">
+    <div class="card"><h2 style="margin:0 0 8px;font-size:15px">Lead source</h2><div style="position:relative;height:200px"><canvas id="dm-src"></canvas></div></div>
+    <div class="card"><h2 style="margin:0 0 8px;font-size:15px">Status funnel</h2><div style="position:relative;height:200px"><canvas id="dm-status"></canvas></div></div>
+  </div>
+  <div class="card" style="margin-top:14px"><h2 style="margin:0 0 6px;font-size:15px">🔔 Reminders due</h2><div id="dm-rem"><div class="hint">Loading…</div></div></div>
+  <div class="card" style="margin-top:14px">
+    <div class="lead-bar" style="margin:0 0 10px"><h2 style="margin:0">Leads <span class="hint" style="font-weight:600">· ${rows.length} of ${total}</span></h2></div>
+    <div class="row" style="gap:8px;flex-wrap:wrap">
+      <input class="inp" placeholder="🔍 Name, phone, email…" style="min-width:200px;flex:1" value="${esc(DM_LF.q)}" oninput="DM_LF.q=this.value;drawEnquiries()"/>
+      <select class="inp" style="max-width:150px" onchange="DM_LF.source=this.value;drawEnquiries()"><option value="">All sources</option><option value="website" ${DM_LF.source==="website"?"selected":""}>🌐 Website</option><option value="digital" ${DM_LF.source==="digital"?"selected":""}>📣 Digital</option></select>
+      <select class="inp" style="max-width:150px" onchange="DM_LF.status=this.value;drawEnquiries()"><option value="">All status</option>${DM_ST.map(function(x){return `<option ${DM_LF.status===x?"selected":""}>${x}</option>`;}).join("")}</select>
+      <select class="inp" style="max-width:160px" onchange="DM_LF.assigned=this.value;drawEnquiries()">${agFilter}</select>
+    </div>
+    <div class="table-wrap" style="margin-top:10px"><table class="lead-table"><thead><tr><th>Date</th><th>Name</th><th>Phone</th><th>Source</th><th>Status</th><th>Assigned</th><th></th></tr></thead>
+    <tbody>${rows.map(function(e){return `<tr>
+      <td style="white-space:nowrap">${esc(fmtDay(e.created_at))}<div class="hint">${esc(fmtTime(e.created_at))}</div></td>
+      <td><b>${esc(e.name||"—")}</b>${e.email?`<div class="hint">${esc(e.email)}</div>`:""}</td>
+      <td>${esc(e.phone||"—")}</td>
+      <td>${dmSrcBadge(e.channel)}</td>
+      <td><select class="inp" style="padding:4px 6px;font-size:12px;max-width:130px" onchange="dmStatus('${e.id}',this.value)">${DM_ST.map(function(x){return `<option ${(e.status||"New")===x?"selected":""}>${x}</option>`;}).join("")}</select></td>
+      <td><select class="inp" style="padding:4px 6px;font-size:12px;max-width:150px" onchange="dmAssign('${e.id}',this.value)"><option value="">Assign…</option>${DM_AGENTS.map(function(a){return `<option value="${a.id}" ${e.assigned_to===a.id?"selected":""}>${esc(a.full_name)}</option>`;}).join("")}</select></td>
+      <td style="white-space:nowrap"><button class="link-btn" onclick="dmReminder('${e.id}')">🔔</button> <button class="link-btn" onclick="openEnquiry('${e.id}')">View</button> <button class="link-btn" style="color:#ff7b7b" onclick="deleteEnquiry('${e.id}')">🗑</button></td>
+    </tr>`;}).join("")||'<tr><td colspan="7" class="hint">No leads.</td></tr>'}</tbody></table></div>
+  </div>`;
+  try{ if(DM_CHARTS.s)DM_CHARTS.s.destroy(); DM_CHARTS.s=new Chart($("dm-src"),{type:"doughnut",data:{labels:["Website","Digital"],datasets:[{data:[web,dig],backgroundColor:["#3b82f6","#e879f9"],borderWidth:0}]},options:{cutout:"60%",plugins:{legend:{position:"bottom",labels:{boxWidth:10,padding:10}}}}}); }catch(_){ }
+  try{ if(DM_CHARTS.st)DM_CHARTS.st.destroy(); DM_CHARTS.st=new Chart($("dm-status"),{type:"bar",data:{labels:DM_ST,datasets:[{data:DM_ST.map(function(x){return byStatus[x];}),backgroundColor:DM_ST.map(function(x){return DM_STC[x];}),borderRadius:5,maxBarThickness:26}]},options:{indexAxis:"y",plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,ticks:{precision:0}}}}}); }catch(_){ }
+  loadDMReminders();
+}
+async function loadDMReminders(){
+  const c=$("dm-rem"); if(!c)return;
+  const ids=ENQ.filter(function(e){return e.site_key===DM_PROJECT;}).map(function(e){return e.id;});
+  if(!ids.length){ c.innerHTML='<div class="hint">No reminders.</div>'; return; }
+  const {data}=await sb.from("cr_dm_reminders").select("*").in("enquiry_id",ids).eq("done",false).order("remind_at");
+  const rem=data||[]; if(!rem.length){ c.innerHTML='<div class="hint">No upcoming reminders.</div>'; return; }
+  const lm={}; ENQ.forEach(function(e){lm[e.id]=e;});
+  c.innerHTML=rem.map(function(r){const e=lm[r.enquiry_id]||{};const due=new Date(r.remind_at)<=new Date();return `<div class="rem-row ${due?'due':''}"><span>${due?'⏰':'🔔'} ${esc(fmtDate(r.remind_at))} · <b>${esc(e.name||"—")}</b>${r.note?" · "+esc(r.note):""} <span class="hint">(${esc(r.agent_name||"")})</span></span><span style="white-space:nowrap"><button class="link-btn" onclick="openEnquiry('${r.enquiry_id}')">Open</button> <button class="link-btn" onclick="dmReminderDone('${r.id}')">✓</button></span></div>`;}).join("");
+}
+async function dmAssign(id,agentId){ const a=DM_AGENTS.find(function(x){return x.id===agentId;}); const {error}=await sb.from("cr_web_enquiries").update({assigned_to:agentId||null,assigned_to_name:a?a.full_name:null,assigned_at:agentId?new Date().toISOString():null,updated_at:new Date().toISOString()}).eq("id",id); if(error){toast(error.message,true);return;} const e=ENQ.find(function(x){return x.id===id;}); if(e){e.assigned_to=agentId||null;e.assigned_to_name=a?a.full_name:null;} toast(agentId?("Assigned to "+(a?a.full_name:"agent")):"Unassigned"); }
+async function dmStatus(id,status){ const {error}=await sb.from("cr_web_enquiries").update({status:status,updated_at:new Date().toISOString()}).eq("id",id); if(error){toast(error.message,true);return;} const e=ENQ.find(function(x){return x.id===id;}); if(e)e.status=status; if(DM_PROJECT)drawEnquiries(); }
+function dmReminder(id){ $("modal-root").innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()"><div class="modal" style="max-width:400px"><div class="mh"><h2 style="margin:0">🔔 Set reminder</h2><button class="x" onclick="closeModal()">×</button></div><div class="mb"><label>Date &amp; time</label><input id="dmr-at" class="inp" type="datetime-local"/><label style="margin-top:8px">Note</label><input id="dmr-note" class="inp" placeholder="Follow-up note…"/><div class="row" style="margin-top:12px"><button class="btn btn-sm btn-ok" onclick="dmReminderSave('${id}')">Set reminder</button><button class="btn btn-sm btn-ghost" onclick="closeModal()">Cancel</button></div></div></div></div>`; }
+async function dmReminderSave(id){ const at=$("dmr-at").value; if(!at){toast("Pick a date & time.",true);return;} const {error}=await sb.from("cr_dm_reminders").insert({enquiry_id:id,remind_at:new Date(at).toISOString(),note:($("dmr-note").value||"").trim()||null,agent_id:(SESSION&&SESSION.user)?SESSION.user.id:null,agent_name:ME.full_name||ME.username||ME.email}); if(error){toast(error.message,true);return;} toast("Reminder set."); closeModal(); if(DM_PROJECT)loadDMReminders(); }
+async function dmReminderDone(id){ const {error}=await sb.from("cr_dm_reminders").update({done:true}).eq("id",id); if(error){toast(error.message,true);return;} loadDMReminders(); }
 async function addLeadSite(){ const name=($("ls-name").value||"").trim(); if(!name){toast("Enter a site name.",true);return;} const key=name.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/(^-|-$)/g,"")+"-"+Math.random().toString(36).slice(2,8); const {error}=await sb.from("cr_lead_sites").insert({site_key:key,name,created_by:(SESSION&&SESSION.user)?SESSION.user.id:null}); if(error){toast(error.message,true);return;} toast("Site added. Key: "+key); await loadLeadSites(); drawEnquiries(); }
 async function mapSiteClient(siteId,siteKey,clientId){ const {error}=await sb.from("cr_lead_sites").update({client_id:clientId||null}).eq("id",siteId); if(error){toast(error.message,true);return;} await sb.from("cr_web_enquiries").update({client_id:clientId||null}).eq("site_key",siteKey); toast("Site mapped — existing leads updated for the client."); await loadLeadSites(); await loadEnquiries(); drawEnquiries(); }
 async function deleteSite(id,name){ if(!confirm("Remove site "+name+"? Its leads stay but become unmapped."))return; const {error}=await sb.from("cr_lead_sites").delete().eq("id",id); if(error){toast(error.message,true);return;} await loadLeadSites(); drawEnquiries(); }
 async function deleteEnquiry(id){ if(!confirm("Delete this enquiry?"))return; const {error}=await sb.from("cr_web_enquiries").delete().eq("id",id); if(error){toast(error.message,true);return;} await loadEnquiries(); drawEnquiries(); }
-function openEnquiry(id){ const e=ENQ.find(function(x){return x.id===id;}); if(!e)return; const extra=e.extra?Object.keys(e.extra).map(function(k){return `<div class="k">${esc(k)}</div><div>${esc(String(e.extra[k]))}</div>`;}).join(""):""; $("modal-root").innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()"><div class="modal" style="max-width:480px"><div class="mh"><h2 style="margin:0">${esc(e.name||"Enquiry")}</h2><button class="x" onclick="closeModal()">×</button></div><div class="mb"><div class="kv"><div class="k">Phone</div><div><a href="tel:${esc(e.phone||"")}" style="color:var(--brand2)">${esc(e.phone||"—")}</a></div><div class="k">Email</div><div>${esc(e.email||"—")}</div><div class="k">Project</div><div>${esc(e.project_name||"—")}</div><div class="k">Configuration</div><div>${esc(e.config||"—")}</div><div class="k">Site</div><div>${esc(e.site_name||e.site_key||"—")}</div><div class="k">Source</div><div class="hint">${esc(e.source||"—")}</div><div class="k">Page URL</div><div class="hint" style="word-break:break-all">${esc(e.page_url||"—")}</div><div class="k">Received</div><div>${esc(fmtDate(e.created_at))}</div>${extra}</div></div></div></div>`; }
-async function renderClientEnquiries(){ const el=$("client-enquiries-view"); if(!el)return; el.innerHTML=`<div id="cenq-stats" class="stats"></div><div class="card"><h2>Digital Marketing — your leads</h2><div class="sub">Leads captured from your project websites, in real time.</div><div id="cenq-list"><div class="hint">Loading…</div></div></div>`; const {data}=await sb.from("cr_web_enquiries").select("*").order("created_at",{ascending:false}); const rows=data||[]; const now=Date.now(); const projs=[...new Set(rows.map(function(e){return e.project_name||e.site_name||"—";}))].length; const today=rows.filter(function(e){return new Date(e.created_at).toDateString()===new Date().toDateString();}).length; const week=rows.filter(function(e){return (now-new Date(e.created_at).getTime())<7*864e5;}).length; const st=$("cenq-stats"); if(st) st.innerHTML=statCard("📥","#8e7cff",rows.length,"Total leads")+statCard("📁","#22d3ee",projs,"Projects")+statCard("📅","#ffb020",today,"Today")+statCard("🗓","#22c55e",week,"Last 7 days"); const l=$("cenq-list"); if(!l)return; l.innerHTML=rows.length?`<div class="table-wrap"><table class="lead-table"><thead><tr><th>Date</th><th>Name</th><th>Phone</th><th>Email</th><th>Project</th><th>Config</th></tr></thead><tbody>${rows.map(function(e){return `<tr><td style="white-space:nowrap">${esc(fmtDay(e.created_at))}<div class="hint">${esc(fmtTime(e.created_at))}</div></td><td><b>${esc(e.name||"—")}</b></td><td>${esc(e.phone||"—")}</td><td class="hint">${esc(e.email||"—")}</td><td>${e.project_name?`<span class="badge" style="background:rgba(255,176,32,.14);color:#ffd27a;border:1px solid rgba(255,176,32,.4)">${esc(e.project_name)}</span>`:"—"}</td><td>${esc(e.config||"—")}</td></tr>`;}).join("")}</tbody></table></div>`:`<div class="empty">No enquiries yet.</div>`; }
+function openEnquiry(id){
+  const e=ENQ.find(function(x){return x.id===id;}); if(!e)return;
+  const isStaff=ME.role==="admin"||ME.role==="manager";
+  const extra=e.extra?Object.keys(e.extra).map(function(k){return `<div class="k">${esc(k)}</div><div>${esc(String(e.extra[k]))}</div>`;}).join(""):"";
+  $("modal-root").innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()"><div class="modal" style="max-width:500px"><div class="mh"><div style="min-width:0"><h2 style="margin:0">${esc(e.name||"Enquiry")}</h2><div class="hint"><a href="tel:${esc(e.phone||"")}" style="color:var(--brand2)">📞 ${esc(e.phone||"—")}</a> · ${dmSrcBadge(e.channel)}</div></div><button class="x" onclick="closeModal()">×</button></div><div class="mb">
+    <div class="kv"><div class="k">Email</div><div>${esc(e.email||"—")}</div><div class="k">Project</div><div>${esc(e.project_name||e.site_name||"—")}</div><div class="k">Configuration</div><div>${esc(e.config||"—")}</div><div class="k">Source</div><div class="hint">${esc(e.source||"—")}</div><div class="k">Received</div><div>${esc(fmtDate(e.created_at))}</div>${extra}</div>
+    ${isStaff?`<div class="grid2" style="margin-top:10px"><div><label>Status</label><select id="ee-status" class="inp" onchange="dmStatus('${id}',this.value)">${DM_ST.map(function(x){return `<option ${(e.status||"New")===x?"selected":""}>${x}</option>`;}).join("")}</select></div><div><label>Assign to</label><select id="ee-assign" class="inp" onchange="dmAssign('${id}',this.value)"><option value="">Unassigned</option>${DM_AGENTS.map(function(a){return `<option value="${a.id}" ${e.assigned_to===a.id?"selected":""}>${esc(a.full_name)}</option>`;}).join("")}</select></div></div>
+    <label style="margin-top:10px">Remarks</label><textarea id="ee-remarks" class="inp" rows="2">${esc(e.remarks||"")}</textarea>
+    <div class="row" style="margin-top:8px;gap:8px"><button class="btn btn-sm btn-ok" style="width:auto;margin:0" onclick="dmSaveRemarks('${id}')">Save remarks</button><button class="btn btn-sm btn-ghost" style="width:auto;margin:0" onclick="dmReminder('${id}')">🔔 Reminder</button></div>`:""}
+  </div></div></div>`;
+}
+async function dmSaveRemarks(id){ const {error}=await sb.from("cr_web_enquiries").update({remarks:($("ee-remarks").value||"").trim()||null,updated_at:new Date().toISOString()}).eq("id",id); if(error){toast(error.message,true);return;} const e=ENQ.find(function(x){return x.id===id;}); if(e)e.remarks=($("ee-remarks").value||"").trim(); toast("Saved."); }
+async function renderClientEnquiries(){ const el=$("client-enquiries-view"); if(!el)return; el.innerHTML=`<div id="cenq-stats" class="stats"></div><div class="card"><h2>Digital Marketing — your leads</h2><div class="sub">Leads captured from your project websites, in real time.</div><div id="cenq-list"><div class="hint">Loading…</div></div></div>`; const {data}=await sb.from("cr_web_enquiries").select("*").order("created_at",{ascending:false}); const rows=data||[]; const now=Date.now(); const projs=[...new Set(rows.map(function(e){return e.project_name||e.site_name||"—";}))].length; const today=rows.filter(function(e){return new Date(e.created_at).toDateString()===new Date().toDateString();}).length; const week=rows.filter(function(e){return (now-new Date(e.created_at).getTime())<7*864e5;}).length; const st=$("cenq-stats"); if(st) st.innerHTML=statCard("📥","#8e7cff",rows.length,"Total leads")+statCard("📁","#22d3ee",projs,"Projects")+statCard("📅","#ffb020",today,"Today")+statCard("🗓","#22c55e",week,"Last 7 days"); const l=$("cenq-list"); if(!l)return; l.innerHTML=rows.length?`<div class="table-wrap"><table class="lead-table"><thead><tr><th>Date</th><th>Name</th><th>Phone</th><th>Email</th><th>Project</th><th>Source</th><th>Status</th></tr></thead><tbody>${rows.map(function(e){return `<tr><td style="white-space:nowrap">${esc(fmtDay(e.created_at))}<div class="hint">${esc(fmtTime(e.created_at))}</div></td><td><b>${esc(e.name||"—")}</b></td><td>${esc(e.phone||"—")}</td><td class="hint">${esc(e.email||"—")}</td><td>${e.project_name?`<span class="badge" style="background:rgba(255,176,32,.14);color:#ffd27a;border:1px solid rgba(255,176,32,.4)">${esc(e.project_name)}</span>`:"—"}</td><td>${dmSrcBadge(e.channel)}</td><td>${dmStatusBadge(e.status)}</td></tr>`;}).join("")}</tbody></table></div>`:`<div class="empty">No enquiries yet.</div>`; }
 // ===================== LOANS MODULE =====================
 const LOAN_CALL=["New","Not answered","Call back","Interested","Not interested","Wrong number","Do not call"];
 const LOAN_STAGES=["None","Interested","Documents collected","Applied","Approved","Disbursed","Rejected"];
