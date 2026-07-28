@@ -898,6 +898,35 @@
   .menu-item .mi-ic{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:8px;background:var(--chip);color:var(--muted);margin-right:9px;vertical-align:middle}
   .menu-item:hover .mi-ic{color:var(--brand)}
   .menu-item.danger .mi-ic{color:#ff8a8a}
+  .pf-card{background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:24px 18px 20px;text-align:center;box-shadow:var(--shadow,0 14px 34px rgba(0,0,0,.28));margin-bottom:14px}
+  .pf-av{width:78px;height:78px;border-radius:24px;margin:0 auto 12px;background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;display:grid;place-items:center;font-weight:900;font-size:27px;box-shadow:0 12px 26px -8px var(--brand)}
+  .pf-name{font-size:21px;font-weight:900;color:var(--txt);line-height:1.15}
+  .pf-sub{font-size:13px;color:var(--muted);margin-top:3px;word-break:break-all}
+  .pf-chips{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:12px}
+  .pf-chip{background:var(--chip);border:1px solid var(--line);border-radius:99px;padding:5px 13px;font-size:11.5px;font-weight:800;color:var(--txt)}
+  .pf-chip.alt{color:var(--brand);border-color:color-mix(in srgb,var(--brand) 45%,var(--line))}
+  .pf-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+  .pf-stat{border:1px solid var(--line);border-radius:18px;padding:16px 8px;text-align:center}
+  .pf-stat b{display:block;font-size:23px;font-weight:900;line-height:1}
+  .pf-stat span{font-size:11.5px;color:var(--muted);font-weight:700;margin-top:5px;display:block}
+  .set-title{font-size:12.5px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:20px 4px 9px}
+  .set-list{display:flex;flex-direction:column;gap:10px}
+  .set-row{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:13px 15px;width:100%;text-align:left;transition:border-color .16s,transform .12s}
+  button.set-row{cursor:pointer;font-family:inherit;font-size:14px;color:var(--txt)}
+  .set-row:hover{border-color:var(--brand)}
+  button.set-row:active{transform:scale(.99)}
+  .set-ic{width:42px;height:42px;border-radius:13px;background:color-mix(in srgb,var(--brand) 12%,var(--chip));color:var(--brand);display:grid;place-items:center;flex:0 0 auto}
+  .set-t{font-weight:800;color:var(--txt);font-size:14px}
+  .set-s{font-size:12px;color:var(--muted);margin-top:1px}
+  .set-chev{color:var(--muted);display:flex}
+  .set-row.danger .set-ic{color:#ff6b6b;background:rgba(255,107,107,.12)}
+  .set-row.danger .set-t{color:#ff8a8a}
+  .switch{position:relative;display:inline-block;width:46px;height:26px;flex:0 0 auto}
+  .switch input{opacity:0;width:0;height:0}
+  .switch .sl{position:absolute;inset:0;background:var(--chip);border:1px solid var(--line);border-radius:99px;transition:.2s;cursor:pointer}
+  .switch .sl:before{content:"";position:absolute;width:18px;height:18px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s;box-shadow:0 2px 5px rgba(0,0,0,.35)}
+  .switch input:checked+.sl{background:linear-gradient(135deg,var(--brand),var(--brand2));border-color:transparent}
+  .switch input:checked+.sl:before{transform:translateX(20px)}
   .chero{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;border-radius:22px;padding:22px 22px 24px;margin-bottom:16px;position:relative;overflow:hidden;box-shadow:0 16px 44px -12px var(--brand)}
   .chero::after{content:"";position:absolute;right:-40px;top:-40px;width:170px;height:170px;border-radius:50%;background:rgba(255,255,255,.12)}
   .chero::before{content:"";position:absolute;right:30px;bottom:-50px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.08)}
@@ -2248,19 +2277,44 @@ async function submitTicket(){
 // ---- Client settings + feedback ----
 function renderClientSettings(){
   const el=$("client-settings-view"); if(!el)return;
-  const svc=(ME.service_types||["software"]).map(function(x){return x==="digital"?"Digital Marketing":"Software Development";}).join(", ");
+  const svc=(ME.service_types||["software"]);
+  const dig=svc.indexOf("digital")>=0;
+  const svcLabel=svc.map(function(x){return x==="digital"?"Digital Marketing":"Software Development";}).join(" · ");
   el.innerHTML=`
-  <div class="card"><h2 style="margin:0 0 8px">⚙️ Settings</h2><div class="sub">Your account details.</div>
-    <div class="kv"><div class="k">Company</div><div>${esc(ME.company||"—")}</div><div class="k">Contact</div><div>${esc(ME.full_name||"—")}</div><div class="k">Client code</div><div><span class="ref">${esc(ME.client_code||"—")}</span></div><div class="k">Login username</div><div>${esc(ME.username||"—")}</div><div class="k">Notification email</div><div>${esc((ME.notify_emails&&ME.notify_emails.join(", "))||ME.notify_email||"—")}</div><div class="k">Phone</div><div>${esc(ME.phone||"—")}</div><div class="k">Website</div><div>${ME.website?`<a href="${esc(ME.website)}" target="_blank" style="color:var(--brand2)">${esc(ME.website)}</a>`:"—"}</div><div class="k">Service</div><div>${esc(svc)}</div></div>
-    <div class="hint" style="margin-top:10px">To change these details, raise a support ticket or contact your account manager.</div>
-  </div>
-  <div class="card" style="margin-top:14px"><h2 style="margin:0 0 8px">💬 Send feedback</h2><div class="sub">Tell us how we're doing — it helps us improve.</div>
-    <label>Rating</label><div id="fb-stars" class="fb-stars">${[1,2,3,4,5].map(function(n){return `<span data-n="${n}" onclick="fbSetRating(${n})">☆</span>`;}).join("")}</div>
-    <label style="margin-top:10px">Your feedback</label><textarea id="fb-msg" class="inp" rows="3" placeholder="Share your thoughts…"></textarea>
-    <div class="row" style="margin-top:12px"><button class="btn btn-sm btn-ok" id="fb-btn" onclick="submitFeedback()">Send feedback</button></div>
-  </div>`;
+    <div class="pf-card">
+      <div class="pf-av">${esc(initials(ME.company||ME.full_name||ME.username||"C"))}</div>
+      <div class="pf-name">${esc(ME.company||ME.full_name||ME.username||"Client")}</div>
+      <div class="pf-sub">${esc((ME.notify_emails&&ME.notify_emails[0])||ME.notify_email||ME.email||"")}</div>
+      <div class="pf-chips"><span class="pf-chip">Code ${esc(ME.client_code||"—")}</span><span class="pf-chip alt">${esc(svcLabel)}</span></div>
+    </div>
+    <div class="pf-stats" id="cset-stats"><div class="pf-stat"><b>·</b><span>&nbsp;</span></div><div class="pf-stat"><b>·</b><span>&nbsp;</span></div><div class="pf-stat"><b>·</b><span>&nbsp;</span></div></div>
+    <div class="set-title">Settings</div>
+    <div class="set-list">
+      <div class="set-row"><span class="set-ic"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></span><div style="flex:1;min-width:0"><div class="set-t">App theme</div><div class="set-s">Light &amp; dark mode</div></div><label class="switch"><input type="checkbox" ${THEME_STATE.mode!=="light"?"checked":""} onchange="clientToggleTheme(this.checked)"><span class="sl"></span></label></div>
+      <div class="set-row"><span class="set-ic"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 6 2.5 8 2.5 8h-17S6 14 6 8"/><path d="M10.2 21a2 2 0 0 0 3.6 0"/></svg></span><div style="flex:1;min-width:0"><div class="set-t">Notifications</div><div class="set-s">Email updates for your leads</div></div><label class="switch"><input type="checkbox" ${(function(){try{return localStorage.getItem("cr_notif_off")==="1"?"":"checked";}catch(e){return "checked";}})()} onchange="clientToggleNotif(this.checked)"><span class="sl"></span></label></div>
+      <button class="set-row as-btn" onclick="setClientTab('support')"><span class="set-ic"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.8.4-1 .9-1 1.7"/><path d="M12 17h.01"/></svg></span><div style="flex:1;min-width:0;text-align:left"><div class="set-t">Help &amp; Support</div><div class="set-s">Raise a ticket, track replies</div></div><span class="set-chev"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></span></button>
+      <button class="set-row as-btn danger" onclick="doLogout()"><span class="set-ic"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg></span><div style="flex:1;text-align:left"><div class="set-t">Log out</div></div><span class="set-chev"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></span></button>
+    </div>
+    <div class="set-title">Send feedback</div>
+    <div class="card"><div class="sub">Tell us how we're doing — it helps us improve.</div>
+      <div id="fb-stars" class="fb-stars">${[1,2,3,4,5].map(function(n){return `<span data-n="${n}" onclick="fbSetRating(${n})">☆</span>`;}).join("")}</div>
+      <textarea id="fb-msg" class="inp" rows="3" placeholder="Share your thoughts…" style="margin-top:8px"></textarea>
+      <div class="row" style="margin-top:12px"><button class="btn btn-sm btn-ok" id="fb-btn" onclick="submitFeedback()">Send feedback</button></div>
+    </div>`;
   window.FB_RATING=0;
+  (async function(){
+    try{
+      const q1=dig? sb.from("cr_web_enquiries").select("id",{count:"exact",head:true}) : sb.from("cr_requests").select("id",{count:"exact",head:true});
+      const q2=dig? sb.from("cr_lead_sites").select("id",{count:"exact",head:true}) : sb.from("cr_projects").select("id",{count:"exact",head:true});
+      const q3=sb.from("cr_tickets").select("id",{count:"exact",head:true});
+      const rs=await Promise.all([q1,q2,q3]);
+      const box=$("cset-stats"); if(box) box.innerHTML=pfStat(rs[0].count||0, dig?"Leads":"Requests","#8e7cff")+pfStat(rs[1].count||0,"Projects","#22c3ee")+pfStat(rs[2].count||0,"Tickets","#22c55e");
+    }catch(_){ }
+  })();
 }
+function pfStat(v,l,c){ return `<div class="pf-stat" style="background:${c}12;border-color:${c}33"><b style="color:${c}">${v}</b><span>${l}</span></div>`; }
+function clientToggleTheme(dark){ try{ setMode(dark?"dark":"light"); }catch(_){ } }
+function clientToggleNotif(on){ try{ localStorage.setItem("cr_notif_off", on?"0":"1"); }catch(_){ } toast(on?"Notifications on.":"Notifications muted."); }
 function fbSetRating(n){ window.FB_RATING=n; document.querySelectorAll("#fb-stars span").forEach(function(el){ el.textContent=(+el.getAttribute("data-n")<=n)?"★":"☆"; el.classList.toggle("on",+el.getAttribute("data-n")<=n); }); }
 async function submitFeedback(){
   const msg=($("fb-msg").value||"").trim(); const rating=window.FB_RATING||0;
