@@ -900,6 +900,33 @@
   .ln-rt-ic{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;font-size:21px;background:var(--chip);flex:0 0 auto}
   .ln-rt-n{font-weight:800;color:var(--txt);font-size:14px}
   .ln-rt-d{font-size:11.5px;color:var(--muted);margin-top:2px}
+
+  /* ===== Mobile-first polish ===== */
+  html{scroll-behavior:smooth}
+  *{-webkit-tap-highlight-color:transparent}
+  .table-wrap{-webkit-overflow-scrolling:touch}
+  @media(max-width:640px){
+    .wrap{padding-left:12px;padding-right:12px}
+    .card{border-radius:18px;padding:14px}
+    .hero,.ln-hero,.welcome{border-radius:18px;padding:14px 16px}
+    .btn,.btn-sm,.link-btn,.navside,.theme-act{min-height:44px;display:inline-flex;align-items:center;justify-content:center}
+    .link-btn{min-height:38px}
+    .inp,select.inp,textarea.inp{font-size:16px;border-radius:12px}
+    .stats,.ln-stats{grid-template-columns:1fr 1fr;gap:10px}
+    .dm-grid,.fold-grid,.proj-grid,.clients-grid{grid-template-columns:1fr}
+    .grid2,.grid3{grid-template-columns:1fr}
+    .lead-bar{flex-wrap:wrap;gap:8px;align-items:flex-start}
+    .lead-bar h2{font-size:17px}
+    .seg{overflow-x:auto;-webkit-overflow-scrolling:touch;white-space:nowrap}
+    .seg button{flex:0 0 auto}
+    .modal{max-width:96vw;border-radius:18px}
+    .stat,.ln-stat{padding:12px}
+    .lead-table th,.lead-table td{padding:9px 8px;font-size:12.5px}
+    .tk-msg{max-width:96%}
+    .fb-stars{font-size:34px}
+    .side-collapse{display:none}
+  }
+  @media(hover:none){ .btn:active,.btn-sm:active,.navside:active,.dm-card:active,.fold-card:active{transform:scale(.98)} }
 </style>
 </head>
 <body>
@@ -1249,7 +1276,11 @@ const THEMES={
   slate:{name:"Slate",dot:"linear-gradient(135deg,#475569,#94a3b8)",v:{"--bg":"#0d1117","--panel":"#161b22","--panel2":"#1c232c","--line":"#2d333b","--txt":"#e6edf3","--muted":"#9098a3","--brand":"#5b6b82","--brand2":"#8b9bb4","--accent":"#56b6c2","--chip":"#222a33","--g1":"rgba(91,107,130,.18)","--g2":"rgba(86,182,194,.1)"}},
   ember:{name:"Ember",dot:"linear-gradient(135deg,#ff7a1a,#ffb347)",v:{"--bg":"#08080b","--panel":"#131117","--panel2":"#1b1820","--line":"#2b2620","--txt":"#f6efe6","--muted":"#a79f92","--brand":"#ff7a1a","--brand2":"#ff9f45","--accent":"#ffb020","--chip":"#241f1a","--g1":"rgba(255,122,26,.24)","--g2":"rgba(255,176,32,.15)"}},
   neon:{name:"Neon",dot:"linear-gradient(135deg,#ff2bd6,#7c3aed)",v:{"--bg":"#0a0612","--panel":"#150d23","--panel2":"#1d1230","--line":"#33214d","--txt":"#f5e9ff","--muted":"#b69ad6","--brand":"#ff2bd6","--brand2":"#c026d3","--accent":"#22d3ee","--chip":"#241634","--g1":"rgba(255,43,214,.22)","--g2":"rgba(124,58,237,.16)"}},
-  light:{name:"Light",dot:"linear-gradient(135deg,#6c5ce7,#00b894)",v:{"--bg":"#f4f6fb","--panel":"#ffffff","--panel2":"#eef2fa","--line":"#dde3ee","--txt":"#1e2333","--muted":"#5d6680","--brand":"#6c5ce7","--brand2":"#5848d6","--accent":"#0ea5a0","--chip":"#e9edf7","--g1":"rgba(108,92,231,.1)","--g2":"rgba(0,184,148,.08)","--shadow":"0 10px 30px rgba(20,30,60,.08)"}}
+  light:{name:"Light",dot:"linear-gradient(135deg,#6c5ce7,#00b894)",v:{"--bg":"#f4f6fb","--panel":"#ffffff","--panel2":"#eef2fa","--line":"#dde3ee","--txt":"#1e2333","--muted":"#5d6680","--brand":"#6c5ce7","--brand2":"#5848d6","--accent":"#0ea5a0","--chip":"#e9edf7","--g1":"rgba(108,92,231,.1)","--g2":"rgba(0,184,148,.08)","--shadow":"0 10px 30px rgba(20,30,60,.08)"}},
+  aurora:{name:"Aurora",dot:"linear-gradient(135deg,#7c3aed,#c4b5fd)",v:{"--bg":"#f3f1fb","--panel":"#ffffff","--panel2":"#f7f5fe","--line":"#e7e2f6","--txt":"#231b3a","--muted":"#6b6486","--brand":"#7c3aed","--brand2":"#9f7aea","--accent":"#14b8a6","--chip":"#efeafc","--g1":"rgba(124,58,237,.12)","--g2":"rgba(159,122,234,.1)","--shadow":"0 12px 34px rgba(70,50,130,.12)"}},
+  midnight:{name:"Midnight",dot:"linear-gradient(135deg,#6366f1,#22d3ee)",v:{"--bg":"#0b0f1a","--panel":"#111827","--panel2":"#18213a","--line":"#273049","--txt":"#eef2ff","--muted":"#94a3c4","--brand":"#6366f1","--brand2":"#818cf8","--accent":"#22d3ee","--chip":"#1b2540","--g1":"rgba(99,102,241,.24)","--g2":"rgba(34,211,238,.14)"}},
+  mint:{name:"Mint",dot:"linear-gradient(135deg,#10b981,#34d399)",v:{"--bg":"#f2fbf7","--panel":"#ffffff","--panel2":"#effaf4","--line":"#d9efe4","--txt":"#123", "--muted":"#5c7b70","--brand":"#0ea472","--brand2":"#10b981","--accent":"#0891b2","--chip":"#e5f6ee","--g1":"rgba(16,185,129,.12)","--g2":"rgba(8,145,178,.08)","--shadow":"0 12px 30px rgba(16,120,90,.1)"}},
+  sunset:{name:"Sunset",dot:"linear-gradient(135deg,#f97316,#ec4899)",v:{"--bg":"#140d12","--panel":"#1e1319","--panel2":"#271822","--line":"#3a2430","--txt":"#fbeef3","--muted":"#c39aad","--brand":"#f97316","--brand2":"#fb7185","--accent":"#ec4899","--chip":"#2a1a24","--g1":"rgba(249,115,22,.22)","--g2":"rgba(236,72,153,.16)"}}
 };
 let GLOBAL_SETTINGS=null;
 let THEME_STATE={key:"indigo",custom:null,mode:"dark"};
@@ -1293,8 +1324,13 @@ function renderThemeMenu(){
     <div class="tm-block"><span class="tm-lab">3D background</span>
       <div class="bg-opts">${[["space","Space"],["money","Money"],["knot","Knot"],["globe","Globe"],["rings","Rings"],["waves","Waves"],["crystal","Crystal"],["particles","Stars"],["off","Off"]].map(function(o){return '<button class="bg-opt '+(BG_STYLE===o[0]?'on':'')+'" onclick="setBg(\''+o[0]+'\')">'+o[1]+'</button>';}).join("")}</div>
     </div>
-    ${isAdmin?`<div class="tm-hint">✨ Your colour &amp; animation changes apply to all clients automatically (live).</div><button class="theme-act" onclick="openThemeStudio()">🎛️ Advanced theme studio</button>
-    <button class="theme-act primary" onclick="saveGlobalDefault()">💾 Save as portal default now</button>`:""}
+    ${isAdmin?`<div class="tm-hint">This is <b>your</b> (admin/staff) theme.</div>
+    <div class="tm-block"><span class="tm-lab">Client portal theme</span></div>
+    <select class="inp" id="ct-key" onchange="saveClientTheme()">${Object.entries(THEMES).map(function(kt){return `<option value="${kt[0]}" ${((GLOBAL_SETTINGS&&GLOBAL_SETTINGS.client_theme_key)||"aurora")===kt[0]?"selected":""}>${kt[1].name}</option>`;}).join("")}</select>
+    <div class="tm-seg" style="margin-top:6px"><button class="${((GLOBAL_SETTINGS&&GLOBAL_SETTINGS.client_mode)||"light")!=="light"?"on":""}" onclick="saveClientTheme('dark')">🌙 Dark</button><button class="${((GLOBAL_SETTINGS&&GLOBAL_SETTINGS.client_mode)||"light")==="light"?"on":""}" onclick="saveClientTheme('light')">☀️ Light</button></div>
+    <div class="tm-hint">The theme your clients see — independent of yours.</div>
+    <button class="theme-act" onclick="openThemeStudio()">🎛️ Advanced theme studio</button>
+    <button class="theme-act primary" onclick="saveGlobalDefault()">💾 Save my theme (staff default)</button>`:""}
     <button class="theme-act ghost" onclick="resetToPortalDefault()">↺ Reset to portal default</button>`;
 }
 function toggleThemeMenu(e){ if(e)e.stopPropagation(); renderThemeMenu(); const m=$("theme-menu"); if(m) m.classList.toggle("hidden"); }
@@ -1322,8 +1358,9 @@ async function loadGlobalSettings(){
       window._crSettingsSub = sb.channel("cr_settings_live").on("postgres_changes",{event:"UPDATE",schema:"public",table:"cr_app_settings",filter:"id=eq.1"},function(payload){
         const s2=payload.new; if(!s2) return; GLOBAL_SETTINGS=s2; applyBranding(s2);
         let uT=false,uB=false; try{uT=localStorage.getItem("cr_theme_user")==="1"; uB=localStorage.getItem("cr_bg_user")==="1";}catch(_){ }
-        if(!uT) applyThemeState(globalToState(s2),{persist:false});
-        if(!uB && s2.bg_style){ BG_STYLE=s2.bg_style; if(typeof THREE_SCENE!=="undefined"&&THREE_SCENE&&THREE_SCENE.rebuild) THREE_SCENE.rebuild(); }
+        const isCl=(typeof ME!=="undefined"&&ME&&ME.role==="client");
+        if(!uT){ if(isCl&&s2.client_theme_key) applyThemeState({key:s2.client_theme_key,custom:null,mode:s2.client_mode||"light"},{persist:false}); else applyThemeState(globalToState(s2),{persist:false}); }
+        if(!uB){ const _bg=(isCl&&(s2.client_bg_style!==undefined&&s2.client_bg_style!==null))?s2.client_bg_style:s2.bg_style; if(_bg!==undefined&&_bg!==null){ BG_STYLE=_bg; if(typeof THREE_SCENE!=="undefined"&&THREE_SCENE&&THREE_SCENE.rebuild) THREE_SCENE.rebuild(); } }
       }).subscribe();
     }
   }catch(_){ }
@@ -1337,9 +1374,26 @@ async function persistGlobal(extra){
   try{localStorage.removeItem("cr_theme_user");localStorage.removeItem("cr_theme_state");localStorage.removeItem("cr_bg_user");}catch(_){}
   return true;
 }
-async function saveGlobalDefault(){ if(await persistGlobal()) toast("Saved as the portal default theme for everyone."); }
+async function saveGlobalDefault(){ if(await persistGlobal()) toast("Saved as the admin/staff theme."); }
+async function saveClientTheme(mode){
+  const key=$("ct-key")?$("ct-key").value:((GLOBAL_SETTINGS&&GLOBAL_SETTINGS.client_theme_key)||"aurora");
+  const m=mode||((GLOBAL_SETTINGS&&GLOBAL_SETTINGS.client_mode)||"light");
+  if(await persistGlobal({client_theme_key:key,client_mode:m})){ toast("Client theme saved — applies to clients live."); renderThemeMenu(); }
+}
+function applyRoleTheme(){
+  try{
+    let uT=false; try{uT=localStorage.getItem("cr_theme_user")==="1";}catch(_){ }
+    if(uT) return;
+    const g=GLOBAL_SETTINGS||{};
+    if(typeof ME!=="undefined" && ME && ME.role==="client" && g.client_theme_key){
+      applyThemeState({key:g.client_theme_key,custom:null,mode:g.client_mode||"light"},{persist:false});
+      let uB=false; try{uB=localStorage.getItem("cr_bg_user")==="1";}catch(_){ }
+      if(!uB && g.client_bg_style!==undefined && g.client_bg_style!==null){ BG_STYLE=g.client_bg_style; if(typeof THREE_SCENE!=="undefined"&&THREE_SCENE&&THREE_SCENE.rebuild) THREE_SCENE.rebuild(); }
+    }
+  }catch(_){ }
+}
 let _globalSaveT=null;
-function autoSaveGlobalIfAdmin(){ if(!(typeof ME!=="undefined"&&ME&&ME.role==="admin"))return; clearTimeout(_globalSaveT); _globalSaveT=setTimeout(function(){ persistGlobal().then(function(ok){ if(ok) toast("Applied to all clients."); }); },700); }
+function autoSaveGlobalIfAdmin(){ if(!(typeof ME!=="undefined"&&ME&&ME.role==="admin"))return; clearTimeout(_globalSaveT); _globalSaveT=setTimeout(function(){ persistGlobal().then(function(ok){ if(ok) toast("Saved as your staff theme."); }); },700); }
 async function resetToPortalDefault(){
   try{localStorage.removeItem("cr_theme_user");localStorage.removeItem("cr_theme_state");}catch(_){}
   applyThemeState(globalToState(GLOBAL_SETTINGS),{persist:false});
@@ -1566,6 +1620,7 @@ async function boot(){
   renderAvatar();
   try{ const bb=$("pm-bio"); if(bb) bb.style.display=(ME.role==="admin"&&bioSupported())?"":"none"; }catch(_){ }
   maybeBioLock();
+  applyRoleTheme();
   if(ME.role==="admin") renderAdmin(); else if(ME.role==="telesales") renderTelesales(); else if(ME.role==="manager") renderManager(); else renderClient();
   if(ME.role==="telesales"||ME.role==="manager"){ try{ startAttendance(); }catch(_){ } }
   if(ME.role==="admin"){ try{ setupAssistant(); }catch(_){ } }
