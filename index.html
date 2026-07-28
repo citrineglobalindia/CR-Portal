@@ -1996,30 +1996,87 @@ function openEnquiry(id){
   </div></div></div>`;
 }
 async function dmSaveRemarks(id){ const {error}=await sb.from("cr_web_enquiries").update({remarks:($("ee-remarks").value||"").trim()||null,updated_at:new Date().toISOString()}).eq("id",id); if(error){toast(error.message,true);return;} const e=ENQ.find(function(x){return x.id===id;}); if(e)e.remarks=($("ee-remarks").value||"").trim(); toast("Saved."); }
-let CENQ=[], CENQ_F={q:"",from:"",to:""};
+let CENQ=[], CLIENT_SITES=[], CPROJ=null, CSRC="website", CPF={q:"",from:"",to:""};
+function clientSiteLogo(st){ if(!st)return ""; if(st.logo_path)return logoUrl(st.logo_path); return ME.logo_path?logoUrl(ME.logo_path):""; }
 async function renderClientEnquiries(){
   const el=$("client-enquiries-view"); if(!el)return;
-  el.innerHTML=`<div id="cenq-stats" class="stats"></div><div class="card"><div class="lead-bar" style="margin:0 0 10px"><h2 style="margin:0;display:flex;align-items:center;gap:10px">${ME.logo_path?`<img src="${esc(logoUrl(ME.logo_path))}" style="width:34px;height:34px;border-radius:8px;object-fit:contain;background:#fff;padding:3px">`:""}Digital Marketing — your leads</h2><div class="row" style="margin:0;gap:8px"><button class="btn btn-sm btn-ok" style="width:auto;margin:0" onclick="cenqExport('xlsx')">⬇ Excel</button><button class="btn btn-sm btn-ghost" style="width:auto;margin:0" onclick="cenqExport('csv')">⬇ CSV</button></div></div><div class="row" style="gap:8px;flex-wrap:wrap"><input class="inp" placeholder="🔍 Name, phone, email…" style="min-width:200px;flex:1" value="${esc(CENQ_F.q)}" oninput="CENQ_F.q=this.value;drawCEnq()"/><input type="date" class="inp" style="max-width:150px" value="${CENQ_F.from}" onchange="CENQ_F.from=this.value;drawCEnq()"/><input type="date" class="inp" style="max-width:150px" value="${CENQ_F.to}" onchange="CENQ_F.to=this.value;drawCEnq()"/></div><div id="cenq-list" style="margin-top:10px"><div class="hint">Loading…</div></div></div>`;
-  const {data}=await sb.from("cr_web_enquiries").select("*").order("created_at",{ascending:false}); CENQ=data||[];
-  const now=Date.now(); const projs=[...new Set(CENQ.map(function(e){return e.project_name||e.site_name||"—";}))].length; const today=CENQ.filter(function(e){return new Date(e.created_at).toDateString()===new Date().toDateString();}).length; const week=CENQ.filter(function(e){return (now-new Date(e.created_at).getTime())<7*864e5;}).length;
-  const stx=$("cenq-stats"); if(stx) stx.innerHTML=statCard("📥","#8e7cff",CENQ.length,"Total leads")+statCard("📁","#22d3ee",projs,"Projects")+statCard("📅","#ffb020",today,"Today")+statCard("🗓","#22c55e",week,"Last 7 days");
-  loadClientAnalytics();
-  drawCEnq();
+  el.innerHTML=`<div id="cdm-pane"><div class="hint">Loading…</div></div>`;
+  const r1=await sb.from("cr_lead_sites").select("*").order("name");
+  const r2=await sb.from("cr_web_enquiries").select("*").order("created_at",{ascending:false});
+  CLIENT_SITES=r1.data||[]; CENQ=r2.data||[];
+  drawClientDM();
 }
-async function loadClientAnalytics(){
-  const host=$("cenq-stats"); if(!host)return;
-  let box=document.getElementById("cenq-an"); if(!box){ box=document.createElement("div"); box.id="cenq-an"; box.className="card"; box.style.margin="0 0 14px"; host.parentNode.insertBefore(box,host.nextSibling); }
-  box.innerHTML='<div class="hint">Loading website analytics…</div>';
-  const keys=[...new Set(CENQ.map(function(e){return e.site_key;}).filter(Boolean))];
+function drawClientDM(){ const el=$("cdm-pane"); if(!el)return; if(!CPROJ) drawClientDMHome(el); else drawClientDMProject(el); }
+function drawClientDMHome(el){
+  const now=Date.now();
+  const total=CENQ.length;
+  const today=CENQ.filter(function(e){return new Date(e.created_at).toDateString()===new Date().toDateString();}).length;
+  const week=CENQ.filter(function(e){return (now-new Date(e.created_at).getTime())<7*864e5;}).length;
+  const cnt={},web={},dig={}; CENQ.forEach(function(e){cnt[e.site_key]=(cnt[e.site_key]||0)+1; if(e.channel==="digital")dig[e.site_key]=(dig[e.site_key]||0)+1; else web[e.site_key]=(web[e.site_key]||0)+1;});
+  const cards=CLIENT_SITES.map(function(st){ const lg=clientSiteLogo(st); return `<div class="dm-card" onclick="openClientProject('${esc(st.site_key)}')" style="cursor:pointer"><div class="dm-card-top"><div class="dm-ic" style="overflow:hidden;padding:0;background:${lg?'#fff':'var(--chip)'}">${lg?`<img src="${esc(lg)}" style="width:100%;height:100%;object-fit:contain;background:#fff;padding:4px">`:"📁"}</div><div style="flex:1;min-width:0"><div class="dm-nm">${esc(st.name)}</div><div class="hint">${cnt[st.site_key]||0} leads</div></div></div><div class="dm-stats3"><div><b>${cnt[st.site_key]||0}</b><span>Total</span></div><div><b>${web[st.site_key]||0}</b><span>🌐 Web</span></div><div><b>${dig[st.site_key]||0}</b><span>📣 Meta</span></div></div><button class="btn btn-sm btn-ok" style="width:100%;margin-top:10px" onclick="event.stopPropagation();openClientProject('${esc(st.site_key)}')">Open dashboard →</button></div>`; }).join("");
+  el.innerHTML=`
+  <div class="section-title" style="margin-top:0">Your projects</div>
+  <div class="dm-grid">${cards||'<div class="hint">No projects yet.</div>'}</div>
+  <div class="stats" style="margin-top:14px">${statCard("📥","#8e7cff",total,"Total leads")}${statCard("📁","#22d3ee",CLIENT_SITES.length,"Projects")}${statCard("📅","#ffb020",today,"Today")}${statCard("🗓","#22c55e",week,"Last 7 days")}</div>
+  <div class="card" id="cdm-an" style="margin-top:14px"><div class="hint">Loading website analytics…</div></div>`;
+  loadClientHomeAnalytics();
+}
+async function loadClientHomeAnalytics(){
+  const box=$("cdm-an"); if(!box)return;
+  const uniq=[...new Set(CLIENT_SITES.map(function(s){return s.site_key;}).concat(CENQ.map(function(e){return e.site_key;})).filter(Boolean))];
   const from=new Date(Date.now()-30*864e5).toISOString(), toD=new Date().toISOString();
-  let V=0,PV=0,CL=0,SS=0,tot=0,tv=0;
-  for(const k of keys){ try{ const {data}=await sb.rpc("cr_analytics",{p_site_key:k,p_from:from,p_to:toD}); if(data){ V+=Number(data.visitors)||0; PV+=Number(data.pageviews)||0; CL+=Number(data.clicks)||0; SS+=Number(data.sessions)||0; if(data.avg_seconds){ tv+=Number(data.avg_seconds); tot++; } } }catch(_){ } }
+  let V=0,PV=0,CL=0,tv=0,tot=0;
+  for(const k of uniq){ try{ const {data}=await sb.rpc("cr_analytics",{p_site_key:k,p_from:from,p_to:toD}); if(data){V+=Number(data.visitors)||0;PV+=Number(data.pageviews)||0;CL+=Number(data.clicks)||0; if(data.avg_seconds){tv+=Number(data.avg_seconds);tot++;}} }catch(_){ } }
   const secs=tot?tv/tot:0; const tstr=secs>=60?(Math.floor(secs/60)+"m"):(Math.round(secs)+"s");
-  box.innerHTML=`<h2 style="margin:0 0 8px;font-size:15px">📊 Website analytics <span class="hint" style="font-weight:600">— last 30 days</span></h2><div class="stats">${statCard("👤","#8e7cff",V,"Visitors")}${statCard("👁","#22d3ee",PV,"Pageviews")}${statCard("🖱","#ffb020",CL,"Clicks")}${statCard("⏱","#e879f9",tstr,"Avg time")}</div>`;
+  box.innerHTML=`<h2 style="margin:0 0 8px;font-size:15px">📊 Website analytics <span class="hint" style="font-weight:600">— last 30 days, all projects</span></h2><div class="stats">${statCard("👤","#8e7cff",V,"Visitors")}${statCard("👁","#22d3ee",PV,"Pageviews")}${statCard("🖱","#ffb020",CL,"Clicks")}${statCard("⏱","#e879f9",tstr,"Avg time")}</div>`;
 }
-function cenqFiltered(){ return CENQ.filter(function(e){ if(CENQ_F.q){const q=CENQ_F.q.toLowerCase(); if(((e.name||"")+(e.phone||"")+(e.email||"")).toLowerCase().indexOf(q)<0)return false;} if(CENQ_F.from&&new Date(e.created_at)<new Date(CENQ_F.from))return false; if(CENQ_F.to){const t=new Date(CENQ_F.to);t.setHours(23,59,59);if(new Date(e.created_at)>t)return false;} return true; }); }
-function drawCEnq(){ const l=$("cenq-list"); if(!l)return; const rows=cenqFiltered(); l.innerHTML=rows.length?`<div class="hint" style="margin-bottom:6px">${rows.length} of ${CENQ.length}</div><div class="table-wrap"><table class="lead-table"><thead><tr><th>Date</th><th>Name</th><th>Phone</th><th>Email</th><th>Project</th><th>Source</th><th>Status</th></tr></thead><tbody>${rows.map(function(e){return `<tr><td style="white-space:nowrap">${esc(fmtDay(e.created_at))}<div class="hint">${esc(fmtTime(e.created_at))}</div></td><td><b>${esc(e.name||"—")}</b></td><td>${esc(e.phone||"—")}</td><td class="hint">${esc(e.email||"—")}</td><td>${e.project_name?`<span class="badge" style="background:rgba(255,176,32,.14);color:#ffd27a;border:1px solid rgba(255,176,32,.4)">${esc(e.project_name)}</span>`:"—"}</td><td>${dmSrcBadge(e.channel)}</td><td>${dmStatusBadge(e.status)}</td></tr>`;}).join("")}</tbody></table></div>`:`<div class="empty">No enquiries.</div>`; }
-async function cenqExport(fmt){ const rows=cenqFiltered(); if(!rows.length){toast("No leads to export.",true);return;} const objs=rows.map(function(e){return {Date:fmtDate(e.created_at),Name:e.name||"",Phone:e.phone||"",Email:e.email||"",Project:e.project_name||e.site_name||"",Source:(e.channel==="digital"?"Digital":"Website"),Status:e.status||"New",Configuration:e.config||""};}); const name="my_leads_"+new Date().toISOString().slice(0,10); if(fmt==="xlsx"){ const ws=XLSX.utils.json_to_sheet(objs); const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,"Leads"); XLSX.writeFile(wb,name+".xlsx"); toast("Excel downloaded."); return; } const esc2=function(v){v=String(v==null?"":v);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;}; const header=Object.keys(objs[0]); const csv=[header.join(",")].concat(objs.map(function(o){return header.map(function(h){return esc2(o[h]);}).join(",");})).join("\n"); const bl=new Blob([csv],{type:"text/csv"}); const a=document.createElement("a"); a.href=URL.createObjectURL(bl); a.download=name+".csv"; a.click(); toast("CSV downloaded."); }
+function openClientProject(key){ CPROJ=key; CSRC="website"; CPF={q:"",from:"",to:""}; drawClientDM(); }
+function backClientDM(){ CPROJ=null; drawClientDM(); }
+function cpFiltered(){
+  return CENQ.filter(function(e){
+    if(e.site_key!==CPROJ)return false;
+    if(CSRC==="website"&&e.channel==="digital")return false;
+    if(CSRC==="digital"&&e.channel!=="digital")return false;
+    if(CPF.q){const q=CPF.q.toLowerCase(); if(((e.name||"")+(e.phone||"")+(e.email||"")).toLowerCase().indexOf(q)<0)return false;}
+    if(CPF.from&&new Date(e.created_at)<new Date(CPF.from))return false;
+    if(CPF.to){const t=new Date(CPF.to);t.setHours(23,59,59);if(new Date(e.created_at)>t)return false;}
+    return true;
+  });
+}
+function drawClientDMProject(el){
+  const st=CLIENT_SITES.find(function(x){return x.site_key===CPROJ;});
+  const leads=CENQ.filter(function(e){return e.site_key===CPROJ;});
+  const web=leads.filter(function(e){return e.channel!=="digital";}).length, dig=leads.length-web;
+  const rows=cpFiltered();
+  const lg=clientSiteLogo(st);
+  el.innerHTML=`
+  <div class="fold-crumb"><button onclick="backClientDM()">📁 Digital Marketing</button><span>›</span><button class="on">${esc(st?st.name:"Project")}</button></div>
+  <div class="dm-head"><div class="dm-head-lg">${lg?`<img src="${esc(lg)}">`:"📁"}</div><div style="min-width:0"><div class="dm-head-nm">${esc(st?st.name:"Project")}</div><div class="hint">${leads.length} total leads</div></div></div>
+  <div class="seg" style="margin:0 0 14px"><button class="${CSRC==='website'?'on':''}" onclick="CSRC='website';drawClientDM()">🌐 Website Leads (${web})</button><button class="${CSRC==='digital'?'on':''}" onclick="CSRC='digital';drawClientDM()">📣 Meta Ads Leads (${dig})</button></div>
+  <div class="card" id="cdm-pan"><div class="hint">Loading analytics…</div></div>
+  <div class="card" style="margin-top:14px">
+    <div class="lead-bar" style="margin:0 0 10px"><h2 style="margin:0">${CSRC==='website'?'Website':'Meta Ads'} leads <span class="hint" style="font-weight:600">· ${rows.length}</span></h2><div class="row" style="margin:0;gap:8px"><button class="btn btn-sm btn-ok" style="width:auto;margin:0" onclick="cpExport('xlsx')">⬇ Excel</button><button class="btn btn-sm btn-ghost" style="width:auto;margin:0" onclick="cpExport('csv')">⬇ CSV</button></div></div>
+    <div class="row" style="gap:8px;flex-wrap:wrap"><input class="inp" placeholder="🔍 Name, phone, email…" style="min-width:200px;flex:1" value="${esc(CPF.q)}" oninput="CPF.q=this.value;drawClientDM()"/><input type="date" class="inp" style="max-width:150px" value="${CPF.from}" onchange="CPF.from=this.value;drawClientDM()"/><input type="date" class="inp" style="max-width:150px" value="${CPF.to}" onchange="CPF.to=this.value;drawClientDM()"/></div>
+    <div class="table-wrap" style="margin-top:10px"><table class="lead-table"><thead><tr><th>Date</th><th>Name</th><th>Phone</th><th>Email</th><th>Project detail</th><th>Status</th></tr></thead><tbody>${rows.map(function(e){return `<tr><td style="white-space:nowrap">${esc(fmtDay(e.created_at))}<div class="hint">${esc(fmtTime(e.created_at))}</div></td><td><b>${esc(e.name||"—")}</b></td><td>${esc(e.phone||"—")}</td><td class="hint">${esc(e.email||"—")}</td><td>${e.project_name?esc(e.project_name):"—"}${e.config?`<div class="hint">${esc(e.config)}</div>`:""}</td><td>${dmStatusBadge(e.status)}</td></tr>`;}).join("")||`<tr><td colspan="6" class="hint">No ${CSRC==='website'?'website':'Meta'} leads yet.</td></tr>`}</tbody></table></div>
+  </div>`;
+  loadClientProjAnalytics();
+}
+async function loadClientProjAnalytics(){
+  const box=$("cdm-pan"); if(!box)return;
+  const from=CPF.from?new Date(CPF.from).toISOString():new Date(Date.now()-30*864e5).toISOString();
+  const toD=CPF.to?(function(){const t=new Date(CPF.to);t.setHours(23,59,59);return t.toISOString();})():new Date().toISOString();
+  let a=null; try{ const {data}=await sb.rpc("cr_analytics",{p_site_key:CPROJ,p_from:from,p_to:toD}); a=data; }catch(_){ }
+  if(!a){ box.innerHTML='<div class="hint">No website analytics yet.</div>'; return; }
+  const secs=Number(a.avg_seconds)||0; const tstr=secs>=60?(Math.floor(secs/60)+"m "+Math.round(secs%60)+"s"):(Math.round(secs)+"s");
+  box.innerHTML=`<h2 style="margin:0 0 8px;font-size:15px">📊 Website analytics</h2><div class="stats">${statCard("👤","#8e7cff",a.visitors,"Visitors")}${statCard("👁","#22d3ee",a.pageviews,"Pageviews")}${statCard("🖱","#ffb020",a.clicks,"Clicks")}${statCard("🧭","#22c55e",a.sessions,"Sessions")}${statCard("⏱","#e879f9",tstr,"Avg time")}</div>`;
+}
+async function cpExport(fmt){
+  const rows=cpFiltered(); if(!rows.length){toast("No leads to export.",true);return;}
+  const objs=rows.map(function(e){return {Date:fmtDate(e.created_at),Name:e.name||"",Phone:e.phone||"",Email:e.email||"",Source:(e.channel==="digital"?"Meta Ads":"Website"),Project:e.project_name||"",Configuration:e.config||"",Status:e.status||"New"};});
+  const name=((CSRC==="digital"?"meta":"website")+"_leads_"+new Date().toISOString().slice(0,10));
+  if(fmt==="xlsx"){ const ws=XLSX.utils.json_to_sheet(objs); const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,"Leads"); XLSX.writeFile(wb,name+".xlsx"); toast("Excel downloaded."); return; }
+  const esc2=function(v){v=String(v==null?"":v);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;}; const header=Object.keys(objs[0]); const csv=[header.join(",")].concat(objs.map(function(o){return header.map(function(h){return esc2(o[h]);}).join(",");})).join("\n"); const bl=new Blob([csv],{type:"text/csv"}); const a=document.createElement("a"); a.href=URL.createObjectURL(bl); a.download=name+".csv"; a.click(); toast("CSV downloaded.");
+}
 // ===================== LOANS MODULE =====================
 const LOAN_CALL=["New","Not answered","Call back","Interested","Not interested","Wrong number","Do not call"];
 const LOAN_STAGES=["None","Interested","Documents collected","Applied","Approved","Disbursed","Rejected"];
