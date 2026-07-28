@@ -607,14 +607,14 @@
   @media(max-width:640px){.tm-grid{grid-template-columns:1fr}.tm-add{width:100%;justify-content:center}.tu-proj-grid{grid-template-columns:1fr}}
   /* compact project cards */
   .pj-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
-  .pj-card{display:flex;align-items:center;gap:13px;padding:14px;border-radius:16px;background:var(--panel);border:1px solid var(--line);box-shadow:var(--shadow);cursor:pointer;text-align:left;transition:transform .16s,border-color .2s,box-shadow .2s}
+  .pj-card{display:flex;align-items:center;gap:13px;padding:14px;border-radius:16px;background:var(--panel);border:1px solid var(--line);box-shadow:var(--shadow);cursor:pointer;text-align:left;color:var(--txt);transition:transform .16s,border-color .2s,box-shadow .2s}
   .pj-card:hover{transform:translateY(-2px);border-color:var(--brand);box-shadow:0 14px 30px -12px var(--brand)}
   .pj-card:active{transform:scale(.99)}
   .pj-logo{width:46px;height:46px;border-radius:13px;flex:0 0 auto;background:#fff;display:grid;place-items:center;overflow:hidden;font-size:20px;box-shadow:0 4px 12px rgba(0,0,0,.18)}
   .pj-logo img{width:100%;height:100%;object-fit:contain;background:#fff;padding:4px}
   .pj-logo.ph{color:#fff;font-weight:900;font-size:19px}
   .pj-info{flex:1;min-width:0}
-  .pj-nm{font-weight:800;font-size:15px;line-height:1.2}
+  .pj-nm{font-weight:800;font-size:15.5px;line-height:1.2;color:var(--txt)}
   .pj-split{display:flex;height:6px;border-radius:4px;overflow:hidden;margin:8px 0 7px;background:var(--chip)}
   .pj-split i{display:block}
   .pj-split i.w{background:#22d3ee}
@@ -636,21 +636,21 @@
   .an-trend.up{background:rgba(34,197,94,.16);color:#37d67a}
   .an-trend.dn{background:rgba(255,107,107,.16);color:#ff7b7b}
   .an-trend.flat{background:var(--chip);color:var(--muted)}
-  .an-hero{display:flex;align-items:flex-end;gap:16px;justify-content:space-between}
-  .an-lbl{font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:800;display:flex;align-items:center}
-  .an-big{font-size:42px;font-weight:900;line-height:1.05;color:var(--txt);letter-spacing:-.5px;margin-top:4px}
-  .an-sub{font-size:13px;color:var(--muted);font-weight:600;margin-top:5px}
-  .an-spark{width:min(52%,320px);display:flex;flex-direction:column}
-  .an-cap{font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px;text-align:right}
-  .an-spark canvas{width:100%!important;height:104px!important}
-  .an-kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:16px}
-  .an-kpi{display:flex;align-items:center;gap:9px;padding:12px;border-radius:14px;background:var(--panel);border:1px solid var(--line);transition:transform .15s,border-color .2s}
-  .an-kpi:hover{transform:translateY(-2px);border-color:var(--brand2)}
-  .an-ki{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font-size:16px;flex:0 0 auto}
-  .an-kpi b{display:block;font-size:17px;font-weight:900;line-height:1.1}
-  .an-kpi span{font-size:11.5px;color:var(--muted);font-weight:600}
-  @media(max-width:820px){.an-kpis{grid-template-columns:repeat(3,1fr)}}
-  @media(max-width:640px){.pj-grid{grid-template-columns:1fr}.an-hero{flex-direction:column;align-items:stretch;gap:12px}.an-spark{width:100%}.an-cap{text-align:left}.an-spark canvas{height:120px!important}.an-kpis{grid-template-columns:repeat(2,1fr)}}
+  .an-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:14px;position:relative}
+  .an-kcard{background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:14px;transition:transform .15s,border-color .2s,box-shadow .2s}
+  .an-kcard:hover{transform:translateY(-3px);border-color:var(--brand2);box-shadow:0 12px 24px -12px var(--brand)}
+  .an-ki{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;margin-bottom:9px}
+  .an-ki svg{width:19px;height:19px}
+  .an-kcard b{display:block;font-size:22px;font-weight:900;line-height:1.05;color:var(--txt)}
+  .an-kcard span{font-size:12px;color:var(--muted);font-weight:600}
+  .an-2col{display:grid;grid-template-columns:1.35fr 1fr;gap:12px;position:relative}
+  .an-chart{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px}
+  .an-chtitle{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:800;color:var(--txt);margin-bottom:10px}
+  .an-chtitle svg{color:var(--brand2)}
+  .an-cbox{height:150px;position:relative}
+  .an-cbox canvas{width:100%!important;height:150px!important}
+  @media(max-width:820px){.an-grid{grid-template-columns:repeat(3,1fr)}.an-2col{grid-template-columns:1fr}}
+  @media(max-width:640px){.pj-grid{grid-template-columns:1fr}.an-grid{grid-template-columns:repeat(2,1fr)}.an-kcard b{font-size:20px}}
   /* attractive lead filters */
   .lead-filter{display:flex;flex-direction:column;gap:12px;padding:14px;border-radius:16px;background:var(--panel2);border:1px solid var(--line)}
   .lf-search-wrap{display:flex;align-items:center;gap:9px;padding:11px 14px;border-radius:13px;background:var(--panel);border:1px solid var(--line);color:var(--muted)}
@@ -2495,37 +2495,50 @@ function drawClientDMHome(el){
   <div id="cdm-an" style="margin-top:16px"><div class="card"><div class="hint">Loading website analytics…</div></div></div>`;
   loadClientHomeAnalytics();
 }
-let CHOME_CHART=null;
+let CHOME_CHART=null, CHOME_CHART2=null;
+const AN_IC={
+  vis:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.4"/><path d="M5 20a7 7 0 0 1 14 0"/></svg>',
+  pv:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="2.6"/></svg>',
+  clk:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4l6.5 16 2.2-6.3L19 11.5z"/></svg>',
+  ses:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/></svg>',
+  time:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>'
+};
 async function loadClientHomeAnalytics(){
   const box=$("cdm-an"); if(!box)return;
-  const uniq=[...new Set(CLIENT_SITES.map(function(s){return s.site_key;}).concat(CENQ.map(function(e){return e.site_key;})).filter(Boolean))];
+  const sites=CLIENT_SITES.slice();
+  const uniq=[...new Set(sites.map(function(s){return s.site_key;}).concat(CENQ.map(function(e){return e.site_key;})).filter(Boolean))];
   const from=new Date(Date.now()-30*864e5).toISOString(), toD=new Date().toISOString();
-  let V=0,PV=0,CL=0,SE=0,tv=0,tot=0; const daily={};
-  for(const k of uniq){ try{ const {data}=await sb.rpc("cr_analytics",{p_site_key:k,p_from:from,p_to:toD}); if(data){V+=Number(data.visitors)||0;PV+=Number(data.pageviews)||0;CL+=Number(data.clicks)||0;SE+=Number(data.sessions)||0; if(data.avg_seconds){tv+=Number(data.avg_seconds);tot++;} (data.daily||[]).forEach(function(d){daily[d.day]=(daily[d.day]||0)+(Number(d.visitors)||0);}); } }catch(_){ } }
+  let V=0,PV=0,CL=0,SE=0,tv=0,tot=0; const daily={}; const perSite=[];
+  for(const k of uniq){ try{ const {data}=await sb.rpc("cr_analytics",{p_site_key:k,p_from:from,p_to:toD}); if(data){ const vv=Number(data.visitors)||0; V+=vv;PV+=Number(data.pageviews)||0;CL+=Number(data.clicks)||0;SE+=Number(data.sessions)||0; if(data.avg_seconds){tv+=Number(data.avg_seconds);tot++;} (data.daily||[]).forEach(function(d){daily[d.day]=(daily[d.day]||0)+(Number(d.visitors)||0);}); const st=sites.find(function(x){return x.site_key===k;}); perSite.push({name:st?st.name:k, v:vv}); } }catch(_){ } }
+  perSite.sort(function(a,b){return b.v-a.v;});
   const secs=tot?tv/tot:0; const tstr=secs>=60?(Math.floor(secs/60)+"m"):(Math.round(secs)+"s");
   const days=[]; for(let i=29;i>=0;i--){ const d=new Date(Date.now()-i*864e5); days.push(d.toISOString().slice(0,10)); }
   const series=days.map(function(d){return daily[d]||0;});
   const last7=series.slice(-7).reduce(function(a,b){return a+b;},0), prev7=series.slice(-14,-7).reduce(function(a,b){return a+b;},0);
   const delta=prev7?Math.round((last7-prev7)/prev7*100):(last7?100:0);
   const trend=(delta===0)?`<span class="an-trend flat">— 0%</span>`:`<span class="an-trend ${delta>0?'up':'dn'}">${delta>0?'▲':'▼'} ${Math.abs(delta)}%</span>`;
-  const pill=function(ic,c,v,l){return `<div class="an-kpi"><span class="an-ki" style="background:${c}22;color:${c}">${ic}</span><div class="an-kv"><b style="color:${c}">${v}</b><span>${l}</span></div></div>`;};
+  const kcard=function(ic,c,v,l){return `<div class="an-kcard"><span class="an-ki" style="background:${c}1f;color:${c}">${ic}</span><b>${v}</b><span>${l}</span></div>`;};
   box.innerHTML=`<div class="an-adv">
-    <div class="an-htitle"><span class="an-hic">📊</span><div><div class="an-htxt">Website analytics</div><div class="an-hsub">Across all projects · last 30 days</div></div></div>
-    <div class="an-hero">
-      <div class="an-hero-l"><div class="an-lbl">Total visitors ${trend}</div><div class="an-big">${V.toLocaleString()}</div><div class="an-sub">${PV.toLocaleString()} pageviews · ${SE.toLocaleString()} sessions</div></div>
-      <div class="an-spark"><div class="an-cap">Daily visitors · 30 days</div><canvas id="an-spark"></canvas></div>
+    <div class="an-htitle"><span class="an-hic"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><rect x="5" y="11" width="3.4" height="7" rx="1"/><rect x="10.3" y="6" width="3.4" height="12" rx="1"/><rect x="15.6" y="9" width="3.4" height="9" rx="1"/></svg></span><div><div class="an-htxt">Website analytics</div><div class="an-hsub">Across all projects · last 30 days ${trend}</div></div></div>
+    <div class="an-grid">
+      ${kcard(AN_IC.vis,"#8e7cff",V.toLocaleString(),"Visitors")}
+      ${kcard(AN_IC.pv,"#22d3ee",PV.toLocaleString(),"Pageviews")}
+      ${kcard(AN_IC.clk,"#ffb020",CL.toLocaleString(),"Clicks")}
+      ${kcard(AN_IC.ses,"#22c55e",SE.toLocaleString(),"Sessions")}
+      ${kcard(AN_IC.time,"#e879f9",tstr,"Avg time")}
     </div>
-    <div class="an-kpis">${pill("👤","#8e7cff",V.toLocaleString(),"Visitors")}${pill("👁","#22d3ee",PV.toLocaleString(),"Pageviews")}${pill("🖱","#ffb020",CL.toLocaleString(),"Clicks")}${pill("🧭","#22c55e",SE.toLocaleString(),"Sessions")}${pill("⏱","#e879f9",tstr,"Avg time")}</div>
+    <div class="an-2col">
+      <div class="an-chart"><div class="an-chtitle"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M6 18V9m6 9V5m6 13v-6"/></svg> Daily visitors</div><div class="an-cbox"><canvas id="an-spark"></canvas></div></div>
+      <div class="an-chart"><div class="an-chtitle"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/></svg> Visitors by project</div><div class="an-cbox">${perSite.length?`<canvas id="an-proj"></canvas>`:`<div class="hint" style="padding:20px 0">No project traffic yet.</div>`}</div></div>
+    </div>
   </div>`;
-  try{
-    if(CHOME_CHART){CHOME_CHART.destroy();CHOME_CHART=null;}
-    const ctx=$("an-spark"); if(ctx&&window.Chart){
-      const cs=getComputedStyle(document.documentElement); const brand=(cs.getPropertyValue("--brand")||"#8e7cff").trim(); const brand2=(cs.getPropertyValue("--brand2")||"#8e7cff").trim();
-      const g=ctx.getContext("2d").createLinearGradient(0,0,0,120); g.addColorStop(0,brand2); g.addColorStop(1,brand);
-      CHOME_CHART=new Chart(ctx,{type:"bar",data:{labels:days,datasets:[{data:series,backgroundColor:g,borderRadius:4,maxBarThickness:14,minBarLength:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{displayColors:false,callbacks:{title:function(it){return new Date(it[0].label).toLocaleDateString(undefined,{month:"short",day:"numeric"});},label:function(it){return it.raw+" visitors";}}}},scales:{x:{display:false},y:{display:false,beginAtZero:true}}}});
-    }
-  }catch(_){ }
+  const cs=getComputedStyle(document.documentElement); const brand=(cs.getPropertyValue("--brand")||"#8e7cff").trim(); const brand2=(cs.getPropertyValue("--brand2")||"#8e7cff").trim(); const grid=(cs.getPropertyValue("--line")||"#2a2f4a").trim(); const muted=(cs.getPropertyValue("--muted")||"#9aa0bd").trim();
+  try{ if(CHOME_CHART){CHOME_CHART.destroy();CHOME_CHART=null;} const ctx=$("an-spark"); if(ctx&&window.Chart){ const g=ctx.getContext("2d").createLinearGradient(0,0,0,130); g.addColorStop(0,brand2); g.addColorStop(1,brand);
+      CHOME_CHART=new Chart(ctx,{type:"bar",data:{labels:days,datasets:[{data:series,backgroundColor:g,borderRadius:4,maxBarThickness:12,minBarLength:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{displayColors:false,callbacks:{title:function(it){return new Date(it[0].label).toLocaleDateString(undefined,{month:"short",day:"numeric"});},label:function(it){return it.raw+" visitors";}}}},scales:{x:{display:false},y:{display:false,beginAtZero:true}}}}); } }catch(_){ }
+  try{ if(CHOME_CHART2){CHOME_CHART2.destroy();CHOME_CHART2=null;} const ctx2=$("an-proj"); if(ctx2&&window.Chart&&perSite.length){ const cols=["#8e7cff","#22d3ee","#22c55e","#ffb020","#f472b6","#60a5fa"];
+      CHOME_CHART2=new Chart(ctx2,{type:"bar",data:{labels:perSite.map(function(p){return p.name;}),datasets:[{data:perSite.map(function(p){return p.v;}),backgroundColor:perSite.map(function(_,i){return cols[i%cols.length];}),borderRadius:6,maxBarThickness:26,minBarLength:3}]},options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{displayColors:false,callbacks:{label:function(it){return it.raw+" visitors";}}}},scales:{x:{display:false,beginAtZero:true},y:{grid:{display:false},ticks:{color:muted,font:{weight:"700",size:12}}}}}); } }catch(_){ }
 }
+
 function openClientProject(key){ CPROJ=key; CSRC="website"; CPF={q:"",from:"",to:"",range:"all",status:""}; drawClientDM(); }
 function backClientDM(){ CPROJ=null; drawClientDM(); }
 function cpFiltered(){
