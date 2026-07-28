@@ -1105,7 +1105,7 @@
       </div>
       <button class="bell" id="bell" onclick="openNotifs()" title="Notifications"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 6 2.5 8 2.5 8h-17S6 14 6 8"/><path d="M10.2 21a2 2 0 0 0 3.6 0"/></svg><span id="bell-badge" class="bell-badge hidden">0</span></button>
       <div class="profile-wrap">
-        <button class="avatar-btn" id="avatar-btn" onclick="toggleProfileMenu(event)" title="Account">
+        <button class="avatar-btn" id="avatar-btn" onclick="openProfile()" title="Profile">
           <span id="avatar" class="avatar"></span>
           <span id="who-name" class="who-name"></span>
           <span class="caret" style="color:var(--muted);font-size:11px">▾</span>
@@ -1594,6 +1594,7 @@ function openProfile(){
       <div class="mb prof-body">
         <div class="prof-list">${rows.map(r=>`<div class="prof-row"><span class="prof-ic">${r[2]}</span><div class="prof-kv"><div class="prof-k">${r[0]}</div><div class="prof-v">${r[1]}</div></div></div>`).join("")}</div>
         <button class="btn" style="margin-top:16px" onclick="openSettings()">Edit profile</button>
+        <button class="btn btn-ghost" style="margin-top:10px;color:#ff8a8a;border-color:rgba(255,107,107,.4)" onclick="doLogout()">Log out</button>
       </div>
     </div></div>`;
 }
