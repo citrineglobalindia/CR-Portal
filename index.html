@@ -651,6 +651,31 @@
   .an-cbox canvas{width:100%!important;height:150px!important}
   @media(max-width:820px){.an-grid{grid-template-columns:repeat(3,1fr)}.an-2col{grid-template-columns:1fr}}
   @media(max-width:640px){.pj-grid{grid-template-columns:1fr}.an-grid{grid-template-columns:repeat(2,1fr)}.an-kcard b{font-size:20px}}
+  /* project hero + segment */
+  .pj-hero{display:flex;align-items:center;gap:14px;padding:16px;border-radius:18px;margin-bottom:14px;background:linear-gradient(135deg,var(--g1),transparent),var(--panel);border:1px solid var(--line);box-shadow:var(--shadow)}
+  .pj-hero-lg{width:54px;height:54px;border-radius:15px;flex:0 0 auto;background:#fff;display:grid;place-items:center;overflow:hidden;box-shadow:0 6px 16px -4px rgba(0,0,0,.35)}
+  .pj-hero-lg img{width:100%;height:100%;object-fit:contain;background:#fff;padding:5px}
+  .pj-hero-lg.ph{color:#fff;font-weight:900;font-size:22px}
+  .pj-hero-nm{font-size:19px;font-weight:900;color:var(--txt);line-height:1.1}
+  .pj-hero-sub{font-size:12.5px;color:var(--muted);font-weight:600;margin-top:3px}
+  .seg-pill button{display:inline-flex;align-items:center;gap:6px}
+  /* mobile-friendly lead cards */
+  .lc-list{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+  .lc{background:var(--panel2);border:1px solid var(--line);border-radius:15px;padding:13px;transition:border-color .2s,transform .15s}
+  .lc:hover{border-color:var(--brand)}
+  .lc-top{display:flex;align-items:center;gap:11px}
+  .lc-av{width:40px;height:40px;border-radius:12px;flex:0 0 auto;display:grid;place-items:center;color:#fff;font-weight:800;font-size:15px}
+  .lc-id{flex:1;min-width:0}
+  .lc-nm{font-weight:800;font-size:15px;color:var(--txt);line-height:1.2}
+  .lc-dt{font-size:11.5px;color:var(--muted);margin-top:1px}
+  .lc-rows{display:flex;flex-direction:column;gap:2px;margin-top:11px;padding-top:11px;border-top:1px solid var(--line)}
+  .lc-row{display:flex;align-items:center;gap:9px;padding:7px 8px;border-radius:10px;font-size:13.5px;color:var(--txt);font-weight:600;text-decoration:none}
+  a.lc-row:hover{background:var(--chip);color:var(--brand)}
+  .lc-row svg{color:var(--brand2);flex:0 0 auto}
+  .lc-row span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .lc-empty{text-align:center;color:var(--muted);padding:34px 10px}
+  .lc-empty .ne-ic{width:60px;height:60px;border-radius:50%;background:var(--panel);display:grid;place-items:center;margin:0 auto 12px;color:var(--muted)}
+  .lf-x{background:transparent;border:0;color:var(--muted);font-size:20px;line-height:1;cursor:pointer;padding:0 4px}
   /* attractive lead filters */
   .lead-filter{display:flex;flex-direction:column;gap:12px;padding:14px;border-radius:16px;background:var(--panel2);border:1px solid var(--line)}
   .lf-search-wrap{display:flex;align-items:center;gap:9px;padding:11px 14px;border-radius:13px;background:var(--panel);border:1px solid var(--line);color:var(--muted)}
@@ -663,7 +688,7 @@
   .lf-chip.st::before{content:"";position:absolute;left:12px;top:50%;transform:translateY(-50%);width:8px;height:8px;border-radius:50%;background:var(--sc,var(--muted))}
   .lf-chip.st.on::before{background:#fff}
   .lf-dates{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-  .lf-dates label{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);font-weight:600}
+  .lf-dates label{display:flex;flex-direction:column;gap:4px;font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.03em}
   .lf-dates input[type=date]{max-width:150px;padding:8px 10px}
   .lf-clear{margin-left:auto;background:transparent;border:1px solid var(--line);color:var(--muted);padding:8px 14px;border-radius:999px;font-size:12.5px;font-weight:700;cursor:pointer}
   .lf-clear:hover{color:#ff8a8a;border-color:rgba(255,107,107,.5)}
@@ -2563,20 +2588,25 @@ function drawClientDMProject(el){
   const web=leads.filter(function(e){return e.channel!=="digital";}).length, dig=leads.length-web;
   const rows=cpFiltered();
   const lg=clientSiteLogo(st);
+  const gr=["#8e7cff,#6c5ce7","#22d3ee,#0ea5b7"][0];
+  const active=(CPF.from||CPF.to||CPF.status||CPF.range!=='all'||CPF.q);
   el.innerHTML=`
-  <div class="fold-crumb"><button onclick="backClientDM()">📁 Digital Marketing</button><span>›</span><button class="on">${esc(st?st.name:"Project")}</button></div>
-  <div class="dm-head"><div class="dm-head-lg">${lg?`<img src="${esc(lg)}">`:"📁"}</div><div style="min-width:0"><div class="dm-head-nm">${esc(st?st.name:"Project")}</div><div class="hint">${leads.length} total leads</div></div></div>
-  <div class="seg" style="margin:0 0 14px"><button class="${CSRC==='website'?'on':''}" onclick="CSRC='website';drawClientDM()">🌐 Website Leads (${web})</button><button class="${CSRC==='digital'?'on':''}" onclick="CSRC='digital';drawClientDM()">📣 Meta Ads Leads (${dig})</button></div>
-  <div class="card" id="cdm-pan"><div class="hint">Loading analytics…</div></div>
+  <div class="fold-crumb"><button onclick="backClientDM()"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="m15 6-6 6 6 6"/></svg> Digital Marketing</button><span>›</span><button class="on">${esc(st?st.name:"Project")}</button></div>
+  <div class="pj-hero">
+    <div class="pj-hero-lg ${lg?'':'ph'}" ${lg?'':`style="background:linear-gradient(135deg,${gr})"`}>${lg?`<img src="${esc(lg)}">`:esc(initials(st?st.name:"P"))}</div>
+    <div style="min-width:0;flex:1"><div class="pj-hero-nm">${esc(st?st.name:"Project")}</div><div class="pj-hero-sub">${leads.length} total leads · ${web} web · ${dig} meta</div></div>
+  </div>
+  <div class="seg seg-pill" style="margin:0 0 14px"><button class="${CSRC==='website'?'on':''}" onclick="CSRC='website';drawClientDM()"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/></svg> Website (${web})</button><button class="${CSRC==='digital'?'on':''}" onclick="CSRC='digital';drawClientDM()"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11v2a1 1 0 0 0 1 1h3l4 3V7L7 10H4a1 1 0 0 0-1 1z"/><path d="M16 9a3 3 0 0 1 0 6"/></svg> Meta Ads (${dig})</button></div>
+  <div id="cdm-pan"><div class="card"><div class="hint">Loading analytics…</div></div></div>
   <div class="card" style="margin-top:14px">
-    <div class="lead-bar" style="margin:0 0 10px"><h2 style="margin:0">${CSRC==='website'?'Website':'Meta Ads'} leads <span class="hint" style="font-weight:600">· ${rows.length}</span></h2><div class="row" style="margin:0;gap:8px"><button class="btn btn-sm btn-ok" style="width:auto;margin:0" onclick="cpExport('xlsx')">⬇ Excel</button><button class="btn btn-sm btn-ghost" style="width:auto;margin:0" onclick="cpExport('csv')">⬇ CSV</button></div></div>
+    <div class="lead-bar" style="margin:0 0 12px"><h2 style="margin:0;font-size:16px">${CSRC==='website'?'Website':'Meta Ads'} leads <span class="hint" style="font-weight:600">· ${rows.length}</span></h2><div class="row" style="margin:0;gap:8px"><button class="btn btn-sm btn-ok" style="width:auto;margin:0" onclick="cpExport('xlsx')"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 21h14"/></svg> Excel</button><button class="btn btn-sm btn-ghost" style="width:auto;margin:0" onclick="cpExport('csv')">CSV</button></div></div>
     <div class="lead-filter">
-      <div class="lf-search-wrap"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.2-3.2"/></svg><input class="lf-search" placeholder="Search name, phone, email…" value="${esc(CPF.q)}" oninput="CPF.q=this.value;drawClientDM()"/></div>
+      <div class="lf-search-wrap"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.2-3.2"/></svg><input class="lf-search" placeholder="Search name, phone, email…" value="${esc(CPF.q)}" oninput="CPF.q=this.value;drawClientDM()"/>${CPF.q?`<button class="lf-x" onclick="CPF.q='';drawClientDM()">×</button>`:""}</div>
       <div class="lf-chips">${[["all","All"],["today","Today"],["7d","7 days"],["30d","30 days"]].map(function(r){return `<button class="lf-chip ${CPF.range===r[0]?'on':''}" onclick="cpRange('${r[0]}')">${r[1]}</button>`;}).join("")}</div>
-      <div class="lf-chips">${`<button class="lf-chip ${!CPF.status?'on':''}" onclick="cpStatus('')">All status</button>`+DM_ST.map(function(x){const c=DM_STC[x];return `<button class="lf-chip st ${CPF.status===x?'on':''}" style="${CPF.status===x?`background:${c};border-color:${c};color:#fff`:`--sc:${c}`}" onclick="cpStatus('${x}')">${x}</button>`;}).join("")}</div>
-      <div class="lf-dates"><label>From <input type="date" class="inp" value="${CPF.from}" onchange="CPF.from=this.value;CPF.range='all';drawClientDM()"/></label><label>To <input type="date" class="inp" value="${CPF.to}" onchange="CPF.to=this.value;CPF.range='all';drawClientDM()"/></label>${(CPF.from||CPF.to||CPF.status||CPF.range!=='all'||CPF.q)?`<button class="lf-clear" onclick="cpClear()">Clear</button>`:""}</div>
+      <div class="lf-chips">${`<button class="lf-chip ${!CPF.status?'on':''}" onclick="cpStatus('')">All</button>`+DM_ST.map(function(x){const c=DM_STC[x];return `<button class="lf-chip st ${CPF.status===x?'on':''}" style="${CPF.status===x?`background:${c};border-color:${c};color:#fff`:`--sc:${c}`}" onclick="cpStatus('${x}')">${x}</button>`;}).join("")}</div>
+      <div class="lf-dates"><label>From<input type="date" class="inp" value="${CPF.from}" onchange="CPF.from=this.value;CPF.range='all';drawClientDM()"/></label><label>To<input type="date" class="inp" value="${CPF.to}" onchange="CPF.to=this.value;CPF.range='all';drawClientDM()"/></label>${active?`<button class="lf-clear" onclick="cpClear()">Clear all</button>`:""}</div>
     </div>
-    <div class="table-wrap" style="margin-top:10px"><table class="lead-table"><thead><tr><th>Date</th><th>Name</th><th>Phone</th><th>Email</th><th>Project detail</th><th>Status</th></tr></thead><tbody>${rows.map(function(e){return `<tr><td style="white-space:nowrap">${esc(fmtDay(e.created_at))}<div class="hint">${esc(fmtTime(e.created_at))}</div></td><td><b>${esc(e.name||"—")}</b></td><td>${esc(e.phone||"—")}</td><td class="hint">${esc(e.email||"—")}</td><td>${e.project_name?esc(e.project_name):"—"}${e.config?`<div class="hint">${esc(e.config)}</div>`:""}</td><td>${dmStatusBadge(e.status)}</td></tr>`;}).join("")||`<tr><td colspan="6" class="hint">No ${CSRC==='website'?'website':'Meta'} leads yet.</td></tr>`}</tbody></table></div>
+    <div class="lc-list">${rows.map(function(e,i){const nm=e.name||"—"; const gg=["#8e7cff,#6c5ce7","#22d3ee,#0ea5b7","#22c55e,#0f9d58","#ffb020,#f59e0b","#f472b6,#db2777"][i%5]; return `<div class="lc"><div class="lc-top"><div class="lc-av" style="background:linear-gradient(135deg,${gg})">${esc(initials(nm))}</div><div class="lc-id"><div class="lc-nm">${esc(nm)}</div><div class="lc-dt">${esc(fmtDay(e.created_at))} · ${esc(fmtTime(e.created_at))}</div></div>${dmStatusBadge(e.status)}</div><div class="lc-rows">${e.phone?`<a class="lc-row" href="tel:${esc(e.phone)}"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2 4.2 2 2 0 0 1 4 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.6a16 16 0 0 0 6 6l1.1-1.1a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.7.7A2 2 0 0 1 22 16.9z"/></svg><span>${esc(e.phone)}</span></a>`:""}${e.email?`<a class="lc-row" href="mailto:${esc(e.email)}"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg><span>${esc(e.email)}</span></a>`:""}${(e.project_name||e.config)?`<div class="lc-row"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/></svg><span>${esc(e.project_name||"")}${e.config?" · "+esc(e.config):""}</span></div>`:""}</div></div>`;}).join("")||`<div class="lc-empty"><div class="ne-ic"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div><div>No ${CSRC==='website'?'website':'Meta'} leads yet.</div></div>`}</div>
   </div>`;
   loadClientProjAnalytics();
 }
@@ -2585,10 +2615,25 @@ async function loadClientProjAnalytics(){
   const from=CPF.from?new Date(CPF.from).toISOString():new Date(Date.now()-30*864e5).toISOString();
   const toD=CPF.to?(function(){const t=new Date(CPF.to);t.setHours(23,59,59);return t.toISOString();})():new Date().toISOString();
   let a=null; try{ const {data}=await sb.rpc("cr_analytics",{p_site_key:CPROJ,p_from:from,p_to:toD}); a=data; }catch(_){ }
-  if(!a){ box.innerHTML='<div class="hint">No website analytics yet.</div>'; return; }
+  if(!a){ box.innerHTML='<div class="card"><div class="hint">No website analytics yet.</div></div>'; return; }
   const secs=Number(a.avg_seconds)||0; const tstr=secs>=60?(Math.floor(secs/60)+"m "+Math.round(secs%60)+"s"):(Math.round(secs)+"s");
-  box.innerHTML=`<h2 style="margin:0 0 8px;font-size:15px">📊 Website analytics</h2><div class="stats">${statCard("👤","#8e7cff",a.visitors,"Visitors")}${statCard("👁","#22d3ee",a.pageviews,"Pageviews")}${statCard("🖱","#ffb020",a.clicks,"Clicks")}${statCard("🧭","#22c55e",a.sessions,"Sessions")}${statCard("⏱","#e879f9",tstr,"Avg time")}</div>`;
+  const kcard=function(ic,c,v,l){return `<div class="an-kcard"><span class="an-ki" style="background:${c}1f;color:${c}">${ic}</span><b>${v}</b><span>${l}</span></div>`;};
+  const dd=(a.daily||[]); const labels=dd.map(function(d){return d.day;}); const series=dd.map(function(d){return Number(d.visitors)||0;});
+  box.innerHTML=`<div class="an-adv">
+    <div class="an-htitle"><span class="an-hic"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><rect x="5" y="11" width="3.4" height="7" rx="1"/><rect x="10.3" y="6" width="3.4" height="12" rx="1"/><rect x="15.6" y="9" width="3.4" height="9" rx="1"/></svg></span><div><div class="an-htxt">Website analytics</div><div class="an-hsub">This project · last 30 days</div></div></div>
+    <div class="an-grid">
+      ${kcard(AN_IC.vis,"#8e7cff",(a.visitors||0).toLocaleString(),"Visitors")}
+      ${kcard(AN_IC.pv,"#22d3ee",(a.pageviews||0).toLocaleString(),"Pageviews")}
+      ${kcard(AN_IC.clk,"#ffb020",(a.clicks||0).toLocaleString(),"Clicks")}
+      ${kcard(AN_IC.ses,"#22c55e",(a.sessions||0).toLocaleString(),"Sessions")}
+      ${kcard(AN_IC.time,"#e879f9",tstr,"Avg time")}
+    </div>
+    ${series.length?`<div class="an-chart"><div class="an-chtitle"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M6 18V9m6 9V5m6 13v-6"/></svg> Daily visitors</div><div class="an-cbox"><canvas id="cproj-spark"></canvas></div></div>`:""}
+  </div>`;
+  try{ if(CPROJ_CHART){CPROJ_CHART.destroy();CPROJ_CHART=null;} const ctx=$("cproj-spark"); if(ctx&&window.Chart&&series.length){ const cs=getComputedStyle(document.documentElement); const brand=(cs.getPropertyValue("--brand")||"#8e7cff").trim(),brand2=(cs.getPropertyValue("--brand2")||"#8e7cff").trim(); const g=ctx.getContext("2d").createLinearGradient(0,0,0,130); g.addColorStop(0,brand2); g.addColorStop(1,brand);
+    CPROJ_CHART=new Chart(ctx,{type:"bar",data:{labels:labels,datasets:[{data:series,backgroundColor:g,borderRadius:4,maxBarThickness:14,minBarLength:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{displayColors:false,callbacks:{title:function(it){return new Date(it[0].label).toLocaleDateString(undefined,{month:"short",day:"numeric"});},label:function(it){return it.raw+" visitors";}}}},scales:{x:{display:false},y:{display:false,beginAtZero:true}}}}); } }catch(_){ }
 }
+var CPROJ_CHART=null;
 async function cpExport(fmt){
   const rows=cpFiltered(); if(!rows.length){toast("No leads to export.",true);return;}
   const objs=rows.map(function(e){return {Date:fmtDate(e.created_at),Name:e.name||"",Phone:e.phone||"",Email:e.email||"",Source:(e.channel==="digital"?"Meta Ads":"Website"),Project:e.project_name||"",Configuration:e.config||"",Status:e.status||"New"};});
