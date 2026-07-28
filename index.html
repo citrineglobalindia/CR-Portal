@@ -1813,6 +1813,7 @@ function setClientTab(t){ CLIENT_TAB=t;
   const map={home:"client-home-view",list:"client-list-view",create:"client-create-view",projects:"client-projects-view",team:"client-team-view",enquiries:"client-enquiries-view",support:"client-support-view",settings:"client-settings-view"};
   Object.keys(map).forEach(k=>{ const e=$(map[k]); if(e) e.classList.toggle("hidden",k!==t); const b=$("ctab-"+k); if(b){ b.classList.toggle("on",k===t); b.classList.toggle("active",k===t); } });
   try{ document.querySelectorAll(".mobnav .mn-item,.mobnav .mn-center").forEach(function(b){b.classList.remove("on");}); const mb=$("mn-"+t); if(mb) mb.classList.add("on"); }catch(_){ }
+  try{ const ch=document.querySelector(".chero"); if(ch) ch.style.display=(t==="settings")?"none":""; }catch(_){ }
   if(t==="home") renderClientHome();
   if(t==="projects") renderClientProjects();
   if(t==="team") renderClientTeam();
