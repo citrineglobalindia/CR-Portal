@@ -868,6 +868,15 @@
   .an-row2 b{width:38px;text-align:right;color:var(--txt)}
   .svc-row{display:flex;gap:12px;flex-wrap:wrap;margin-top:6px}
   .svc-chk{display:flex;align-items:center;gap:8px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:9px 14px;font-size:14px;font-weight:600;cursor:pointer}
+  .tk-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:10px}
+  .tk-thread{display:flex;flex-direction:column;gap:10px;margin-top:14px}
+  .tk-msg{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px 12px;max-width:88%}
+  .tk-msg.adm{align-self:flex-end;background:color-mix(in srgb,var(--brand) 14%,var(--panel2));border-color:var(--brand)}
+  .tk-meta{font-size:11.5px;color:var(--muted);margin-bottom:4px}
+  .tk-body{font-size:14px;line-height:1.5;color:var(--txt);white-space:normal;word-break:break-word}
+  .fb-stars{display:flex;gap:6px;font-size:30px;cursor:pointer;color:#ffb020;margin-top:4px}
+  .fb-stars span{transition:transform .1s}
+  .fb-stars span:hover{transform:scale(1.15)}
   .dm-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
   .dm-card{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:16px;padding:16px;transition:transform .16s,border-color .2s}
   .dm-card:hover{transform:translateY(-3px);border-color:var(--brand)}
@@ -1584,11 +1593,13 @@ async function loadClients(){
 // ===================== CLIENT VIEW =====================
 let CLIENT_TAB="list";
 function setClientTab(t){ CLIENT_TAB=t;
-  const map={list:"client-list-view",create:"client-create-view",projects:"client-projects-view",team:"client-team-view",enquiries:"client-enquiries-view"};
+  const map={list:"client-list-view",create:"client-create-view",projects:"client-projects-view",team:"client-team-view",enquiries:"client-enquiries-view",support:"client-support-view",settings:"client-settings-view"};
   Object.keys(map).forEach(k=>{ const e=$(map[k]); if(e) e.classList.toggle("hidden",k!==t); const b=$("ctab-"+k); if(b){ b.classList.toggle("on",k===t); b.classList.toggle("active",k===t); } });
   if(t==="projects") renderClientProjects();
   if(t==="team") renderClientTeam();
   if(t==="enquiries") renderClientEnquiries();
+  if(t==="support") renderClientSupport();
+  if(t==="settings") renderClientSettings();
 }
 let TEAM=[];
 async function renderClientTeam(){
@@ -1646,6 +1657,8 @@ function renderClient(){
         ${hasDm?`<button id="ctab-enquiries" class="navside" onclick="setClientTab('enquiries')"><span>📈</span> Digital Marketing</button>`:""}
         <button id="ctab-projects" class="navside" onclick="setClientTab('projects')"><span>📁</span> Projects</button>
         ${!ME.parent_client_id?`<button id="ctab-team" class="navside" onclick="setClientTab('team')"><span>👥</span> Team</button>`:""}
+        <button id="ctab-support" class="navside" onclick="setClientTab('support')"><span>🎫</span> Support</button>
+        <button id="ctab-settings" class="navside" onclick="setClientTab('settings')"><span>⚙️</span> Settings</button>
       </aside>
       <div class="adminmain">
     <div class="hero">
@@ -1700,6 +1713,8 @@ function renderClient(){
     <div id="client-projects-view" class="hidden"></div>
     <div id="client-team-view" class="hidden"></div>
     <div id="client-enquiries-view" class="hidden"></div>
+    <div id="client-support-view" class="hidden"></div>
+    <div id="client-settings-view" class="hidden"></div>
       </div>
     </div>`;
   const _fi=$("f-files"); if(_fi)_fi.addEventListener("change",previewFiles);
@@ -1826,6 +1841,7 @@ function renderAdmin(){
         <button id="nt-leads" class="navside ${ADMIN_TAB==='leads'?'active':''}" onclick="setAdminTab('leads')"><span><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.6"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></span> Leads</button>
         <button id="nt-loans" class="navside ${ADMIN_TAB==='loans'?'active':''}" onclick="setAdminTab('loans')"><span><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M14.5 9.3c-.5-.8-1.5-1.3-2.6-1.3-1.5 0-2.6.8-2.6 1.9 0 2.6 5.4 1.3 5.4 4 0 1.1-1.2 2-2.8 2-1.2 0-2.2-.5-2.7-1.3M12 6.2v1.8M12 16v1.8"/></svg></span> Loans</button>
         <button id="nt-enquiries" class="navside ${ADMIN_TAB==='enquiries'?'active':''}" onclick="setAdminTab('enquiries')"><span><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v12H5.2L4 17.5z"/><path d="M8 9h8M8 12h5"/></svg></span> Digital Marketing</button>
+        <button id="nt-support" class="navside ${ADMIN_TAB==='support'?'active':''}" onclick="setAdminTab('support')"><span><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span> Support</button>
         <button id="nt-projects" class="navside ${ADMIN_TAB==='projects'?'active':''}" onclick="setAdminTab('projects')"><span><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></span> Projects</button>
         <button id="nt-clients" class="navside ${ADMIN_TAB==='clients'?'active':''}" onclick="setAdminTab('clients')"><span><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 19v-1a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v1"/><circle cx="9.5" cy="8" r="3.2"/><path d="M21 19v-1a4 4 0 0 0-3-3.85"/><path d="M16 4.15a3.2 3.2 0 0 1 0 6.2"/></svg></span> Clients</button>
         <button id="nt-board" class="navside ${ADMIN_TAB==='board'?'active':''}" onclick="setAdminTab('board')"><span><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="5" height="16" rx="1"/><rect x="9.5" y="4" width="5" height="11" rx="1"/><rect x="16" y="4" width="5" height="14" rx="1"/></svg></span> Board</button>
@@ -1834,7 +1850,7 @@ function renderAdmin(){
       </aside>
       <div class="adminmain"><div id="admin-pane"></div></div>
     </div>`;
-  if(ADMIN_TAB==="clients") renderAdminClients(); else if(ADMIN_TAB==="reports") renderAdminReports(); else if(ADMIN_TAB==="board") renderAdminBoard(); else if(ADMIN_TAB==="leads") renderAdminLeads(); else if(ADMIN_TAB==="projects") renderAdminProjects(); else if(ADMIN_TAB==="gantt") renderAdminGantt(); else if(ADMIN_TAB==="loans") renderAdminLoans(); else if(ADMIN_TAB==="enquiries") renderAdminEnquiries(); else if(ADMIN_TAB==="crs") renderAdminDash(); else renderAdminHome();
+  if(ADMIN_TAB==="clients") renderAdminClients(); else if(ADMIN_TAB==="reports") renderAdminReports(); else if(ADMIN_TAB==="board") renderAdminBoard(); else if(ADMIN_TAB==="leads") renderAdminLeads(); else if(ADMIN_TAB==="projects") renderAdminProjects(); else if(ADMIN_TAB==="gantt") renderAdminGantt(); else if(ADMIN_TAB==="loans") renderAdminLoans(); else if(ADMIN_TAB==="enquiries") renderAdminEnquiries(); else if(ADMIN_TAB==="support") renderAdminSupport(); else if(ADMIN_TAB==="crs") renderAdminDash(); else renderAdminHome();
   applySidebar();
 }
 function applySidebar(){ const sb=document.getElementById("sidebar"); if(!sb)return; let c=false; try{c=localStorage.getItem("cr_side_collapsed")==="1";}catch(_){ } sb.classList.toggle("collapsed",c); sb.querySelectorAll(".navside").forEach(b=>{ if(!b.getAttribute("title")) b.setAttribute("title",(b.textContent||"").trim()); }); const t=document.getElementById("side-collapse-btn"); if(t) t.title=c?"Expand menu":"Collapse menu"; }
@@ -1997,7 +2013,7 @@ function openEnquiry(id){
 }
 async function dmSaveRemarks(id){ const {error}=await sb.from("cr_web_enquiries").update({remarks:($("ee-remarks").value||"").trim()||null,updated_at:new Date().toISOString()}).eq("id",id); if(error){toast(error.message,true);return;} const e=ENQ.find(function(x){return x.id===id;}); if(e)e.remarks=($("ee-remarks").value||"").trim(); toast("Saved."); }
 let CENQ=[], CLIENT_SITES=[], CPROJ=null, CSRC="website", CPF={q:"",from:"",to:""};
-function clientSiteLogo(st){ if(!st)return ""; if(st.logo_path)return logoUrl(st.logo_path); return ME.logo_path?logoUrl(ME.logo_path):""; }
+function clientSiteLogo(st){ return (st&&st.logo_path)?logoUrl(st.logo_path):""; }
 async function renderClientEnquiries(){
   const el=$("client-enquiries-view"); if(!el)return;
   el.innerHTML=`<div id="cdm-pane"><div class="hint">Loading…</div></div>`;
@@ -2076,6 +2092,124 @@ async function cpExport(fmt){
   const name=((CSRC==="digital"?"meta":"website")+"_leads_"+new Date().toISOString().slice(0,10));
   if(fmt==="xlsx"){ const ws=XLSX.utils.json_to_sheet(objs); const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,"Leads"); XLSX.writeFile(wb,name+".xlsx"); toast("Excel downloaded."); return; }
   const esc2=function(v){v=String(v==null?"":v);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;}; const header=Object.keys(objs[0]); const csv=[header.join(",")].concat(objs.map(function(o){return header.map(function(h){return esc2(o[h]);}).join(",");})).join("\n"); const bl=new Blob([csv],{type:"text/csv"}); const a=document.createElement("a"); a.href=URL.createObjectURL(bl); a.download=name+".csv"; a.click(); toast("CSV downloaded.");
+}
+// ===================== SUPPORT / FEEDBACK =====================
+const TK_STC={Open:"#ffb020","In Progress":"#22d3ee",Resolved:"#22c55e",Closed:"#6b7280"};
+const TK_PRC={Low:"#9aa0bd",Medium:"#8e7cff",High:"#ff8a3d",Urgent:"#ff5b6b"};
+function tkStatusBadge(v){const c=TK_STC[v]||"#9aa0bd";return `<span class="badge" style="background:${c}22;color:${c};border:1px solid ${c}66">${esc(v||"Open")}</span>`;}
+function tkPriBadge(v){const c=TK_PRC[v]||"#8e7cff";return `<span class="badge" style="background:${c}22;color:${c};border:1px solid ${c}66">${esc(v||"Medium")}</span>`;}
+async function paintTicket(el,id,isAdmin,backCall){
+  if(!el)return;
+  const {data:t}=await sb.from("cr_tickets").select("*").eq("id",id).maybeSingle();
+  if(!t){ el.innerHTML='<div class="hint">Ticket not found.</div>'; return; }
+  const {data:msgs}=await sb.from("cr_ticket_messages").select("*").eq("ticket_id",id).order("created_at");
+  const M=msgs||[];
+  el.innerHTML=`<div class="card">
+    <div class="fold-crumb"><button onclick="${backCall}">🎫 Tickets</button><span>›</span><button class="on">#${t.ticket_no}</button></div>
+    <div class="tk-head"><div style="min-width:0"><h2 style="margin:0">${esc(t.subject)}</h2><div class="hint">${t.category?esc(t.category)+" · ":""}Raised ${esc(fmtDate(t.created_at))} by ${esc(t.created_by_name||"client")}</div></div><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">${tkPriBadge(t.priority)}${tkStatusBadge(t.status)}</div></div>
+    ${isAdmin?`<div class="row" style="gap:8px;margin:12px 0 0"><label class="hint" style="margin:0;align-self:center">Status</label><select class="inp" style="max-width:170px" onchange="ticketStatus('${id}',this.value,true)">${["Open","In Progress","Resolved","Closed"].map(function(x){return `<option ${t.status===x?"selected":""}>${x}</option>`;}).join("")}</select></div>`:""}
+    <div class="tk-thread">${M.map(function(m){return `<div class="tk-msg ${m.author_role==='admin'?'adm':''}"><div class="tk-meta"><b>${esc(m.author_name||"")}</b> <span class="pill" style="font-size:10px">${esc((m.author_role||"").toUpperCase())}</span> · ${esc(fmtDate(m.created_at))}</div><div class="tk-body">${esc(m.body||"").replace(/\n/g,"<br>")}</div></div>`;}).join("")||'<div class="hint">No messages.</div>'}</div>
+    ${(t.status==="Closed")?`<div class="hint" style="margin-top:12px">This ticket is closed.</div>`:`<div class="row" style="margin-top:12px;gap:8px"><input id="tk-reply" class="inp" placeholder="Type your reply…" style="flex:1" onkeydown="if(event.key==='Enter')ticketReply('${id}',${isAdmin})"/><button class="btn btn-sm btn-ok" style="width:auto;margin:0" onclick="ticketReply('${id}',${isAdmin})">Send</button></div>${!isAdmin?`<div style="margin-top:8px"><button class="link-btn" onclick="ticketStatus('${id}','Closed',false)">✓ Mark as resolved / close</button></div>`:""}`}
+  </div>`;
+}
+async function ticketReply(id,isAdmin){
+  const inp=$("tk-reply"); const body=(inp&&inp.value||"").trim(); if(!body){toast("Type a reply.",true);return;}
+  const {error}=await sb.from("cr_ticket_messages").insert({ticket_id:id,author_id:(SESSION&&SESSION.user)?SESSION.user.id:null,author_name:ME.full_name||ME.company||ME.username||ME.email,author_role:ME.role,body:body});
+  if(error){toast(error.message,true);return;}
+  const patch={updated_at:new Date().toISOString()}; if(isAdmin) patch.status="In Progress";
+  await sb.from("cr_tickets").update(patch).eq("id",id);
+  const el=isAdmin?$("asup-pane"):$("csup-pane"); await paintTicket(el,id,isAdmin,isAdmin?"backATicket()":"backCTicket()");
+}
+async function ticketStatus(id,status,isAdmin){
+  const {error}=await sb.from("cr_tickets").update({status:status,updated_at:new Date().toISOString()}).eq("id",id);
+  if(error){toast(error.message,true);return;}
+  toast("Ticket "+status.toLowerCase()+".");
+  const el=isAdmin?$("asup-pane"):$("csup-pane"); await paintTicket(el,id,isAdmin,isAdmin?"backATicket()":"backCTicket()");
+}
+// ---- Client support ----
+let CTICKETS=[], CUR_TICKET=null;
+async function renderClientSupport(){
+  const el=$("client-support-view"); if(!el)return;
+  el.innerHTML=`<div id="csup-pane"><div class="hint">Loading…</div></div>`;
+  const {data}=await sb.from("cr_tickets").select("*").order("updated_at",{ascending:false});
+  CTICKETS=data||[]; CUR_TICKET=null; drawClientSupport();
+}
+function drawClientSupport(){
+  const el=$("csup-pane"); if(!el)return;
+  if(CUR_TICKET){ paintTicket(el,CUR_TICKET,false,"backCTicket()"); return; }
+  const rows=CTICKETS.map(function(t){return `<tr onclick="openCTicket('${t.id}')" style="cursor:pointer"><td>#${t.ticket_no}</td><td><b>${esc(t.subject)}</b>${t.category?`<div class="hint">${esc(t.category)}</div>`:""}</td><td>${tkPriBadge(t.priority)}</td><td>${tkStatusBadge(t.status)}</td><td class="hint" style="white-space:nowrap">${esc(fmtDate(t.updated_at||t.created_at))}</td></tr>`;}).join("");
+  el.innerHTML=`<div class="card"><div class="lead-bar" style="margin:0 0 10px"><h2 style="margin:0">🎫 Support tickets</h2><button class="btn btn-sm btn-ok" onclick="openTicketForm()">＋ Raise a ticket</button></div><div class="table-wrap"><table class="lead-table"><thead><tr><th>#</th><th>Subject</th><th>Priority</th><th>Status</th><th>Updated</th></tr></thead><tbody>${rows||'<tr><td colspan="5" class="hint">No tickets yet — raise one if you need help.</td></tr>'}</tbody></table></div></div>`;
+}
+function openCTicket(id){ CUR_TICKET=id; drawClientSupport(); }
+function backCTicket(){ CUR_TICKET=null; renderClientSupport(); }
+function openTicketForm(){
+  $("modal-root").innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()"><div class="modal"><div class="mh"><h2 style="margin:0">🎫 Raise a ticket</h2><button class="x" onclick="closeModal()">×</button></div><div class="mb">
+    <label>Subject <span class="req">*</span></label><input id="tk-subject" class="inp"/>
+    <div class="grid2" style="margin-top:10px"><div><label>Category</label><select id="tk-cat" class="inp">${["Question","Bug / Issue","Billing","Feature request","Other"].map(function(x){return `<option>${x}</option>`;}).join("")}</select></div><div><label>Priority</label><select id="tk-pri" class="inp">${["Low","Medium","High","Urgent"].map(function(x){return `<option ${x==="Medium"?"selected":""}>${x}</option>`;}).join("")}</select></div></div>
+    <label style="margin-top:10px">Describe your issue <span class="req">*</span></label><textarea id="tk-desc" class="inp" rows="4"></textarea>
+    <div class="row" style="margin-top:14px"><button class="btn btn-sm btn-ok" id="tk-btn" onclick="submitTicket()">Submit ticket</button><button class="btn btn-sm btn-ghost" onclick="closeModal()">Cancel</button></div>
+  </div></div></div>`;
+}
+async function submitTicket(){
+  const subject=($("tk-subject").value||"").trim(), desc=($("tk-desc").value||"").trim();
+  if(!subject||!desc){toast("Enter a subject and description.",true);return;}
+  const btn=$("tk-btn"); if(btn){btn.disabled=true;btn.textContent="Submitting…";}
+  const cid=ME.parent_client_id||((SESSION&&SESSION.user)?SESSION.user.id:null);
+  const {data,error}=await sb.from("cr_tickets").insert({client_id:cid,created_by:(SESSION&&SESSION.user)?SESSION.user.id:null,created_by_name:ME.full_name||ME.company||ME.username||ME.email,subject:subject,category:$("tk-cat").value,priority:$("tk-pri").value,status:"Open"}).select().single();
+  if(error){toast(error.message,true); if(btn){btn.disabled=false;btn.textContent="Submit ticket";} return;}
+  await sb.from("cr_ticket_messages").insert({ticket_id:data.id,author_id:(SESSION&&SESSION.user)?SESSION.user.id:null,author_name:ME.full_name||ME.company||ME.username||ME.email,author_role:ME.role,body:desc});
+  toast("Ticket raised — we'll get back to you."); closeModal(); renderClientSupport();
+}
+// ---- Client settings + feedback ----
+function renderClientSettings(){
+  const el=$("client-settings-view"); if(!el)return;
+  const svc=(ME.service_types||["software"]).map(function(x){return x==="digital"?"Digital Marketing":"Software Development";}).join(", ");
+  el.innerHTML=`
+  <div class="card"><h2 style="margin:0 0 8px">⚙️ Settings</h2><div class="sub">Your account details.</div>
+    <div class="kv"><div class="k">Company</div><div>${esc(ME.company||"—")}</div><div class="k">Contact</div><div>${esc(ME.full_name||"—")}</div><div class="k">Client code</div><div><span class="ref">${esc(ME.client_code||"—")}</span></div><div class="k">Login username</div><div>${esc(ME.username||"—")}</div><div class="k">Notification email</div><div>${esc((ME.notify_emails&&ME.notify_emails.join(", "))||ME.notify_email||"—")}</div><div class="k">Phone</div><div>${esc(ME.phone||"—")}</div><div class="k">Website</div><div>${ME.website?`<a href="${esc(ME.website)}" target="_blank" style="color:var(--brand2)">${esc(ME.website)}</a>`:"—"}</div><div class="k">Service</div><div>${esc(svc)}</div></div>
+    <div class="hint" style="margin-top:10px">To change these details, raise a support ticket or contact your account manager.</div>
+  </div>
+  <div class="card" style="margin-top:14px"><h2 style="margin:0 0 8px">💬 Send feedback</h2><div class="sub">Tell us how we're doing — it helps us improve.</div>
+    <label>Rating</label><div id="fb-stars" class="fb-stars">${[1,2,3,4,5].map(function(n){return `<span data-n="${n}" onclick="fbSetRating(${n})">☆</span>`;}).join("")}</div>
+    <label style="margin-top:10px">Your feedback</label><textarea id="fb-msg" class="inp" rows="3" placeholder="Share your thoughts…"></textarea>
+    <div class="row" style="margin-top:12px"><button class="btn btn-sm btn-ok" id="fb-btn" onclick="submitFeedback()">Send feedback</button></div>
+  </div>`;
+  window.FB_RATING=0;
+}
+function fbSetRating(n){ window.FB_RATING=n; document.querySelectorAll("#fb-stars span").forEach(function(el){ el.textContent=(+el.getAttribute("data-n")<=n)?"★":"☆"; el.classList.toggle("on",+el.getAttribute("data-n")<=n); }); }
+async function submitFeedback(){
+  const msg=($("fb-msg").value||"").trim(); const rating=window.FB_RATING||0;
+  if(!rating&&!msg){toast("Add a rating or a message.",true);return;}
+  const btn=$("fb-btn"); if(btn){btn.disabled=true;btn.textContent="Sending…";}
+  const cid=ME.parent_client_id||((SESSION&&SESSION.user)?SESSION.user.id:null);
+  const {error}=await sb.from("cr_feedback").insert({client_id:cid,created_by:(SESSION&&SESSION.user)?SESSION.user.id:null,created_by_name:ME.full_name||ME.company||ME.username||ME.email,rating:rating||null,message:msg||null});
+  if(error){toast(error.message,true); if(btn){btn.disabled=false;btn.textContent="Send feedback";} return;}
+  toast("Thanks for your feedback!"); if($("fb-msg"))$("fb-msg").value=""; window.FB_RATING=0; fbSetRating(0); if(btn){btn.disabled=false;btn.textContent="Send feedback";}
+}
+// ---- Admin support ----
+let ATICKET=null, ASUP_TAB="tickets", ATICKETS=[];
+async function renderAdminSupport(){
+  $("admin-pane").innerHTML=`<div class="welcome"><div><div class="w-hi">Support &amp; Feedback</div><div class="w-sub">Client support tickets and feedback.</div></div></div>
+  <div class="seg" style="margin:0 0 14px"><button id="astab-tickets" class="on" onclick="setASupTab('tickets')">🎫 Tickets</button><button id="astab-feedback" onclick="setASupTab('feedback')">💬 Feedback</button></div>
+  <div id="asup-pane"><div class="hint">Loading…</div></div>`;
+  ATICKET=null; ASUP_TAB="tickets"; loadAdminTickets();
+}
+function setASupTab(t){ ASUP_TAB=t; document.querySelectorAll('[id^="astab-"]').forEach(function(b){b.classList.remove("on");}); const b=$("astab-"+t); if(b)b.classList.add("on"); ATICKET=null; if(t==="feedback") loadAdminFeedback(); else loadAdminTickets(); }
+async function loadAdminTickets(){ const {data}=await sb.from("cr_tickets").select("*").order("updated_at",{ascending:false}); ATICKETS=data||[]; drawAdminTickets(); }
+function drawAdminTickets(){
+  const el=$("asup-pane"); if(!el)return;
+  if(ATICKET){ paintTicket(el,ATICKET,true,"backATicket()"); return; }
+  const open=ATICKETS.filter(function(t){return t.status!=="Closed"&&t.status!=="Resolved";}).length;
+  const rows=ATICKETS.map(function(t){return `<tr onclick="openATicket('${t.id}')" style="cursor:pointer"><td>#${t.ticket_no}</td><td><b>${esc(t.created_by_name||"—")}</b></td><td>${esc(t.subject)}${t.category?`<div class="hint">${esc(t.category)}</div>`:""}</td><td>${tkPriBadge(t.priority)}</td><td>${tkStatusBadge(t.status)}</td><td class="hint" style="white-space:nowrap">${esc(fmtDate(t.updated_at||t.created_at))}</td></tr>`;}).join("");
+  el.innerHTML=`<div class="card"><div class="lead-bar" style="margin:0 0 10px"><h2 style="margin:0">Tickets <span class="hint" style="font-weight:600">· ${open} open</span></h2></div><div class="table-wrap"><table class="lead-table"><thead><tr><th>#</th><th>Client</th><th>Subject</th><th>Priority</th><th>Status</th><th>Updated</th></tr></thead><tbody>${rows||'<tr><td colspan="6" class="hint">No tickets.</td></tr>'}</tbody></table></div></div>`;
+}
+function openATicket(id){ ATICKET=id; drawAdminTickets(); }
+function backATicket(){ ATICKET=null; loadAdminTickets(); }
+async function loadAdminFeedback(){
+  const el=$("asup-pane"); if(!el)return; el.innerHTML='<div class="hint">Loading…</div>';
+  const {data}=await sb.from("cr_feedback").select("*").order("created_at",{ascending:false});
+  const rows=(data||[]).map(function(f){const st=f.rating?("★".repeat(f.rating)+"☆".repeat(5-f.rating)):"—";return `<tr><td class="hint" style="white-space:nowrap">${esc(fmtDate(f.created_at))}</td><td><b>${esc(f.created_by_name||"—")}</b></td><td style="color:#ffd27a">${st}</td><td>${esc(f.message||"—")}</td></tr>`;}).join("");
+  el.innerHTML=`<div class="card"><h2 style="margin:0 0 10px">💬 Client feedback</h2><div class="table-wrap"><table class="lead-table"><thead><tr><th>Date</th><th>Client</th><th>Rating</th><th>Feedback</th></tr></thead><tbody>${rows||'<tr><td colspan="4" class="hint">No feedback yet.</td></tr>'}</tbody></table></div></div>`;
 }
 // ===================== LOANS MODULE =====================
 const LOAN_CALL=["New","Not answered","Call back","Interested","Not interested","Wrong number","Do not call"];
