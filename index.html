@@ -854,6 +854,7 @@
   .rem-row.due{border-color:rgba(255,91,107,.5);background:rgba(255,91,107,.08)}
   .rem-due td{background:rgba(255,91,107,.08)}
   .masked-ph{font-family:monospace;letter-spacing:1px;color:var(--muted)}
+  .enq-key{font-family:monospace;font-size:11.5px;background:var(--chip);border:1px solid var(--line);border-radius:6px;padding:2px 6px;color:var(--brand2)}
   .rev-badge{display:inline-block;background:rgba(255,176,32,.16);color:#ffd27a;border:1px solid rgba(255,176,32,.4);border-radius:7px;padding:1px 6px;font-size:11px;font-weight:800;vertical-align:middle}
   .ln-filter{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:9px 12px;margin-bottom:14px}
   .an-mini td{padding:6px 8px;border:0;vertical-align:middle}
@@ -1560,10 +1561,11 @@ async function loadClients(){
 // ===================== CLIENT VIEW =====================
 let CLIENT_TAB="list";
 function setClientTab(t){ CLIENT_TAB=t;
-  const map={list:"client-list-view",create:"client-create-view",projects:"client-projects-view",team:"client-team-view"};
+  const map={list:"client-list-view",create:"client-create-view",projects:"client-projects-view",team:"client-team-view",enquiries:"client-enquiries-view"};
   Object.keys(map).forEach(k=>{ const e=$(map[k]); if(e) e.classList.toggle("hidden",k!==t); const b=$("ctab-"+k); if(b) b.classList.toggle("on",k===t); });
   if(t==="projects") renderClientProjects();
   if(t==="team") renderClientTeam();
+  if(t==="enquiries") renderClientEnquiries();
 }
 let TEAM=[];
 async function renderClientTeam(){
@@ -1620,7 +1622,7 @@ function renderClient(){
       </div>
     </div>
     <div class="stats" id="client-stats"></div>
-    <div class="lead-bar" style="margin:4px 0 14px"><div class="seg"><button id="ctab-list" class="on" onclick="setClientTab('list')">📋 My Requests</button><button id="ctab-create" onclick="setClientTab('create')">＋ Raise a request</button><button id="ctab-projects" onclick="setClientTab('projects')">📁 Projects</button>${!ME.parent_client_id?`<button id="ctab-team" onclick="setClientTab('team')">👥 Team</button>`:""}</div></div>
+    <div class="lead-bar" style="margin:4px 0 14px"><div class="seg"><button id="ctab-list" class="on" onclick="setClientTab('list')">📋 My Requests</button><button id="ctab-create" onclick="setClientTab('create')">＋ Raise a request</button><button id="ctab-projects" onclick="setClientTab('projects')">📁 Projects</button><button id="ctab-enquiries" onclick="setClientTab('enquiries')">📥 Enquiries</button>${!ME.parent_client_id?`<button id="ctab-team" onclick="setClientTab('team')">👥 Team</button>`:""}</div></div>
     <div id="client-create-view" class="hidden">
     <div class="card">
       <h2>Raise a Change Request</h2>
@@ -1663,7 +1665,8 @@ function renderClient(){
     </div>
     </div>
     <div id="client-projects-view" class="hidden"></div>
-    <div id="client-team-view" class="hidden"></div>`;
+    <div id="client-team-view" class="hidden"></div>
+    <div id="client-enquiries-view" class="hidden"></div>`;
   $("f-files").addEventListener("change",previewFiles);
   loadAndRenderClient();
 }
@@ -1786,6 +1789,7 @@ function renderAdmin(){
         <button id="nt-crs" class="navside ${ADMIN_TAB==='crs'?'active':''}" onclick="setAdminTab('crs')"><span><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="3" width="8" height="4" rx="1"/><path d="M9 5H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-3"/><path d="M8 12h8M8 16h6"/></svg></span> Change Requests</button>
         <button id="nt-leads" class="navside ${ADMIN_TAB==='leads'?'active':''}" onclick="setAdminTab('leads')"><span><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.6"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></span> Leads</button>
         <button id="nt-loans" class="navside ${ADMIN_TAB==='loans'?'active':''}" onclick="setAdminTab('loans')"><span><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M14.5 9.3c-.5-.8-1.5-1.3-2.6-1.3-1.5 0-2.6.8-2.6 1.9 0 2.6 5.4 1.3 5.4 4 0 1.1-1.2 2-2.8 2-1.2 0-2.2-.5-2.7-1.3M12 6.2v1.8M12 16v1.8"/></svg></span> Loans</button>
+        <button id="nt-enquiries" class="navside ${ADMIN_TAB==='enquiries'?'active':''}" onclick="setAdminTab('enquiries')"><span><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v12H5.2L4 17.5z"/><path d="M8 9h8M8 12h5"/></svg></span> Enquiries</button>
         <button id="nt-projects" class="navside ${ADMIN_TAB==='projects'?'active':''}" onclick="setAdminTab('projects')"><span><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></span> Projects</button>
         <button id="nt-clients" class="navside ${ADMIN_TAB==='clients'?'active':''}" onclick="setAdminTab('clients')"><span><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 19v-1a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v1"/><circle cx="9.5" cy="8" r="3.2"/><path d="M21 19v-1a4 4 0 0 0-3-3.85"/><path d="M16 4.15a3.2 3.2 0 0 1 0 6.2"/></svg></span> Clients</button>
         <button id="nt-board" class="navside ${ADMIN_TAB==='board'?'active':''}" onclick="setAdminTab('board')"><span><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="5" height="16" rx="1"/><rect x="9.5" y="4" width="5" height="11" rx="1"/><rect x="16" y="4" width="5" height="14" rx="1"/></svg></span> Board</button>
@@ -1794,13 +1798,60 @@ function renderAdmin(){
       </aside>
       <div class="adminmain"><div id="admin-pane"></div></div>
     </div>`;
-  if(ADMIN_TAB==="clients") renderAdminClients(); else if(ADMIN_TAB==="reports") renderAdminReports(); else if(ADMIN_TAB==="board") renderAdminBoard(); else if(ADMIN_TAB==="leads") renderAdminLeads(); else if(ADMIN_TAB==="projects") renderAdminProjects(); else if(ADMIN_TAB==="gantt") renderAdminGantt(); else if(ADMIN_TAB==="loans") renderAdminLoans(); else if(ADMIN_TAB==="crs") renderAdminDash(); else renderAdminHome();
+  if(ADMIN_TAB==="clients") renderAdminClients(); else if(ADMIN_TAB==="reports") renderAdminReports(); else if(ADMIN_TAB==="board") renderAdminBoard(); else if(ADMIN_TAB==="leads") renderAdminLeads(); else if(ADMIN_TAB==="projects") renderAdminProjects(); else if(ADMIN_TAB==="gantt") renderAdminGantt(); else if(ADMIN_TAB==="loans") renderAdminLoans(); else if(ADMIN_TAB==="enquiries") renderAdminEnquiries(); else if(ADMIN_TAB==="crs") renderAdminDash(); else renderAdminHome();
   applySidebar();
 }
 function applySidebar(){ const sb=document.getElementById("sidebar"); if(!sb)return; let c=false; try{c=localStorage.getItem("cr_side_collapsed")==="1";}catch(_){ } sb.classList.toggle("collapsed",c); sb.querySelectorAll(".navside").forEach(b=>{ if(!b.getAttribute("title")) b.setAttribute("title",(b.textContent||"").trim()); }); const t=document.getElementById("side-collapse-btn"); if(t) t.title=c?"Expand menu":"Collapse menu"; }
 function toggleSidebar(){ let c=false; try{c=localStorage.getItem("cr_side_collapsed")==="1";}catch(_){ } c=!c; try{localStorage.setItem("cr_side_collapsed",c?"1":"0");}catch(_){ } applySidebar(); }
 function setAdminTab(t){ ADMIN_TAB=t; renderAdmin(); }
 
+// ===================== WEB ENQUIRIES =====================
+let ENQ=[], ENQ_SITES=[], ENQ_F={site:"",q:"",from:"",to:""};
+async function renderAdminEnquiries(){
+  $("admin-pane").innerHTML=`<div class="welcome"><div><div class="w-hi">Web Enquiries</div><div class="w-sub">Leads captured from your websites, stored per project &amp; client.</div></div></div><div id="enq-pane"><div class="hint">Loading…</div></div>`;
+  await loadClients(); await loadLeadSites(); await loadEnquiries(); drawEnquiries();
+}
+async function loadLeadSites(){ const {data}=await sb.from("cr_lead_sites").select("*").order("created_at",{ascending:false}); ENQ_SITES=data||[]; }
+async function loadEnquiries(){ let all=[],from=0; const size=1000; while(true){ const {data,error}=await sb.from("cr_web_enquiries").select("*").order("created_at",{ascending:false}).range(from,from+size-1); if(error){toast(error.message,true);break;} all=all.concat(data||[]); if(!data||data.length<size)break; from+=size; } ENQ=all; }
+function enqClientName(id){ const c=(CLIENTS||[]).find(function(x){return x.id===id;}); return c?(c.company||c.full_name||c.email):"—"; }
+function enqCopy(t){ try{ navigator.clipboard.writeText(t); toast("Copied."); }catch(_){ } }
+function drawEnquiries(){
+  const el=$("enq-pane"); if(!el)return;
+  let rows=ENQ.filter(function(e){
+    if(ENQ_F.site && e.site_key!==ENQ_F.site) return false;
+    if(ENQ_F.q){ const q=ENQ_F.q.toLowerCase(); if(((e.name||"")+(e.phone||"")+(e.email||"")+(e.project_name||"")).toLowerCase().indexOf(q)<0) return false; }
+    if(ENQ_F.from && new Date(e.created_at)<new Date(ENQ_F.from)) return false;
+    if(ENQ_F.to){ const t=new Date(ENQ_F.to); t.setHours(23,59,59); if(new Date(e.created_at)>t) return false; }
+    return true;
+  });
+  const cnt={}; ENQ.forEach(function(e){ cnt[e.site_key]=(cnt[e.site_key]||0)+1; });
+  const cOpts=function(cur){ return `<option value="">— map to client —</option>`+(CLIENTS||[]).map(function(c){return `<option value="${c.id}" ${cur===c.id?"selected":""}>${esc(c.company||c.full_name||c.email)}</option>`;}).join(""); };
+  const sitesHtml=ENQ_SITES.map(function(st){ return `<tr><td><b>${esc(st.name)}</b></td><td><code class="enq-key">${esc(st.site_key)}</code> <button class="link-btn" onclick="enqCopy('${esc(st.site_key)}')">copy</button></td><td class="num">${cnt[st.site_key]||0}</td><td><select class="inp" style="max-width:210px;padding:5px 8px" onchange="mapSiteClient('${st.id}','${esc(st.site_key)}',this.value)">${cOpts(st.client_id)}</select></td><td><button class="link-btn" style="color:#ff7b7b" onclick="deleteSite('${st.id}','${esc(st.name)}')">Remove</button></td></tr>`; }).join("");
+  const siteOpts=`<option value="">All sites</option>`+ENQ_SITES.map(function(st){return `<option value="${esc(st.site_key)}" ${ENQ_F.site===st.site_key?"selected":""}>${esc(st.name)}</option>`;}).join("");
+  el.innerHTML=`
+  <div class="card"><h2 style="margin:0 0 6px;font-size:16px">Lead sites</h2><div class="sub">Each website posts leads to the intake endpoint with its key. Map a site to a client so that client sees its leads.</div>
+    <div class="ba-note" style="margin:0 0 10px">Endpoint: <code>${SUPABASE_URL}/functions/v1/web-enquiry-intake</code></div>
+    <div class="table-wrap"><table class="lead-table"><thead><tr><th>Site</th><th>Key</th><th>Leads</th><th>Client</th><th></th></tr></thead><tbody>${sitesHtml||'<tr><td colspan="5" class="hint">No sites yet.</td></tr>'}</tbody></table></div>
+    <div class="row" style="margin-top:10px;gap:8px"><input id="ls-name" class="inp" placeholder="New site / website name…" style="max-width:260px"/><button class="btn btn-sm btn-ok" style="width:auto;margin:0" onclick="addLeadSite()">＋ Add site</button></div>
+  </div>
+  <div class="card" style="margin-top:14px">
+    <div class="lead-bar" style="margin:0 0 10px"><h2 style="margin:0">Enquiries <span class="hint" style="font-weight:600">· ${rows.length} of ${ENQ.length}</span></h2></div>
+    <div class="row" style="gap:8px;flex-wrap:wrap"><input class="inp" placeholder="🔍 Name, phone, email, project…" style="min-width:220px;flex:1" value="${esc(ENQ_F.q)}" oninput="ENQ_F.q=this.value;drawEnquiries()"/><select class="inp" style="max-width:180px" onchange="ENQ_F.site=this.value;drawEnquiries()">${siteOpts}</select><input type="date" class="inp" style="max-width:150px" value="${ENQ_F.from}" onchange="ENQ_F.from=this.value;drawEnquiries()"/><input type="date" class="inp" style="max-width:150px" value="${ENQ_F.to}" onchange="ENQ_F.to=this.value;drawEnquiries()"/></div>
+    <div class="table-wrap" style="margin-top:10px"><table class="lead-table"><thead><tr><th>Date</th><th>Name</th><th>Phone</th><th>Email</th><th>Project</th><th>Client</th><th></th></tr></thead><tbody>${rows.map(function(e){return `<tr>
+      <td style="white-space:nowrap">${esc(fmtDay(e.created_at))}<div class="hint">${esc(fmtTime(e.created_at))}</div></td>
+      <td><b>${esc(e.name||"—")}</b></td><td>${esc(e.phone||"—")}</td><td class="hint">${esc(e.email||"—")}</td>
+      <td>${e.project_name?`<span class="badge" style="background:rgba(255,176,32,.14);color:#ffd27a;border:1px solid rgba(255,176,32,.4)">${esc(e.project_name)}</span>`:"—"}${e.config?`<div class="hint" style="margin-top:2px">${esc(e.config)}</div>`:""}</td>
+      <td>${e.client_id?esc(enqClientName(e.client_id)):`<span class="hint">Unmapped</span>`}</td>
+      <td style="white-space:nowrap"><button class="link-btn" onclick="openEnquiry('${e.id}')">View</button> <button class="link-btn" style="color:#ff7b7b" onclick="deleteEnquiry('${e.id}')">🗑</button></td>
+    </tr>`;}).join("")||'<tr><td colspan="7" class="hint">No enquiries yet.</td></tr>'}</tbody></table></div>
+  </div>`;
+}
+async function addLeadSite(){ const name=($("ls-name").value||"").trim(); if(!name){toast("Enter a site name.",true);return;} const key=name.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/(^-|-$)/g,"")+"-"+Math.random().toString(36).slice(2,8); const {error}=await sb.from("cr_lead_sites").insert({site_key:key,name,created_by:(SESSION&&SESSION.user)?SESSION.user.id:null}); if(error){toast(error.message,true);return;} toast("Site added. Key: "+key); await loadLeadSites(); drawEnquiries(); }
+async function mapSiteClient(siteId,siteKey,clientId){ const {error}=await sb.from("cr_lead_sites").update({client_id:clientId||null}).eq("id",siteId); if(error){toast(error.message,true);return;} await sb.from("cr_web_enquiries").update({client_id:clientId||null}).eq("site_key",siteKey); toast("Site mapped — existing leads updated for the client."); await loadLeadSites(); await loadEnquiries(); drawEnquiries(); }
+async function deleteSite(id,name){ if(!confirm("Remove site "+name+"? Its leads stay but become unmapped."))return; const {error}=await sb.from("cr_lead_sites").delete().eq("id",id); if(error){toast(error.message,true);return;} await loadLeadSites(); drawEnquiries(); }
+async function deleteEnquiry(id){ if(!confirm("Delete this enquiry?"))return; const {error}=await sb.from("cr_web_enquiries").delete().eq("id",id); if(error){toast(error.message,true);return;} await loadEnquiries(); drawEnquiries(); }
+function openEnquiry(id){ const e=ENQ.find(function(x){return x.id===id;}); if(!e)return; const extra=e.extra?Object.keys(e.extra).map(function(k){return `<div class="k">${esc(k)}</div><div>${esc(String(e.extra[k]))}</div>`;}).join(""):""; $("modal-root").innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()"><div class="modal" style="max-width:480px"><div class="mh"><h2 style="margin:0">${esc(e.name||"Enquiry")}</h2><button class="x" onclick="closeModal()">×</button></div><div class="mb"><div class="kv"><div class="k">Phone</div><div><a href="tel:${esc(e.phone||"")}" style="color:var(--brand2)">${esc(e.phone||"—")}</a></div><div class="k">Email</div><div>${esc(e.email||"—")}</div><div class="k">Project</div><div>${esc(e.project_name||"—")}</div><div class="k">Configuration</div><div>${esc(e.config||"—")}</div><div class="k">Site</div><div>${esc(e.site_name||e.site_key||"—")}</div><div class="k">Source</div><div class="hint">${esc(e.source||"—")}</div><div class="k">Page URL</div><div class="hint" style="word-break:break-all">${esc(e.page_url||"—")}</div><div class="k">Received</div><div>${esc(fmtDate(e.created_at))}</div>${extra}</div></div></div></div>`; }
+async function renderClientEnquiries(){ const el=$("client-enquiries-view"); if(!el)return; el.innerHTML=`<div class="card"><h2>Website enquiries</h2><div class="sub">Leads captured from your project websites.</div><div id="cenq-list"><div class="hint">Loading…</div></div></div>`; const {data}=await sb.from("cr_web_enquiries").select("*").order("created_at",{ascending:false}); const rows=data||[]; const l=$("cenq-list"); if(!l)return; l.innerHTML=rows.length?`<div class="table-wrap"><table class="lead-table"><thead><tr><th>Date</th><th>Name</th><th>Phone</th><th>Email</th><th>Project</th><th>Config</th></tr></thead><tbody>${rows.map(function(e){return `<tr><td style="white-space:nowrap">${esc(fmtDay(e.created_at))}<div class="hint">${esc(fmtTime(e.created_at))}</div></td><td><b>${esc(e.name||"—")}</b></td><td>${esc(e.phone||"—")}</td><td class="hint">${esc(e.email||"—")}</td><td>${e.project_name?`<span class="badge" style="background:rgba(255,176,32,.14);color:#ffd27a;border:1px solid rgba(255,176,32,.4)">${esc(e.project_name)}</span>`:"—"}</td><td>${esc(e.config||"—")}</td></tr>`;}).join("")}</tbody></table></div>`:`<div class="empty">No enquiries yet.</div>`; }
 // ===================== LOANS MODULE =====================
 const LOAN_CALL=["New","Not answered","Call back","Interested","Not interested","Wrong number","Do not call"];
 const LOAN_STAGES=["None","Interested","Documents collected","Applied","Approved","Disbursed","Rejected"];
