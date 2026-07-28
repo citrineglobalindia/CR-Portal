@@ -554,6 +554,13 @@
   .clk-ap{font-size:14px;font-weight:700;color:var(--muted);margin-left:8px;align-self:center;letter-spacing:1px}
   .clk-date{font-size:12.5px;color:var(--muted);letter-spacing:.04em;font-weight:600}
   /* AI assistant */
+  @keyframes cr-view{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+  .view-in{animation:cr-view .34s cubic-bezier(.2,.8,.25,1) both}
+  .modal{animation:cr-modal-in .28s cubic-bezier(.2,.9,.3,1.1) both}
+  .btn,.btn-sm,.navside,.dm-card,.fold-card,.proj-fold,.set-row,.theme-opt,.bg-opt,.seg button,.stat,.ln-stat,.pf-stat{transition:transform .16s cubic-bezier(.2,.8,.25,1),box-shadow .2s,border-color .2s,background .2s,color .15s}
+  .btn:active,.btn-sm:active,.navside:active,.dm-card:active,.fold-card:active,.proj-fold:active,.set-row:active,.theme-opt:active{transform:scale(.97)}
+  .lead-table tbody tr{transition:background .15s}
+  @media(prefers-reduced-motion:reduce){.view-in,.cra,.modal{animation:none!important}*{transition-duration:.01ms!important}}
   @keyframes crCardReveal{from{opacity:0;transform:translateY(16px) scale(.97)}to{opacity:1;transform:none}}
   .cra{animation:crCardReveal .5s cubic-bezier(.2,.8,.25,1) both;will-change:transform,opacity}
   @media(prefers-reduced-motion:reduce){.cra{animation:none}}
@@ -1713,6 +1720,7 @@ function setClientTab(t){ CLIENT_TAB=t;
   Object.keys(map).forEach(k=>{ const e=$(map[k]); if(e) e.classList.toggle("hidden",k!==t); const b=$("ctab-"+k); if(b){ b.classList.toggle("on",k===t); b.classList.toggle("active",k===t); } });
   if(t==="projects") renderClientProjects();
   if(t==="team") renderClientTeam();
+  const _cv=$(map[t]); if(_cv){ _cv.classList.remove("view-in"); void _cv.offsetWidth; _cv.classList.add("view-in"); }
   if(t==="enquiries") renderClientEnquiries();
   if(t==="support") renderClientSupport();
   if(t==="settings") renderClientSettings();
@@ -1964,6 +1972,7 @@ function renderAdmin(){
       </aside>
       <div class="adminmain"><div id="admin-pane"></div></div>
     </div>`;
+  const _ap=$("admin-pane"); if(_ap){ _ap.classList.remove("view-in"); void _ap.offsetWidth; _ap.classList.add("view-in"); }
   if(ADMIN_TAB==="clients") renderAdminClients(); else if(ADMIN_TAB==="reports") renderAdminReports(); else if(ADMIN_TAB==="board") renderAdminBoard(); else if(ADMIN_TAB==="leads") renderAdminLeads(); else if(ADMIN_TAB==="projects") renderAdminProjects(); else if(ADMIN_TAB==="gantt") renderAdminGantt(); else if(ADMIN_TAB==="loans") renderAdminLoans(); else if(ADMIN_TAB==="enquiries") renderAdminEnquiries(); else if(ADMIN_TAB==="support") renderAdminSupport(); else if(ADMIN_TAB==="crs") renderAdminDash(); else renderAdminHome();
   applySidebar();
 }
@@ -5297,7 +5306,7 @@ function setupTilt(){
 if(sb) sb.auth.onAuthStateChange((_e,s)=>{SESSION=s;});
 (function(){
   if(window.__crAnimObs)return;
-  const SEL=".proj-card,.client-card,.scr-card";
+  const SEL=".proj-card,.client-card,.scr-card,.dm-card,.fold-card,.proj-fold,.pf-card,.set-row,.pf-stat,.ln-stat,.stat";
   function tag(root){ if(root.nodeType!==1)return; const nodes=[]; try{ if(root.matches&&root.matches(SEL))nodes.push(root); if(root.querySelectorAll)root.querySelectorAll(SEL).forEach(n=>nodes.push(n)); }catch(_){ return; } let i=0; nodes.forEach(n=>{ if(n.__crd)return; n.__crd=1; n.style.animationDelay=Math.min(i*45,360)+"ms"; n.classList.add("cra"); i++; }); }
   try{ const obs=new MutationObserver(muts=>{ muts.forEach(m=>{ if(m.addedNodes) m.addedNodes.forEach(tag); }); }); obs.observe(document.body,{childList:true,subtree:true}); window.__crAnimObs=obs; }catch(_){ }
 })();

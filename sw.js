@@ -1,4 +1,4 @@
-const CACHE='crportal-v43';
+const CACHE='crportal-v44';
 self.addEventListener('install', e=>{ self.skipWaiting(); });
 self.addEventListener('activate', e=>{ e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k))))); self.clients.claim(); });
 self.addEventListener('fetch', e=>{
