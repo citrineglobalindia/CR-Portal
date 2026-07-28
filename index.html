@@ -664,6 +664,9 @@
   .seg-pill button:hover{color:var(--txt)}
   .seg-pill button.on{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;box-shadow:0 8px 18px -8px var(--brand)}
   .seg-pill button.on svg{opacity:1}
+  .lc-asg{display:inline-flex;align-items:center;gap:3px;margin-top:5px;font-size:11px;font-weight:700;color:var(--brand2);background:rgba(108,92,231,.12);border:1px solid rgba(108,92,231,.3);padding:2px 8px;border-radius:999px}
+  .ms-row.on{border-color:var(--brand);background:rgba(108,92,231,.1)}
+  .lc-qb.asg:hover{color:var(--brand2);border-color:var(--brand2);background:rgba(108,92,231,.12)}
   /* compact lead rows */
   .lc-list{display:flex;flex-direction:column;gap:8px;margin-top:12px}
   .lc{display:flex;align-items:center;gap:11px;background:var(--panel2);border:1px solid var(--line);border-radius:13px;padding:10px 12px;transition:border-color .2s,transform .14s}
@@ -1939,7 +1942,7 @@ async function loadClients(){
 
 // ===================== CLIENT VIEW =====================
 let CLIENT_TAB="list";
-function setClientTab(t){ CLIENT_TAB=t;
+function setClientTab(t){ CLIENT_TAB=t; try{localStorage.setItem("cr_ctab",t);}catch(_){ }
   const map={home:"client-home-view",list:"client-list-view",create:"client-create-view",projects:"client-projects-view",team:"client-team-view",enquiries:"client-enquiries-view",support:"client-support-view",settings:"client-settings-view"};
   Object.keys(map).forEach(k=>{ const e=$(map[k]); if(e) e.classList.toggle("hidden",k!==t); const b=$("ctab-"+k); if(b){ b.classList.toggle("on",k===t); b.classList.toggle("active",k===t); } });
   try{ document.querySelectorAll(".mobnav .mn-item,.mobnav .mn-center").forEach(function(b){b.classList.remove("on");}); const mb=$("mn-"+t); if(mb) mb.classList.add("on"); }catch(_){ }
@@ -2132,7 +2135,7 @@ function renderClient(){
   document.body.classList.toggle("dmnav",(hasDm&&!hasSw));
   const _fi=$("f-files"); if(_fi)_fi.addEventListener("change",previewFiles);
   loadAndRenderClient();
-  try{ setClientTab("home"); applySidebar(); }catch(_){ }
+  try{ const allow=["home","projects","support","settings"]; if(hasSw){allow.push("list","create");} if(hasDm){allow.push("enquiries");} if(!ME.parent_client_id){allow.push("team");} let sv="home"; try{sv=localStorage.getItem("cr_ctab")||"home";}catch(_){ } if(allow.indexOf(sv)<0) sv="home"; setClientTab(sv); applySidebar(); }catch(_){ }
 }
 function previewInto(inputId,containerId){
   const c=$(containerId); if(!c) return;
@@ -2427,7 +2430,7 @@ function openEnquiry(id){
   </div></div></div>`;
 }
 async function dmSaveRemarks(id){ const {error}=await sb.from("cr_web_enquiries").update({remarks:($("ee-remarks").value||"").trim()||null,updated_at:new Date().toISOString()}).eq("id",id); if(error){toast(error.message,true);return;} const e=ENQ.find(function(x){return x.id===id;}); if(e)e.remarks=($("ee-remarks").value||"").trim(); toast("Saved."); }
-let CENQ=[], CLIENT_SITES=[], CPROJ=null, CSRC="website", CPF={q:"",from:"",to:"",range:"all",status:"",open:false};
+let CENQ=[], CLIENT_SITES=[], CPROJ=null, CSRC="website", CPF={q:"",from:"",to:"",range:"all",status:"",open:false}, CP_AGENTS=[];
 function clientSiteLogo(st){ return (st&&st.logo_path)?logoUrl(st.logo_path):""; }
 async function renderClientHome(){
   const el=$("client-home-view"); if(!el)return;
@@ -2512,6 +2515,7 @@ async function renderClientEnquiries(){
   const r1=await sb.from("cr_lead_sites").select("*").order("name");
   const r2=await sb.from("cr_web_enquiries").select("*").order("created_at",{ascending:false});
   CLIENT_SITES=r1.data||[]; CENQ=r2.data||[];
+  if(!CPROJ){ let sp=null; try{sp=localStorage.getItem("cr_cproj");}catch(_){ } if(sp&&CLIENT_SITES.some(function(x){return x.site_key===sp;})){ await openClientProject(sp); return; } }
   drawClientDM();
 }
 function drawClientDM(){ const el=$("cdm-pane"); if(!el)return; if(!CPROJ) drawClientDMHome(el); else drawClientDMProject(el); }
@@ -2572,8 +2576,8 @@ async function loadClientHomeAnalytics(){
       CHOME_CHART2=new Chart(ctx2,{type:"bar",data:{labels:perSite.map(function(p){return p.name;}),datasets:[{data:perSite.map(function(p){return p.v;}),backgroundColor:perSite.map(function(_,i){return cols[i%cols.length];}),borderRadius:6,maxBarThickness:26,minBarLength:3}]},options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{displayColors:false,callbacks:{label:function(it){return it.raw+" visitors";}}}},scales:{x:{display:false,beginAtZero:true},y:{grid:{display:false},ticks:{color:muted,font:{weight:"700",size:12}}}}}}); } }catch(_){ }
 }
 
-function openClientProject(key){ CPROJ=key; CSRC="website"; CPF={q:"",from:"",to:"",range:"all",status:"",open:false}; drawClientDM(); }
-function backClientDM(){ CPROJ=null; drawClientDM(); }
+async function openClientProject(key){ CPROJ=key; CSRC="website"; CPF={q:"",from:"",to:"",range:"all",status:"",open:false}; try{localStorage.setItem("cr_cproj",key);}catch(_){ } try{ const r=await sb.from("cr_project_agents").select("*").eq("site_key",key); CP_AGENTS=r.data||[]; }catch(_){ CP_AGENTS=[]; } drawClientDM(); }
+function backClientDM(){ CPROJ=null; try{localStorage.removeItem("cr_cproj");}catch(_){ } drawClientDM(); }
 function cpFiltered(){
   return CENQ.filter(function(e){
     if(e.site_key!==CPROJ)return false;
@@ -2587,38 +2591,73 @@ function cpFiltered(){
     return true;
   });
 }
-function cpRange(r){ CPF.range=r; CPF.from=""; CPF.to=""; drawClientDM(); }
-function cpToggleFilter(){ CPF.open=!CPF.open; drawClientDM(); }
-function cpStatus(s){ CPF.status=s; drawClientDM(); }
-function cpClear(){ CPF.q=""; CPF.from=""; CPF.to=""; CPF.status=""; CPF.range="all"; drawClientDM(); }
+function cpRange(r){ CPF.range=r; CPF.from=""; CPF.to=""; cpRenderLeads(); }
+function cpToggleFilter(){ CPF.open=!CPF.open; cpRenderLeads(); }
+function cpStatus(s){ CPF.status=s; cpRenderLeads(); }
+function cpClear(){ CPF.q=""; CPF.from=""; CPF.to=""; CPF.status=""; CPF.range="all"; cpRenderLeads(); }
 function drawClientDMProject(el){
   const st=CLIENT_SITES.find(function(x){return x.site_key===CPROJ;});
   const leads=CENQ.filter(function(e){return e.site_key===CPROJ;});
   const web=leads.filter(function(e){return e.channel!=="digital";}).length, dig=leads.length-web;
-  const rows=cpFiltered();
   const lg=clientSiteLogo(st);
-  const gr=["#8e7cff,#6c5ce7","#22d3ee,#0ea5b7"][0];
-  const active=(CPF.from||CPF.to||CPF.status||CPF.range!=='all'||CPF.q);
-  const fcount=[CPF.q,CPF.status,(CPF.range!=='all'?1:0),CPF.from,CPF.to].filter(Boolean).length;
+  const gr="#8e7cff,#6c5ce7";
   el.innerHTML=`
   <div class="fold-crumb"><button onclick="backClientDM()"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="m15 6-6 6 6 6"/></svg> Digital Marketing</button><span>›</span><button class="on">${esc(st?st.name:"Project")}</button></div>
   <div class="pj-hero">
     <div class="pj-hero-lg ${lg?'':'ph'}" ${lg?'':`style="background:linear-gradient(135deg,${gr})"`}>${lg?`<img src="${esc(lg)}">`:esc(initials(st?st.name:"P"))}</div>
     <div style="min-width:0;flex:1"><div class="pj-hero-nm">${esc(st?st.name:"Project")}</div><div class="pj-hero-sub">${leads.length} total leads · ${web} web · ${dig} meta</div></div>
   </div>
-  <div class="seg seg-pill" style="margin:0 0 14px"><button class="${CSRC==='website'?'on':''}" onclick="CSRC='website';drawClientDM()"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/></svg> Website (${web})</button><button class="${CSRC==='digital'?'on':''}" onclick="CSRC='digital';drawClientDM()"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11v2a1 1 0 0 0 1 1h3l4 3V7L7 10H4a1 1 0 0 0-1 1z"/><path d="M16 9a3 3 0 0 1 0 6"/></svg> Meta Ads (${dig})</button></div>
-  <div id="cdm-pan"><div class="card"><div class="hint">Loading analytics…</div></div></div>
-  <div class="card" style="margin-top:14px">
-    <div class="lead-bar" style="margin:0 0 12px"><h2 style="margin:0;font-size:16px">${CSRC==='website'?'Website':'Meta Ads'} leads <span class="hint" style="font-weight:600">· ${rows.length}</span></h2><div class="row" style="margin:0;gap:8px"><button class="btn btn-sm btn-ghost lf-toggle ${active?'act':''}" style="width:auto;margin:0" onclick="cpToggleFilter()"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M3 5h18M6 12h12M10 19h4"/></svg> Filter${fcount?` · ${fcount}`:""} <span class="lf-cv">${CPF.open?'▲':'▼'}</span></button><button class="btn btn-sm btn-ok" style="width:auto;margin:0" onclick="cpExport('xlsx')"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 21h14"/></svg> Excel</button><button class="btn btn-sm btn-ghost" style="width:auto;margin:0" onclick="cpExport('csv')">CSV</button></div></div>
+  <div class="seg seg-pill" id="cp-seg" style="margin:0 0 14px"><button class="${CSRC==='website'?'on':''}" onclick="setCpSrc('website')"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/></svg> Website (${web})</button><button class="${CSRC==='digital'?'on':''}" onclick="setCpSrc('digital')"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11v2a1 1 0 0 0 1 1h3l4 3V7L7 10H4a1 1 0 0 0-1 1z"/><path d="M16 9a3 3 0 0 1 0 6"/></svg> Meta Ads (${dig})</button></div>
+  <div class="card" id="cdm-leads"></div>
+  <div id="cdm-pan" style="margin-top:14px"><div class="card"><div class="hint">Loading analytics…</div></div></div>`;
+  cpRenderLeads();
+  loadClientProjAnalytics();
+}
+function setCpSrc(src){ CSRC=src; try{ document.querySelectorAll("#cp-seg button").forEach(function(b){b.classList.remove("on");}); const bs=document.querySelectorAll("#cp-seg button"); if(bs[src==='website'?0:1])bs[src==='website'?0:1].classList.add("on"); }catch(_){ } cpRenderLeads(); }
+function cpLeadRow(e,i){
+  const nm=e.name||"—"; const gg=["#8e7cff,#6c5ce7","#22d3ee,#0ea5b7","#22c55e,#0f9d58","#ffb020,#f59e0b","#f472b6,#db2777"][i%5];
+  const asg=e.assigned_to_name?`<span class="lc-asg" title="Assigned to ${esc(e.assigned_to_name)}">👤 ${esc(e.assigned_to_name)}</span>`:"";
+  return `<div class="lc"><div class="lc-av" style="background:linear-gradient(135deg,${gg})">${esc(initials(nm))}</div><div class="lc-mid"><div class="lc-nm">${esc(nm)}</div><div class="lc-meta">${e.phone?esc(e.phone):"no phone"} · ${esc(fmtDay(e.created_at))}${e.config?` · ${esc(e.config)}`:""}</div>${asg}</div><div class="lc-side">${dmStatusBadge(e.status)}<div class="lc-quick"><button class="lc-qb asg" title="Assign" onclick="openAssignLead('${e.id}')"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M4 20a5 5 0 0 1 10 0"/><path d="M17 8v5M19.5 10.5h-5"/></svg></button>${e.phone?`<a class="lc-qb call" href="tel:${esc(e.phone)}" title="Call"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2 4.2 2 2 0 0 1 4 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.6a16 16 0 0 0 6 6l1.1-1.1a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.7.7A2 2 0 0 1 22 16.9z"/></svg></a>`:""}${e.email?`<a class="lc-qb" href="mailto:${esc(e.email)}" title="Email"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg></a>`:""}</div></div></div>`;
+}
+function cpRenderLeads(){
+  const box=$("cdm-leads"); if(!box)return;
+  const rows=cpFiltered();
+  const active=(CPF.from||CPF.to||CPF.status||CPF.range!=='all'||CPF.q);
+  const fcount=[CPF.q,CPF.status,(CPF.range!=='all'?1:0),CPF.from,CPF.to].filter(Boolean).length;
+  box.innerHTML=`
+    <div class="lead-bar" style="margin:0 0 12px"><h2 style="margin:0;font-size:16px">${CSRC==='website'?'Website':'Meta Ads'} leads <span class="hint" style="font-weight:600">· <span id="cp-count">${rows.length}</span></span></h2><div class="row" style="margin:0;gap:8px"><button class="btn btn-sm btn-ghost lf-toggle ${active?'act':''}" style="width:auto;margin:0" onclick="cpToggleFilter()"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M3 5h18M6 12h12M10 19h4"/></svg> Filter${fcount?` · ${fcount}`:""} <span class="lf-cv">${CPF.open?'▲':'▼'}</span></button><button class="btn btn-sm btn-ok" style="width:auto;margin:0" onclick="cpExport('xlsx')"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 21h14"/></svg> Excel</button><button class="btn btn-sm btn-ghost" style="width:auto;margin:0" onclick="cpExport('csv')">CSV</button></div></div>
     ${CPF.open?`<div class="lead-filter">
-      <div class="lf-search-wrap"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.2-3.2"/></svg><input class="lf-search" placeholder="Search name, phone, email…" value="${esc(CPF.q)}" oninput="CPF.q=this.value;drawClientDM()"/>${CPF.q?`<button class="lf-x" onclick="CPF.q='';drawClientDM()">×</button>`:""}</div>
+      <div class="lf-search-wrap"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.2-3.2"/></svg><input class="lf-search" id="cp-q" placeholder="Search name, phone, email…" value="${esc(CPF.q)}" oninput="CPF.q=this.value;cpUpdateList()"/>${CPF.q?`<button class="lf-x" onclick="CPF.q='';cpRenderLeads()">×</button>`:""}</div>
       <div class="lf-chips">${[["all","All"],["today","Today"],["7d","7 days"],["30d","30 days"]].map(function(r){return `<button class="lf-chip ${CPF.range===r[0]?'on':''}" onclick="cpRange('${r[0]}')">${r[1]}</button>`;}).join("")}</div>
       <div class="lf-chips">${`<button class="lf-chip ${!CPF.status?'on':''}" onclick="cpStatus('')">All</button>`+DM_ST.map(function(x){const c=DM_STC[x];return `<button class="lf-chip st ${CPF.status===x?'on':''}" style="${CPF.status===x?`background:${c};border-color:${c};color:#fff`:`--sc:${c}`}" onclick="cpStatus('${x}')">${x}</button>`;}).join("")}</div>
-      <div class="lf-dates"><label>From<input type="date" class="inp" value="${CPF.from}" onchange="CPF.from=this.value;CPF.range='all';drawClientDM()"/></label><label>To<input type="date" class="inp" value="${CPF.to}" onchange="CPF.to=this.value;CPF.range='all';drawClientDM()"/></label>${active?`<button class="lf-clear" onclick="cpClear()">Clear all</button>`:""}</div>
+      <div class="lf-dates"><label>From<input type="date" class="inp" value="${CPF.from}" onchange="CPF.from=this.value;CPF.range='all';cpRenderLeads()"/></label><label>To<input type="date" class="inp" value="${CPF.to}" onchange="CPF.to=this.value;CPF.range='all';cpRenderLeads()"/></label>${active?`<button class="lf-clear" onclick="cpClear()">Clear all</button>`:""}</div>
     </div>`:(active?`<div class="lf-active"><span>Filters applied${fcount?` · ${fcount}`:""}</span><button class="lf-clear" style="margin:0" onclick="cpClear()">Clear</button></div>`:"")}
-    <div class="lc-list">${rows.map(function(e,i){const nm=e.name||"—"; const gg=["#8e7cff,#6c5ce7","#22d3ee,#0ea5b7","#22c55e,#0f9d58","#ffb020,#f59e0b","#f472b6,#db2777"][i%5]; return `<div class="lc"><div class="lc-av" style="background:linear-gradient(135deg,${gg})">${esc(initials(nm))}</div><div class="lc-mid"><div class="lc-nm">${esc(nm)}</div><div class="lc-meta">${e.phone?esc(e.phone):"no phone"} · ${esc(fmtDay(e.created_at))}${e.config?` · ${esc(e.config)}`:""}</div></div><div class="lc-side">${dmStatusBadge(e.status)}<div class="lc-quick">${e.phone?`<a class="lc-qb call" href="tel:${esc(e.phone)}" title="Call"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2 4.2 2 2 0 0 1 4 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.6a16 16 0 0 0 6 6l1.1-1.1a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.7.7A2 2 0 0 1 22 16.9z"/></svg></a>`:""}${e.email?`<a class="lc-qb" href="mailto:${esc(e.email)}" title="Email"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg></a>`:""}</div></div></div>`;}).join("")||`<div class="lc-empty"><div class="ne-ic"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div><div>No ${CSRC==='website'?'website':'Meta'} leads yet.</div></div>`}</div>
-  </div>`;
-  loadClientProjAnalytics();
+    <div class="lc-list" id="cp-list">${rows.map(cpLeadRow).join("")||cpEmpty()}</div>`;
+}
+function cpUpdateList(){
+  const list=$("cp-list"); if(!list)return; const rows=cpFiltered();
+  list.innerHTML=rows.map(cpLeadRow).join("")||cpEmpty();
+  const c=$("cp-count"); if(c)c.textContent=rows.length;
+}
+function cpEmpty(){ return `<div class="lc-empty"><div class="ne-ic"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div><div>No ${CSRC==='website'?'website':'Meta'} leads yet.</div></div>`; }
+function openAssignLead(id){
+  const lead=CENQ.find(function(x){return x.id===id;});
+  const rows=CP_AGENTS.length?CP_AGENTS.map(function(a){const on=lead&&lead.assigned_to===a.user_id; return `<button class="ms-row ${on?'on':''}" onclick="assignLead('${id}','${a.user_id}','${esc((a.user_name||'').replace(/'/g,''))}')"><span class="ms-ic">${esc(initials(a.user_name||'?'))}</span><div class="ms-kv"><div class="ms-t">${esc(a.user_name||'Telecaller')}</div></div>${on?'<span class="ms-ch">✓</span>':''}</button>`;}).join(""):`<div class="hint" style="padding:12px 2px">No telecallers assigned to this project yet. Add them in <b>Team</b> → Assign to project.</div>`;
+  $("modal-root").innerHTML=`<div class="overlay overlay-sheet" onclick="if(event.target===this)closeModal()">
+    <div class="modal more-sheet"><div class="ms-handle"></div>
+      <div class="ms-head"><h2 style="margin:0">Assign lead</h2><button class="x" onclick="closeModal()">×</button></div>
+      <div style="padding:6px 18px 20px"><div class="sub" style="margin-bottom:10px">${lead?esc(lead.name||"Lead"):"Lead"}${lead&&lead.assigned_to_name?` · currently ${esc(lead.assigned_to_name)}`:""}</div>
+        <div class="ms-list" style="padding:0">${rows}</div>
+        ${lead&&lead.assigned_to?`<button class="btn btn-ghost" style="margin-top:12px;color:#ff8a8a;border-color:rgba(255,107,107,.35)" onclick="assignLead('${id}','','')">Unassign</button>`:""}
+      </div>
+    </div></div>`;
+}
+async function assignLead(id,uid,name){
+  const patch=uid?{assigned_to:uid,assigned_to_name:name,assigned_at:new Date().toISOString()}:{assigned_to:null,assigned_to_name:null,assigned_at:null};
+  const {error}=await sb.from("cr_web_enquiries").update(patch).eq("id",id);
+  if(error){ toast(error.message||"Could not assign.",true); return; }
+  const e=CENQ.find(function(x){return x.id===id;}); if(e){ e.assigned_to=patch.assigned_to; e.assigned_to_name=patch.assigned_to_name; e.assigned_at=patch.assigned_at; }
+  toast(uid?("Assigned to "+name):"Unassigned."); closeModal(); cpUpdateList();
 }
 async function loadClientProjAnalytics(){
   const box=$("cdm-pan"); if(!box)return;
