@@ -658,24 +658,32 @@
   .pj-hero-lg.ph{color:#fff;font-weight:900;font-size:22px}
   .pj-hero-nm{font-size:19px;font-weight:900;color:var(--txt);line-height:1.1}
   .pj-hero-sub{font-size:12.5px;color:var(--muted);font-weight:600;margin-top:3px}
-  .seg-pill button{display:inline-flex;align-items:center;gap:6px}
-  /* mobile-friendly lead cards */
-  .lc-list{display:flex;flex-direction:column;gap:10px;margin-top:12px}
-  .lc{background:var(--panel2);border:1px solid var(--line);border-radius:15px;padding:13px;transition:border-color .2s,transform .15s}
-  .lc:hover{border-color:var(--brand)}
-  .lc-top{display:flex;align-items:center;gap:11px}
-  .lc-av{width:40px;height:40px;border-radius:12px;flex:0 0 auto;display:grid;place-items:center;color:#fff;font-weight:800;font-size:15px}
-  .lc-id{flex:1;min-width:0}
-  .lc-nm{font-weight:800;font-size:15px;color:var(--txt);line-height:1.2}
-  .lc-dt{font-size:11.5px;color:var(--muted);margin-top:1px}
-  .lc-rows{display:flex;flex-direction:column;gap:2px;margin-top:11px;padding-top:11px;border-top:1px solid var(--line)}
-  .lc-row{display:flex;align-items:center;gap:9px;padding:7px 8px;border-radius:10px;font-size:13.5px;color:var(--txt);font-weight:600;text-decoration:none}
-  a.lc-row:hover{background:var(--chip);color:var(--brand)}
-  .lc-row svg{color:var(--brand2);flex:0 0 auto}
-  .lc-row span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .seg-pill{display:flex!important;justify-content:center;gap:6px;background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:5px;overflow:visible}
+  .seg-pill button{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:11px 10px;border-radius:10px;border:0;background:transparent;color:var(--muted);font-size:13.5px;font-weight:700;cursor:pointer;transition:.18s}
+  .seg-pill button svg{opacity:.8}
+  .seg-pill button:hover{color:var(--txt)}
+  .seg-pill button.on{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;box-shadow:0 8px 18px -8px var(--brand)}
+  .seg-pill button.on svg{opacity:1}
+  /* compact lead rows */
+  .lc-list{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+  .lc{display:flex;align-items:center;gap:11px;background:var(--panel2);border:1px solid var(--line);border-radius:13px;padding:10px 12px;transition:border-color .2s,transform .14s}
+  .lc:hover{border-color:var(--brand);transform:translateX(2px)}
+  .lc-av{width:38px;height:38px;border-radius:11px;flex:0 0 auto;display:grid;place-items:center;color:#fff;font-weight:800;font-size:14px}
+  .lc-mid{flex:1;min-width:0}
+  .lc-nm{font-weight:700;font-size:14.5px;color:var(--txt);line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .lc-meta{font-size:12px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .lc-side{display:flex;align-items:center;gap:8px;flex:0 0 auto}
+  .lc-quick{display:flex;gap:6px}
+  .lc-qb{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;background:var(--chip);border:1px solid var(--line);color:var(--muted);text-decoration:none;transition:.15s}
+  .lc-qb:hover{color:var(--brand);border-color:var(--brand)}
+  .lc-qb.call:hover{color:#22c55e;border-color:#22c55e66;background:rgba(34,197,94,.12)}
   .lc-empty{text-align:center;color:var(--muted);padding:34px 10px}
   .lc-empty .ne-ic{width:60px;height:60px;border-radius:50%;background:var(--panel);display:grid;place-items:center;margin:0 auto 12px;color:var(--muted)}
   .lf-x{background:transparent;border:0;color:var(--muted);font-size:20px;line-height:1;cursor:pointer;padding:0 4px}
+  .lf-toggle.act{color:var(--brand2);border-color:var(--brand2)}
+  .lf-cv{font-size:9px;opacity:.7}
+  .lf-active{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 13px;border-radius:12px;background:var(--panel2);border:1px solid var(--line);font-size:12.5px;color:var(--muted);font-weight:600;margin-bottom:2px}
+  @media(max-width:640px){.lc-meta{font-size:11.5px}.lc-side{gap:6px}}
   /* attractive lead filters */
   .lead-filter{display:flex;flex-direction:column;gap:12px;padding:14px;border-radius:16px;background:var(--panel2);border:1px solid var(--line)}
   .lf-search-wrap{display:flex;align-items:center;gap:9px;padding:11px 14px;border-radius:13px;background:var(--panel);border:1px solid var(--line);color:var(--muted)}
@@ -2419,7 +2427,7 @@ function openEnquiry(id){
   </div></div></div>`;
 }
 async function dmSaveRemarks(id){ const {error}=await sb.from("cr_web_enquiries").update({remarks:($("ee-remarks").value||"").trim()||null,updated_at:new Date().toISOString()}).eq("id",id); if(error){toast(error.message,true);return;} const e=ENQ.find(function(x){return x.id===id;}); if(e)e.remarks=($("ee-remarks").value||"").trim(); toast("Saved."); }
-let CENQ=[], CLIENT_SITES=[], CPROJ=null, CSRC="website", CPF={q:"",from:"",to:"",range:"all",status:""};
+let CENQ=[], CLIENT_SITES=[], CPROJ=null, CSRC="website", CPF={q:"",from:"",to:"",range:"all",status:"",open:false};
 function clientSiteLogo(st){ return (st&&st.logo_path)?logoUrl(st.logo_path):""; }
 async function renderClientHome(){
   const el=$("client-home-view"); if(!el)return;
@@ -2564,7 +2572,7 @@ async function loadClientHomeAnalytics(){
       CHOME_CHART2=new Chart(ctx2,{type:"bar",data:{labels:perSite.map(function(p){return p.name;}),datasets:[{data:perSite.map(function(p){return p.v;}),backgroundColor:perSite.map(function(_,i){return cols[i%cols.length];}),borderRadius:6,maxBarThickness:26,minBarLength:3}]},options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{displayColors:false,callbacks:{label:function(it){return it.raw+" visitors";}}}},scales:{x:{display:false,beginAtZero:true},y:{grid:{display:false},ticks:{color:muted,font:{weight:"700",size:12}}}}}}); } }catch(_){ }
 }
 
-function openClientProject(key){ CPROJ=key; CSRC="website"; CPF={q:"",from:"",to:"",range:"all",status:""}; drawClientDM(); }
+function openClientProject(key){ CPROJ=key; CSRC="website"; CPF={q:"",from:"",to:"",range:"all",status:"",open:false}; drawClientDM(); }
 function backClientDM(){ CPROJ=null; drawClientDM(); }
 function cpFiltered(){
   return CENQ.filter(function(e){
@@ -2580,6 +2588,7 @@ function cpFiltered(){
   });
 }
 function cpRange(r){ CPF.range=r; CPF.from=""; CPF.to=""; drawClientDM(); }
+function cpToggleFilter(){ CPF.open=!CPF.open; drawClientDM(); }
 function cpStatus(s){ CPF.status=s; drawClientDM(); }
 function cpClear(){ CPF.q=""; CPF.from=""; CPF.to=""; CPF.status=""; CPF.range="all"; drawClientDM(); }
 function drawClientDMProject(el){
@@ -2590,6 +2599,7 @@ function drawClientDMProject(el){
   const lg=clientSiteLogo(st);
   const gr=["#8e7cff,#6c5ce7","#22d3ee,#0ea5b7"][0];
   const active=(CPF.from||CPF.to||CPF.status||CPF.range!=='all'||CPF.q);
+  const fcount=[CPF.q,CPF.status,(CPF.range!=='all'?1:0),CPF.from,CPF.to].filter(Boolean).length;
   el.innerHTML=`
   <div class="fold-crumb"><button onclick="backClientDM()"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="m15 6-6 6 6 6"/></svg> Digital Marketing</button><span>›</span><button class="on">${esc(st?st.name:"Project")}</button></div>
   <div class="pj-hero">
@@ -2599,14 +2609,14 @@ function drawClientDMProject(el){
   <div class="seg seg-pill" style="margin:0 0 14px"><button class="${CSRC==='website'?'on':''}" onclick="CSRC='website';drawClientDM()"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/></svg> Website (${web})</button><button class="${CSRC==='digital'?'on':''}" onclick="CSRC='digital';drawClientDM()"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11v2a1 1 0 0 0 1 1h3l4 3V7L7 10H4a1 1 0 0 0-1 1z"/><path d="M16 9a3 3 0 0 1 0 6"/></svg> Meta Ads (${dig})</button></div>
   <div id="cdm-pan"><div class="card"><div class="hint">Loading analytics…</div></div></div>
   <div class="card" style="margin-top:14px">
-    <div class="lead-bar" style="margin:0 0 12px"><h2 style="margin:0;font-size:16px">${CSRC==='website'?'Website':'Meta Ads'} leads <span class="hint" style="font-weight:600">· ${rows.length}</span></h2><div class="row" style="margin:0;gap:8px"><button class="btn btn-sm btn-ok" style="width:auto;margin:0" onclick="cpExport('xlsx')"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 21h14"/></svg> Excel</button><button class="btn btn-sm btn-ghost" style="width:auto;margin:0" onclick="cpExport('csv')">CSV</button></div></div>
-    <div class="lead-filter">
+    <div class="lead-bar" style="margin:0 0 12px"><h2 style="margin:0;font-size:16px">${CSRC==='website'?'Website':'Meta Ads'} leads <span class="hint" style="font-weight:600">· ${rows.length}</span></h2><div class="row" style="margin:0;gap:8px"><button class="btn btn-sm btn-ghost lf-toggle ${active?'act':''}" style="width:auto;margin:0" onclick="cpToggleFilter()"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M3 5h18M6 12h12M10 19h4"/></svg> Filter${fcount?` · ${fcount}`:""} <span class="lf-cv">${CPF.open?'▲':'▼'}</span></button><button class="btn btn-sm btn-ok" style="width:auto;margin:0" onclick="cpExport('xlsx')"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 21h14"/></svg> Excel</button><button class="btn btn-sm btn-ghost" style="width:auto;margin:0" onclick="cpExport('csv')">CSV</button></div></div>
+    ${CPF.open?`<div class="lead-filter">
       <div class="lf-search-wrap"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.2-3.2"/></svg><input class="lf-search" placeholder="Search name, phone, email…" value="${esc(CPF.q)}" oninput="CPF.q=this.value;drawClientDM()"/>${CPF.q?`<button class="lf-x" onclick="CPF.q='';drawClientDM()">×</button>`:""}</div>
       <div class="lf-chips">${[["all","All"],["today","Today"],["7d","7 days"],["30d","30 days"]].map(function(r){return `<button class="lf-chip ${CPF.range===r[0]?'on':''}" onclick="cpRange('${r[0]}')">${r[1]}</button>`;}).join("")}</div>
       <div class="lf-chips">${`<button class="lf-chip ${!CPF.status?'on':''}" onclick="cpStatus('')">All</button>`+DM_ST.map(function(x){const c=DM_STC[x];return `<button class="lf-chip st ${CPF.status===x?'on':''}" style="${CPF.status===x?`background:${c};border-color:${c};color:#fff`:`--sc:${c}`}" onclick="cpStatus('${x}')">${x}</button>`;}).join("")}</div>
       <div class="lf-dates"><label>From<input type="date" class="inp" value="${CPF.from}" onchange="CPF.from=this.value;CPF.range='all';drawClientDM()"/></label><label>To<input type="date" class="inp" value="${CPF.to}" onchange="CPF.to=this.value;CPF.range='all';drawClientDM()"/></label>${active?`<button class="lf-clear" onclick="cpClear()">Clear all</button>`:""}</div>
-    </div>
-    <div class="lc-list">${rows.map(function(e,i){const nm=e.name||"—"; const gg=["#8e7cff,#6c5ce7","#22d3ee,#0ea5b7","#22c55e,#0f9d58","#ffb020,#f59e0b","#f472b6,#db2777"][i%5]; return `<div class="lc"><div class="lc-top"><div class="lc-av" style="background:linear-gradient(135deg,${gg})">${esc(initials(nm))}</div><div class="lc-id"><div class="lc-nm">${esc(nm)}</div><div class="lc-dt">${esc(fmtDay(e.created_at))} · ${esc(fmtTime(e.created_at))}</div></div>${dmStatusBadge(e.status)}</div><div class="lc-rows">${e.phone?`<a class="lc-row" href="tel:${esc(e.phone)}"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2 4.2 2 2 0 0 1 4 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.6a16 16 0 0 0 6 6l1.1-1.1a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.7.7A2 2 0 0 1 22 16.9z"/></svg><span>${esc(e.phone)}</span></a>`:""}${e.email?`<a class="lc-row" href="mailto:${esc(e.email)}"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg><span>${esc(e.email)}</span></a>`:""}${(e.project_name||e.config)?`<div class="lc-row"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/></svg><span>${esc(e.project_name||"")}${e.config?" · "+esc(e.config):""}</span></div>`:""}</div></div>`;}).join("")||`<div class="lc-empty"><div class="ne-ic"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div><div>No ${CSRC==='website'?'website':'Meta'} leads yet.</div></div>`}</div>
+    </div>`:(active?`<div class="lf-active"><span>Filters applied${fcount?` · ${fcount}`:""}</span><button class="lf-clear" style="margin:0" onclick="cpClear()">Clear</button></div>`:"")}
+    <div class="lc-list">${rows.map(function(e,i){const nm=e.name||"—"; const gg=["#8e7cff,#6c5ce7","#22d3ee,#0ea5b7","#22c55e,#0f9d58","#ffb020,#f59e0b","#f472b6,#db2777"][i%5]; return `<div class="lc"><div class="lc-av" style="background:linear-gradient(135deg,${gg})">${esc(initials(nm))}</div><div class="lc-mid"><div class="lc-nm">${esc(nm)}</div><div class="lc-meta">${e.phone?esc(e.phone):"no phone"} · ${esc(fmtDay(e.created_at))}${e.config?` · ${esc(e.config)}`:""}</div></div><div class="lc-side">${dmStatusBadge(e.status)}<div class="lc-quick">${e.phone?`<a class="lc-qb call" href="tel:${esc(e.phone)}" title="Call"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2 4.2 2 2 0 0 1 4 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.6a16 16 0 0 0 6 6l1.1-1.1a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.7.7A2 2 0 0 1 22 16.9z"/></svg></a>`:""}${e.email?`<a class="lc-qb" href="mailto:${esc(e.email)}" title="Email"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg></a>`:""}</div></div></div>`;}).join("")||`<div class="lc-empty"><div class="ne-ic"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div><div>No ${CSRC==='website'?'website':'Meta'} leads yet.</div></div>`}</div>
   </div>`;
   loadClientProjAnalytics();
 }
