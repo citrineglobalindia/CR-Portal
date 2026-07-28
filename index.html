@@ -576,6 +576,26 @@
   .about-foot b{color:var(--brand)}
   .bill-plan{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px;border-radius:16px;color:#fff;background:linear-gradient(135deg,var(--brand),var(--accent))}
   @media(max-width:640px){.more-sheet{max-width:100%;width:100%;border-radius:22px 22px 0 0}}
+  /* team page */
+  .tm-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:16px;flex-wrap:wrap}
+  .tm-add{width:auto;flex:0 0 auto;display:inline-flex;align-items:center;gap:7px;padding:11px 18px;font-size:14px}
+  .tm-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+  .tm-card{display:flex;align-items:center;gap:13px;padding:14px;border-radius:16px;background:var(--panel);border:1px solid var(--line);box-shadow:var(--shadow);transition:transform .15s,border-color .2s,box-shadow .2s}
+  .tm-card:hover{border-color:var(--brand);transform:translateY(-2px)}
+  .tm-av{width:48px;height:48px;border-radius:50%;flex:0 0 auto;display:grid;place-items:center;color:#fff;font-weight:800;font-size:17px;box-shadow:0 6px 16px -4px rgba(0,0,0,.4)}
+  .tm-info{flex:1;min-width:0}
+  .tm-nm{font-weight:700;font-size:15px;display:flex;align-items:center;gap:6px}
+  .tm-you{font-size:10px;font-weight:800;color:var(--brand);background:var(--chip);padding:2px 7px;border-radius:999px}
+  .tm-em{font-size:12.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .tm-roles{margin-top:6px}
+  .tm-chip{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;background:var(--chip);color:var(--muted);border:1px solid var(--line)}
+  .tm-chip.owner{background:rgba(108,92,231,.16);color:var(--brand2);border-color:rgba(108,92,231,.4)}
+  .tm-chip.appr{background:rgba(34,197,94,.15);color:#8ff0c8;border-color:rgba(34,197,94,.45)}
+  .tm-actions{display:flex;gap:6px;flex:0 0 auto}
+  .tm-act{width:36px;height:36px;border-radius:10px;background:var(--chip);border:1px solid var(--line);color:var(--muted);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:.16s}
+  .tm-act:hover{color:var(--brand);border-color:var(--brand)}
+  .tm-act.danger:hover{color:#ff8a8a;border-color:rgba(255,107,107,.5);background:rgba(255,107,107,.1)}
+  @media(max-width:640px){.tm-grid{grid-template-columns:1fr}.tm-add{width:100%;justify-content:center}}
   /* 3D background + depth */
   #bg3d{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;opacity:.4}
   #auth-view,#app-view{position:relative;z-index:1}
@@ -1828,34 +1848,52 @@ function setClientTab(t){ CLIENT_TAB=t;
 let TEAM=[];
 async function renderClientTeam(){
   const el=$("client-team-view"); if(!el)return;
-  el.innerHTML=`<div class="card"><h2>Team &amp; approval authority</h2><div class="sub">Add users to your account. Exactly one user holds <b>approval authority</b> — only they can verify a completed change request, give feedback, or re-raise it.</div><div id="team-list"><div class="hint">Loading…</div></div></div>`;
+  el.innerHTML=`
+    <div class="tm-head">
+      <div><h2 style="margin:0">Team members</h2><div class="sub" style="margin-top:4px">Add people to your account. One member holds <b>approval authority</b> — only they can verify or re-raise a completed request.</div></div>
+      <button class="btn tm-add" onclick="openTeamForm()"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg> Add member</button>
+    </div>
+    <div id="team-list"><div class="hint">Loading…</div></div>`;
   let users=[];
   try{ const j=await callFn("client-users",{action:"list"}); users=j.users||[]; }catch(e){ $("team-list").innerHTML=`<div class="empty">${esc(e.message||"Could not load users.")}</div>`; return; }
   TEAM=users;
-  const owner={id:(SESSION&&SESSION.user)?SESSION.user.id:"",full_name:(ME.full_name||ME.company||ME.username||"You")+" (account owner)",email:ME.email,can_approve:!!ME.can_approve,owner:true};
+  const owner={id:(SESSION&&SESSION.user)?SESSION.user.id:"",full_name:(ME.full_name||ME.company||ME.username||"You"),email:ME.email,can_approve:!!ME.can_approve,owner:true};
   const all=[owner].concat(users);
-  $("team-list").innerHTML=`<div class="table-wrap"><table class="lead-table"><thead><tr><th>User</th><th>Email</th><th>Approval authority</th><th></th></tr></thead><tbody>${all.map(u=>`<tr>
-    <td><b>${esc(u.full_name||"—")}</b></td>
-    <td class="hint">${esc(u.email||"—")}</td>
-    <td>${u.can_approve?`<span class="badge" style="background:rgba(34,197,94,.15);color:#8ff0c8;border:1px solid rgba(34,197,94,.45)">✅ Approver</span>`:`<button class="btn btn-sm btn-ghost" style="width:auto;margin:0" onclick="setApprover('${u.id}')">Make approver</button>`}</td>
-    <td>${u.owner?`<span class="hint">—</span>`:`<button class="link-btn" style="color:#ff7b7b" onclick="removeTeamUser('${u.id}','${esc(u.full_name||"")}')">Remove</button>`}</td>
-  </tr>`).join("")}</tbody></table></div>
-  <div class="section-title">Add a user</div>
-  <div class="grid2">
-    <div><label>Full name <span class="req">*</span></label><input id="tu-name" class="inp"/></div>
-    <div><label>Email <span class="req">*</span></label><input id="tu-email" class="inp" type="email" placeholder="user@company.com"/></div>
-    <div><label>Password <span class="req">*</span></label><input id="tu-pass" class="inp" type="password" placeholder="At least 8 characters"/></div>
-    <div><label>Approval authority</label><select id="tu-appr" class="inp"><option value="">No — normal user</option><option value="1">Yes — make this user the approver</option></select></div>
-  </div>
-  <div class="row" style="margin-top:12px"><button class="btn btn-sm btn-ok" id="tu-btn" onclick="addTeamUser()">＋ Add user</button></div>
-  <div class="hint">The new user signs in with this email &amp; password and sees all of your account's change requests.</div>`;
+  const grad=["#8e7cff,#6c5ce7","#22d3ee,#0ea5b7","#22c55e,#0f9d58","#ffb020,#f59e0b","#f472b6,#db2777","#60a5fa,#2563eb"];
+  const card=function(u,i){
+    const c=grad[i%grad.length];
+    const role=u.owner?`<span class="tm-chip owner">Owner</span>`:(u.can_approve?`<span class="tm-chip appr"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Approver</span>`:`<span class="tm-chip">Member</span>`);
+    let actions="";
+    if(!u.owner){
+      if(!u.can_approve) actions+=`<button class="tm-act" title="Make approver" onclick="setApprover('${u.id}')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></button>`;
+      actions+=`<button class="tm-act danger" title="Remove" onclick="removeTeamUser('${u.id}','${esc(u.full_name||"")}')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M6 6l1 14a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-14"/></svg></button>`;
+    }
+    return `<div class="tm-card"><div class="tm-av" style="background:linear-gradient(135deg,${c})">${esc(initials(u.full_name||u.email||"?"))}</div>
+      <div class="tm-info"><div class="tm-nm">${esc(u.full_name||"—")}${u.owner?' <span class="tm-you">You</span>':''}</div><div class="tm-em">${esc(u.email||"—")}</div><div class="tm-roles">${role}</div></div>
+      <div class="tm-actions">${actions}</div></div>`;
+  };
+  $("team-list").innerHTML=`<div class="tm-grid">${all.map(card).join("")}</div>`;
+}
+function openTeamForm(){
+  $("modal-root").innerHTML=`<div class="overlay overlay-sheet" onclick="if(event.target===this)closeModal()">
+    <div class="modal more-sheet"><div class="ms-handle"></div>
+      <div class="ms-head"><h2 style="margin:0">Add team member</h2><button class="x" onclick="closeModal()">×</button></div>
+      <div style="padding:6px 18px 22px">
+        <label>Full name <span class="req">*</span></label><input id="tu-name" class="inp" placeholder="e.g. Priya Sharma"/>
+        <label style="margin-top:10px">Email <span class="req">*</span></label><input id="tu-email" class="inp" type="email" placeholder="user@company.com"/>
+        <label style="margin-top:10px">Password <span class="req">*</span></label><div class="pw-wrap"><input id="tu-pass" class="inp" type="password" placeholder="At least 8 characters"/><button type="button" class="pw-eye" onclick="togglePw('tu-pass',this)">👁</button></div>
+        <label style="margin-top:10px">Approval authority</label><select id="tu-appr" class="inp"><option value="">No — normal member</option><option value="1">Yes — make this member the approver</option></select>
+        <button class="btn btn-ok" style="margin-top:16px" id="tu-btn" onclick="addTeamUser()">Add member</button>
+        <div class="hint" style="margin-top:8px">They sign in with this email &amp; password and see all of your account's requests.</div>
+      </div>
+    </div></div>`;
 }
 async function addTeamUser(){
   const full_name=($("tu-name").value||"").trim(), email=($("tu-email").value||"").trim(), password=$("tu-pass").value||"";
   if(!full_name||!email||!password){ toast("Name, email and password are required.",true); return; }
   const btn=$("tu-btn"); if(btn){btn.disabled=true;btn.textContent="Adding…";}
   try{ await callFn("client-users",{action:"create",full_name,email,password,can_approve:!!$("tu-appr").value});
-    toast("User added."); await ensureProfile(); renderClientTeam();
+    toast("Member added."); closeModal(); await ensureProfile(); renderClientTeam();
   }catch(e){ toast(e.message||"Could not add user.",true); if(btn){btn.disabled=false;btn.textContent="＋ Add user";} }
 }
 async function setApprover(id){
