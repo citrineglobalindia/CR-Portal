@@ -866,6 +866,8 @@
   .an-track{flex:1;height:8px;background:var(--chip);border-radius:99px;overflow:hidden}
   .an-fill2{display:block;height:100%;border-radius:99px}
   .an-row2 b{width:38px;text-align:right;color:var(--txt)}
+  .svc-row{display:flex;gap:12px;flex-wrap:wrap;margin-top:6px}
+  .svc-chk{display:flex;align-items:center;gap:8px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:9px 14px;font-size:14px;font-weight:600;cursor:pointer}
   .dm-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
   .dm-card{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:16px;padding:16px;transition:transform .16s,border-color .2s}
   .dm-card:hover{transform:translateY(-3px);border-color:var(--brand)}
@@ -1583,7 +1585,7 @@ async function loadClients(){
 let CLIENT_TAB="list";
 function setClientTab(t){ CLIENT_TAB=t;
   const map={list:"client-list-view",create:"client-create-view",projects:"client-projects-view",team:"client-team-view",enquiries:"client-enquiries-view"};
-  Object.keys(map).forEach(k=>{ const e=$(map[k]); if(e) e.classList.toggle("hidden",k!==t); const b=$("ctab-"+k); if(b) b.classList.toggle("on",k===t); });
+  Object.keys(map).forEach(k=>{ const e=$(map[k]); if(e) e.classList.toggle("hidden",k!==t); const b=$("ctab-"+k); if(b){ b.classList.toggle("on",k===t); b.classList.toggle("active",k===t); } });
   if(t==="projects") renderClientProjects();
   if(t==="team") renderClientTeam();
   if(t==="enquiries") renderClientEnquiries();
@@ -1634,7 +1636,18 @@ async function renderClientProjects(){ const el=$("client-projects-view"); if(!e
 function renderClient(){
   RAISE_PASTES.f=[];
   const lg=logoUrl(ME.logo_path);
+  const svc=(ME.service_types&&ME.service_types.length)?ME.service_types:["software"];
+  const hasSw=svc.indexOf("software")>=0, hasDm=svc.indexOf("digital")>=0;
   $("app-body").innerHTML=`
+    <div class="adminlayout">
+      <aside class="sidebar" id="sidebar">
+        <div class="side-head"><span class="side-cap">Menu</span><button id="side-collapse-btn" class="side-collapse" onclick="toggleSidebar()" title="Collapse menu" aria-label="Toggle menu"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button></div>
+        ${hasSw?`<button id="ctab-list" class="navside" onclick="setClientTab('list')"><span>📋</span> CR Requests</button><button id="ctab-create" class="navside" onclick="setClientTab('create')"><span>➕</span> Raise Request</button>`:""}
+        ${hasDm?`<button id="ctab-enquiries" class="navside" onclick="setClientTab('enquiries')"><span>📈</span> Digital Marketing</button>`:""}
+        <button id="ctab-projects" class="navside" onclick="setClientTab('projects')"><span>📁</span> Projects</button>
+        ${!ME.parent_client_id?`<button id="ctab-team" class="navside" onclick="setClientTab('team')"><span>👥</span> Team</button>`:""}
+      </aside>
+      <div class="adminmain">
     <div class="hero">
       ${lg?`<img class="lg" src="${esc(lg)}" alt="logo"/>`:`<div class="lg ph">${esc(initials(ME.company||ME.full_name||ME.username))}</div>`}
       <div>
@@ -1643,7 +1656,6 @@ function renderClient(){
       </div>
     </div>
     <div class="stats" id="client-stats"></div>
-    <div class="lead-bar" style="margin:4px 0 14px"><div class="seg"><button id="ctab-list" class="on" onclick="setClientTab('list')">📋 My Requests</button><button id="ctab-create" onclick="setClientTab('create')">＋ Raise a request</button><button id="ctab-projects" onclick="setClientTab('projects')">📁 Projects</button><button id="ctab-enquiries" onclick="setClientTab('enquiries')">📈 Digital Marketing</button>${!ME.parent_client_id?`<button id="ctab-team" onclick="setClientTab('team')">👥 Team</button>`:""}</div></div>
     <div id="client-create-view" class="hidden">
     <div class="card">
       <h2>Raise a Change Request</h2>
@@ -1687,9 +1699,12 @@ function renderClient(){
     </div>
     <div id="client-projects-view" class="hidden"></div>
     <div id="client-team-view" class="hidden"></div>
-    <div id="client-enquiries-view" class="hidden"></div>`;
-  $("f-files").addEventListener("change",previewFiles);
+    <div id="client-enquiries-view" class="hidden"></div>
+      </div>
+    </div>`;
+  const _fi=$("f-files"); if(_fi)_fi.addEventListener("change",previewFiles);
   loadAndRenderClient();
+  try{ const def=(hasDm&&!hasSw)?"enquiries":"list"; setClientTab(def); applySidebar(); }catch(_){ }
 }
 function previewInto(inputId,containerId){
   const c=$(containerId); if(!c) return;
@@ -3784,6 +3799,9 @@ async function renderAdminClients(){
         <div><label>GST / Tax ID</label><input id="cl-gst" class="inp" placeholder="GSTIN / Tax no."/></div>
         <div><label>Website</label><input id="cl-web" class="inp" placeholder="https://…"/></div>
       </div>
+      <div style="margin-top:12px"><label>Service type <span class="req">*</span></label>
+        <div class="svc-row"><label class="svc-chk"><input type="checkbox" id="cl-svc-software" checked> 💻 Software Development</label><label class="svc-chk"><input type="checkbox" id="cl-svc-digital"> 📈 Digital Marketing</label></div>
+      </div>
       <div class="prefix-preview" id="cl-prefix-prev"></div>
       <label style="margin-top:12px">Address</label>
       <textarea id="cl-address" class="inp" rows="2" placeholder="Business address"></textarea>
@@ -4008,10 +4026,12 @@ async function createClient(){
   try{
     let logo_base64=null, logo_name=null, logo_type=null;
     if(LOGO_FILE){ logo_base64=await readAsBase64(LOGO_FILE); logo_name=LOGO_FILE.name; logo_type=LOGO_FILE.type||"image/png"; }
+    const service_types=[]; if($("cl-svc-software")&&$("cl-svc-software").checked)service_types.push("software"); if($("cl-svc-digital")&&$("cl-svc-digital").checked)service_types.push("digital");
+    if(!service_types.length){ toast("Select at least one service type.",true); if($("cl-btn")){$("cl-btn").disabled=false;$("cl-btn").textContent="Create client account";} return; }
     await callFn("admin-create-client",{ username, password:pass, email, notify_emails:emails, full_name:name,
       company, phone:$("cl-phone").value.trim(), address:$("cl-address").value.trim(),
       gst_no:$("cl-gst").value.trim(), website:$("cl-web").value.trim(), client_code:code, cr_prefix:prefix,
-      logo_base64, logo_name, logo_type });
+      service_types, logo_base64, logo_name, logo_type });
     toast(`Client "${company}" created. Login: ${username}`);
     ["cl-name","cl-company","cl-code","cl-prefix","cl-username","cl-pass","cl-email","cl-phone","cl-gst","cl-web","cl-address"].forEach(i=>$(i).value="");
     $("cl-code").dataset.touched=""; $("cl-prefix").dataset.touched=""; clearLogo(); updatePrefixPreview();
