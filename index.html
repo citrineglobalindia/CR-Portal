@@ -673,26 +673,42 @@
   .pg-sechead h3{margin:0;font-size:15px;display:flex;align-items:center;gap:8px;color:var(--txt)}
   .pg-sechead h3 svg{color:var(--brand2)}
   .pg-empty{color:var(--muted);font-size:13px;padding:16px;text-align:center;background:var(--panel2);border:1px dashed var(--line);border-radius:14px}
-  .pg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
-  .pg-card{position:relative;background:var(--panel2);border:1px solid var(--line);border-radius:14px;overflow:hidden;cursor:pointer;transition:transform .15s,border-color .2s,box-shadow .2s}
-  .pg-card:hover{transform:translateY(-3px);border-color:var(--brand);box-shadow:0 14px 28px -14px var(--brand)}
-  .pg-thumb{height:120px;background:var(--chip);display:grid;place-items:center;overflow:hidden}
-  .pg-thumb img{width:100%;height:100%;object-fit:cover}
+  .pg-size{display:inline-flex;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:3px;gap:2px}
+  .pg-size button{border:0;background:transparent;color:var(--muted);font-size:11.5px;font-weight:700;padding:5px 10px;border-radius:8px;cursor:pointer}
+  .pg-size button.on{background:var(--brand);color:#fff}
+  .pg-grid{display:grid;gap:12px}
+  .pg-grid.sz-sm{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
+  .pg-grid.sz-md{grid-template-columns:repeat(auto-fill,minmax(210px,1fr))}
+  .pg-grid.sz-lg{grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}
+  .pg-card{position:relative;background:var(--panel2);border:1px solid var(--line);border-radius:14px;overflow:hidden;transition:transform .15s,border-color .2s,box-shadow .2s}
+  .pg-card:hover{border-color:var(--brand);box-shadow:0 14px 28px -14px var(--brand)}
+  .pg-card.dragging{opacity:.5}
+  .pg-card.dragover{border-color:var(--brand2);box-shadow:0 0 0 2px var(--brand2) inset}
+  .pg-thumb{position:relative;background:var(--chip);display:grid;place-items:center;overflow:hidden;cursor:zoom-in}
+  .sz-sm .pg-thumb{height:100px}.sz-md .pg-thumb{height:140px}.sz-lg .pg-thumb{height:190px}
+  .pg-thumb img{width:100%;height:100%;object-fit:cover;transition:transform .3s}
+  .pg-card:hover .pg-thumb img{transform:scale(1.04)}
   .pg-noimg{color:var(--muted)}
-  .pg-body{padding:11px 12px}
+  .pg-num{position:absolute;top:7px;left:7px;min-width:20px;height:20px;padding:0 5px;border-radius:6px;background:rgba(10,12,20,.7);backdrop-filter:blur(6px);color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center}
+  .pg-handle{position:absolute;top:7px;right:7px;z-index:2;width:24px;height:24px;border-radius:7px;display:grid;place-items:center;background:rgba(10,12,20,.7);backdrop-filter:blur(6px);color:#fff;cursor:grab;opacity:0;transition:opacity .15s}
+  .pg-card:hover .pg-handle{opacity:1}
+  .pg-body{padding:10px 12px;cursor:pointer}
   .pg-title{font-weight:700;font-size:13.5px;color:var(--txt);line-height:1.25}
-  .pg-desc{font-size:11.5px;color:var(--muted);margin-top:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-  .pg-acts{position:absolute;top:8px;right:8px;display:flex;gap:6px;opacity:0;transition:opacity .15s}
-  .pg-card:hover .pg-acts{opacity:1}
-  .pg-act{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:rgba(10,12,20,.72);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.12);color:#fff;cursor:pointer}
-  .pg-act.danger:hover{color:#ff8a8a;border-color:rgba(255,107,107,.5)}
+  .pg-url{display:inline-flex;align-items:center;gap:4px;margin-top:4px;font-size:11px;color:var(--brand2);font-weight:600;text-decoration:none;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .pg-url:hover{text-decoration:underline}
+  .pg-desc{font-size:11.5px;color:var(--muted);margin-top:5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .pg-foot{display:flex;border-top:1px solid var(--line)}
+  .pg-fbtn{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:9px;background:transparent;border:0;color:var(--muted);font-size:12px;font-weight:700;cursor:pointer;transition:.15s}
+  .pg-fbtn:first-child{border-right:1px solid var(--line)}
+  .pg-fbtn:hover{background:var(--chip);color:var(--brand)}
+  .pg-fbtn.danger:hover{color:#ff8a8a;background:rgba(255,107,107,.08)}
   .pg-drop{display:block;border:1px dashed var(--line);border-radius:14px;background:var(--panel2);padding:14px;text-align:center;cursor:pointer;margin-top:4px}
   .pg-drop:hover{border-color:var(--brand)}
   .pg-drop #pg-prev img{max-width:100%;max-height:220px;border-radius:10px}
   .pg-view{max-width:720px}
   .pg-full{width:100%;border-radius:12px;display:block}
   .pg-fdesc{margin-top:14px;font-size:14px;line-height:1.6;color:var(--txt)}
-  @media(max-width:640px){.pg-grid{grid-template-columns:repeat(2,1fr)}.pg-acts{opacity:1}.pg-view{max-width:100%;width:100%;border-radius:22px 22px 0 0}}
+  @media(max-width:640px){.pg-grid.sz-md,.pg-grid.sz-lg{grid-template-columns:repeat(2,1fr)}.pg-grid.sz-sm{grid-template-columns:repeat(3,1fr)}.pg-handle{opacity:1}.pg-view{max-width:100%;width:100%;border-radius:22px 22px 0 0}}
   /* compact lead rows */
   .lc-list{display:flex;flex-direction:column;gap:8px;margin-top:12px}
   .lc{display:flex;align-items:center;gap:11px;background:var(--panel2);border:1px solid var(--line);border-radius:13px;padding:10px 12px;transition:border-color .2s,transform .14s}
@@ -4395,26 +4411,58 @@ async function openProject(id){
   renderFolders(id,isAdmin);
 }
 async function renderProjectPages(pid,isAdmin){
+  PG_PID=pid; PG_ADMIN=isAdmin;
   const box=$("ppages-pane"); if(!box)return;
-  box.innerHTML=`<div class="pg-sec"><div class="pg-sechead"><h3><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="m3 15 5-4 4 3 4-4 5 4"/><circle cx="9" cy="9" r="1.4"/></svg> Pages</h3>${isAdmin?`<button class="btn btn-sm btn-ok" style="width:auto;margin:0" onclick="openPageForm('${pid}')"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M12 5v14M5 12h14"/></svg> Add page</button>`:""}</div><div id="pg-grid"><div class="hint">Loading…</div></div></div>`;
+  let size="md"; try{size=localStorage.getItem("cr_pg_size")||"md";}catch(_){ }
+  const sizeSeg=`<div class="pg-size">${[["sm","Small"],["md","Medium"],["lg","Large"]].map(function(o){return `<button class="${size===o[0]?'on':''}" onclick="pgSetSize('${o[0]}')">${o[1]}</button>`;}).join("")}</div>`;
+  box.innerHTML=`<div class="pg-sec"><div class="pg-sechead"><h3><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="m3 15 5-4 4 3 4-4 5 4"/><circle cx="9" cy="9" r="1.4"/></svg> Pages</h3><div class="row" style="margin:0;gap:8px;align-items:center">${sizeSeg}${isAdmin?`<label class="btn btn-sm btn-ghost" style="width:auto;margin:0;cursor:pointer"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 21h14"/></svg> Bulk upload<input type="file" accept="image/*" multiple hidden onchange="bulkUploadPages(this,'${pid}')"></label><button class="btn btn-sm btn-ok" style="width:auto;margin:0" onclick="openPageForm('${pid}')"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M12 5v14M5 12h14"/></svg> Add page</button>`:""}</div></div><div id="pg-grid"><div class="hint">Loading…</div></div></div>`;
   let pages=[];
   try{ const {data}=await sb.from("cr_project_pages").select("*").eq("project_id",pid).order("sort").order("created_at"); pages=data||[]; }catch(e){ $("pg-grid").innerHTML=`<div class="hint">${esc(e.message||"Could not load pages.")}</div>`; return; }
-  PAGES_CACHE=pages;
-  const g=$("pg-grid"); if(!g)return;
-  if(!pages.length){ g.innerHTML=`<div class="pg-empty">No pages yet.${isAdmin?" Click <b>Add page</b> to upload a page image and description.":""}</div>`; return; }
-  g.innerHTML=`<div class="pg-grid">${pages.map(function(p){const u=p.image_path?logoUrl(p.image_path):""; return `<div class="pg-card" onclick="openPageView('${p.id}')"><div class="pg-thumb">${u?`<img src="${esc(u)}" alt="${esc(p.title)}" loading="lazy">`:`<span class="pg-noimg"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="m3 15 5-4 4 3 4-4 5 4"/></svg></span>`}</div><div class="pg-body"><div class="pg-title">${esc(p.title)}</div>${p.description?`<div class="pg-desc">${esc(p.description)}</div>`:""}</div>${isAdmin?`<div class="pg-acts"><button class="pg-act" title="Edit" onclick="event.stopPropagation();openPageForm('${pid}','${p.id}')"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button><button class="pg-act danger" title="Delete" onclick="event.stopPropagation();deletePage('${p.id}','${pid}')"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M6 6l1 14a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-14"/></svg></button></div>`:""}</div>`;}).join("")}</div>`;
+  PAGES_CACHE=pages; pgRenderGrid();
+}
+function pgRenderGrid(){
+  const g=$("pg-grid"); if(!g)return; const pages=PAGES_CACHE||[]; const isAdmin=PG_ADMIN; const pid=PG_PID;
+  let size="md"; try{size=localStorage.getItem("cr_pg_size")||"md";}catch(_){ }
+  if(!pages.length){ g.innerHTML=`<div class="pg-empty">No pages yet.${isAdmin?" Use <b>Add page</b> or <b>Bulk upload</b> to add page images.":""}</div>`; return; }
+  g.innerHTML=`<div class="pg-grid sz-${size}">${pages.map(function(p,idx){const u=p.image_path?logoUrl(p.image_path):""; return `<div class="pg-card" data-id="${p.id}" ${isAdmin?`draggable="true" ondragstart="pgDragStart(event,'${p.id}')" ondragover="pgDragOver(event,'${p.id}')" ondragleave="pgDragLeave(event)" ondrop="pgDrop(event,'${p.id}')" ondragend="pgDragEnd(event)"`:""}>
+    ${isAdmin?`<span class="pg-handle" title="Drag to reorder"><svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><circle cx="9" cy="6" r="1.4"/><circle cx="15" cy="6" r="1.4"/><circle cx="9" cy="12" r="1.4"/><circle cx="15" cy="12" r="1.4"/><circle cx="9" cy="18" r="1.4"/><circle cx="15" cy="18" r="1.4"/></svg></span>`:""}
+    <div class="pg-thumb" onclick="openPageView('${p.id}')">${u?`<img src="${esc(u)}" alt="${esc(p.title)}" loading="lazy">`:`<span class="pg-noimg"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="m3 15 5-4 4 3 4-4 5 4"/></svg></span>`}<span class="pg-num">${idx+1}</span></div>
+    <div class="pg-body" onclick="openPageView('${p.id}')"><div class="pg-title">${esc(p.title)}</div>${p.url?`<a class="pg-url" href="${esc(_safeUrl(p.url))}" target="_blank" rel="noopener" onclick="event.stopPropagation()"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg> ${esc(p.url)}</a>`:""}${p.description?`<div class="pg-desc">${esc(p.description)}</div>`:""}</div>
+    ${isAdmin?`<div class="pg-foot"><button class="pg-fbtn" onclick="event.stopPropagation();openPageForm('${pid}','${p.id}')"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg> Edit</button><button class="pg-fbtn danger" onclick="event.stopPropagation();deletePage('${p.id}','${pid}')"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M6 6l1 14a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-14"/></svg> Delete</button></div>`:""}
+  </div>`;}).join("")}</div>`;
+}
+function pgSetSize(sz){ try{localStorage.setItem("cr_pg_size",sz);}catch(_){ } const seg=document.querySelector(".pg-size"); if(seg){ seg.querySelectorAll("button").forEach(function(b){b.classList.remove("on");}); } const g=document.querySelector(".pg-grid"); if(g){ g.classList.remove("sz-sm","sz-md","sz-lg"); g.classList.add("sz-"+sz); } const btns=document.querySelectorAll(".pg-size button"); ["sm","md","lg"].forEach(function(x,i){ if(btns[i]) btns[i].classList.toggle("on",x===sz); }); }
+let PG_DRAG=null, PG_ADMIN=false, PG_PID=null;
+function pgDragStart(ev,id){ PG_DRAG=id; try{ev.dataTransfer.effectAllowed="move";}catch(_){ } const c=ev.currentTarget; if(c)c.classList.add("dragging"); }
+function pgDragOver(ev,id){ ev.preventDefault(); try{ev.dataTransfer.dropEffect="move";}catch(_){ } const c=ev.currentTarget; if(c&&id!==PG_DRAG)c.classList.add("dragover"); }
+function pgDragLeave(ev){ const c=ev.currentTarget; if(c)c.classList.remove("dragover"); }
+function pgDragEnd(ev){ document.querySelectorAll(".pg-card").forEach(function(c){c.classList.remove("dragging","dragover");}); }
+function pgDrop(ev,id){ ev.preventDefault(); if(!PG_DRAG||PG_DRAG===id){pgDragEnd(ev);return;} const arr=PAGES_CACHE; const from=arr.findIndex(function(x){return x.id===PG_DRAG;}); const to=arr.findIndex(function(x){return x.id===id;}); if(from<0||to<0){pgDragEnd(ev);return;} const it=arr.splice(from,1)[0]; arr.splice(to,0,it); PG_DRAG=null; pgRenderGrid(); savePageOrder(); }
+async function savePageOrder(){ const arr=PAGES_CACHE||[]; try{ await Promise.all(arr.map(function(p,i){ p.sort=i; return sb.from("cr_project_pages").update({sort:i}).eq("id",p.id); })); toast("Order saved."); }catch(e){ toast("Could not save order.",true); } }
+async function bulkUploadPages(inp,pid){
+  const files=[...(inp&&inp.files?inp.files:[])]; if(!files.length)return;
+  toast("Uploading "+files.length+" image"+(files.length>1?"s":"")+"…");
+  let base=(PAGES_CACHE||[]).length; let ok=0;
+  for(const f of files){
+    try{ const path=`pages/${pid}/${Date.now()}_${Math.random().toString(36).slice(2,7)}_${f.name.replace(/[^\w.\-]/g,"_")}`; const {error:ue}=await sb.storage.from("cr-logos").upload(path,f,{upsert:true}); if(ue)throw ue;
+      const title=f.name.replace(/\.[^.]+$/,"").replace(/[_\-]+/g," ").slice(0,80);
+      const {error}=await sb.from("cr_project_pages").insert({project_id:pid,title:title||("Page "+(base+ok+1)),image_path:path,sort:base+ok,created_by:(SESSION&&SESSION.user)?SESSION.user.id:null,created_by_name:ME.full_name||ME.email}); if(error)throw error; ok++;
+    }catch(e){ /* skip */ }
+  }
+  toast(ok+" page"+(ok!==1?"s":"")+" added."); renderProjectPages(pid,true);
 }
 function openPageView(id){
   const p=(PAGES_CACHE||[]).find(function(x){return x.id===id;}); if(!p)return;
   const u=p.image_path?logoUrl(p.image_path):"";
-  $("modal-root").innerHTML=`<div class="overlay overlay-sheet" onclick="if(event.target===this)closeModal()"><div class="modal pg-view"><div class="mh"><div style="min-width:0"><h2 style="margin:0">${esc(p.title)}</h2></div><button class="x" onclick="openProject(CUR_PROJECT_ID)">×</button></div><div class="mb">${u?`<img class="pg-full" src="${esc(u)}" alt="${esc(p.title)}">`:""}${p.description?`<div class="pg-fdesc">${esc(p.description).replace(/\n/g,"<br>")}</div>`:""}</div></div></div>`;
+  $("modal-root").innerHTML=`<div class="overlay overlay-sheet" onclick="if(event.target===this)closeModal()"><div class="modal pg-view"><div class="mh"><div style="min-width:0"><h2 style="margin:0">${esc(p.title)}</h2>${p.url?`<a href="${esc(_safeUrl(p.url))}" target="_blank" rel="noopener" class="hint" style="color:var(--brand2);word-break:break-all">🔗 ${esc(p.url)}</a>`:""}</div><button class="x" onclick="openProject(CUR_PROJECT_ID)">×</button></div><div class="mb">${u?`<img class="pg-full" src="${esc(u)}" alt="${esc(p.title)}">`:""}${p.description?`<div class="pg-fdesc">${esc(p.description).replace(/\n/g,"<br>")}</div>`:""}</div></div></div>`;
 }
 let PAGE_IMG=null;
 function openPageForm(pid,pageId){
   const p=pageId?(PAGES_CACHE||[]).find(function(x){return x.id===pageId;}):null; PAGE_IMG=null;
   const u=p&&p.image_path?logoUrl(p.image_path):"";
   $("modal-root").innerHTML=`<div class="overlay overlay-sheet" onclick="if(event.target===this)closeModal()"><div class="modal more-sheet"><div class="ms-handle"></div><div class="ms-head"><h2 style="margin:0">${p?"Edit page":"Add page"}</h2><button class="x" onclick="openProject('${pid}')">×</button></div><div style="padding:6px 18px 22px">
-    <label>Page title <span class="req">*</span></label><input id="pg-t" class="inp" value="${p?esc(p.title):""}" placeholder="e.g. Home page, Checkout…"/>
+    <label>Page name <span class="req">*</span></label><input id="pg-t" class="inp" value="${p?esc(p.title):""}" placeholder="e.g. Home page, Checkout…"/>
+    <label style="margin-top:10px">Page URL</label><input id="pg-u" class="inp" value="${p?esc(p.url||""):""}" placeholder="https://…"/>
     <label style="margin-top:10px">Description</label><textarea id="pg-d" class="inp" rows="4" placeholder="What this page shows / notes…">${p?esc(p.description||""):""}</textarea>
     <label style="margin-top:10px">Page image</label>
     <label class="pg-drop" id="pg-drop"><input type="file" accept="image/*" hidden onchange="pgPick(this)"><div id="pg-prev">${u?`<img src="${esc(u)}">`:`<span class="hint">Tap to choose an image</span>`}</div></label>
@@ -4423,14 +4471,14 @@ function openPageForm(pid,pageId){
 }
 function pgPick(inp){ const f=inp&&inp.files&&inp.files[0]; if(!f)return; PAGE_IMG=f; const pv=$("pg-prev"); if(pv) pv.innerHTML=`<img src="${URL.createObjectURL(f)}">`; }
 async function savePage(pid,pageId){
-  const title=($("pg-t").value||"").trim(); if(!title){toast("Page title is required.",true);return;}
-  const desc=($("pg-d").value||"").trim()||null;
+  const title=($("pg-t").value||"").trim(); if(!title){toast("Page name is required.",true);return;}
+  const desc=($("pg-d").value||"").trim()||null; const url=($("pg-u").value||"").trim()||null;
   const btn=$("pg-save"); if(btn){btn.disabled=true;btn.textContent="Saving…";}
   let image_path=pageId?((PAGES_CACHE||[]).find(function(x){return x.id===pageId;})||{}).image_path:null;
   try{
     if(PAGE_IMG){ const path=`pages/${pid}/${Date.now()}_${PAGE_IMG.name.replace(/[^\w.\-]/g,"_")}`; const {error:ue}=await sb.storage.from("cr-logos").upload(path,PAGE_IMG,{upsert:true}); if(ue)throw ue; image_path=path; }
-    if(pageId){ const {error}=await sb.from("cr_project_pages").update({title:title,description:desc,image_path:image_path,updated_at:new Date().toISOString()}).eq("id",pageId); if(error)throw error; }
-    else{ const {error}=await sb.from("cr_project_pages").insert({project_id:pid,title:title,description:desc,image_path:image_path,created_by:(SESSION&&SESSION.user)?SESSION.user.id:null,created_by_name:ME.full_name||ME.email}); if(error)throw error; }
+    if(pageId){ const {error}=await sb.from("cr_project_pages").update({title:title,url:url,description:desc,image_path:image_path,updated_at:new Date().toISOString()}).eq("id",pageId); if(error)throw error; }
+    else{ const {error}=await sb.from("cr_project_pages").insert({project_id:pid,title:title,url:url,description:desc,image_path:image_path,sort:(PAGES_CACHE||[]).length,created_by:(SESSION&&SESSION.user)?SESSION.user.id:null,created_by_name:ME.full_name||ME.email}); if(error)throw error; }
     toast(pageId?"Page updated.":"Page added."); openProject(pid);
   }catch(e){ toast(e.message||"Could not save page.",true); if(btn){btn.disabled=false;btn.textContent=pageId?"Save changes":"Add page";} }
 }
