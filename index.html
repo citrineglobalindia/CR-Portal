@@ -1046,6 +1046,13 @@
   .up-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
   .up-card{position:relative;background:var(--panel2);border:1px solid var(--line);border-radius:12px;overflow:hidden;transition:border-color .2s}
   .up-card:hover{border-color:var(--brand)}
+  .up-info{padding:9px 11px;border-top:1px solid var(--line)}
+  .up-pgname{font-size:13px;font-weight:700;color:var(--txt);line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .up-link{display:inline-flex;align-items:center;gap:4px;margin-top:4px;font-size:11px;color:var(--brand2);font-weight:600;text-decoration:none;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .up-link:hover{text-decoration:underline}
+  .up-dsc{font-size:11.5px;color:var(--muted);margin-top:5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .up-foot{display:flex;border-top:1px solid var(--line)}
+  .up-foot .pg-fbtn:first-child{border-right:1px solid var(--line)}
   .up-media{width:100%;height:130px;object-fit:cover;display:block;background:#000}
   .up-audio{padding:14px 10px;text-align:center}
   .up-ic{font-size:26px;margin-bottom:6px}
@@ -4215,7 +4222,7 @@ async function renderFolders(pid,isAdmin){
     sb.from("cr_module_items").select("*").eq("folder_id",cur.id).order("created_at"),
     sb.from("cr_project_tasks").select("*").eq("folder_id",cur.id).order("created_at")
   ]);
-  const items=its||[]; TASKS_CACHE=tks||[];
+  const items=its||[]; TASKS_CACHE=tks||[]; UP_CACHE=items;
   const canAppr=(typeof ME!=="undefined"&&ME&&ME.can_approve);
   const tAppr=TASKS_CACHE.filter(t=>t.status==="Approved").length;
 
@@ -4241,12 +4248,35 @@ function goFolder(pid,isAdmin,fid){ CUR_FOLDER=fid||null; renderFolders(pid,isAd
 function uploadCard(i,isAdmin,pid){
   const g=isAdmin?"":' controlsList="nodownload noremoteplayback" disablePictureInPicture oncontextmenu="return false"';
   const nm=(i.file_name||"").replace(/'/g,"");
+  const pageName=i.title||i.file_name||"Untitled page";
   let body="";
-  if(i.kind==="photo") body=`<img id="mi-${i.id}" class="thumb up-media" alt="${esc(i.file_name||"photo")}" style="cursor:zoom-in"${isAdmin?"":' draggable="false" oncontextmenu="return false"'}>`;
+  if(i.kind==="photo") body=`<img id="mi-${i.id}" class="thumb up-media" alt="${esc(pageName)}" style="cursor:zoom-in"${isAdmin?"":' draggable="false" oncontextmenu="return false"'}>`;
   else if(i.kind==="video") body=`<div class="up-vwrap"><video id="mi-${i.id}" class="up-media" controls preload="metadata" playsinline${g}></video><button class="up-expand" title="Play full screen" onclick="expandMedia('mi-${i.id}','video','${esc(nm)}')">⛶</button></div>`;
   else if(i.kind==="voice") body=`<div class="up-audio"><div class="up-ic">🎙</div><audio id="mi-${i.id}" controls${g} style="width:100%"></audio></div>`;
   else body=`<div class="up-note">📝 ${esc(i.description||"")}</div>`;
-  return `<div class="up-card">${body}<div class="up-meta"><span class="up-name" title="${esc(i.file_name||"Note")}">${esc(i.file_name||"Note")}</span><span class="hint">${esc(fmtDay(i.created_at))}</span></div>${isAdmin?`<button class="up-del" title="Delete" onclick="deleteFolderItem('${i.id}','${pid}')">🗑</button>`:""}</div>`;
+  const info=`<div class="up-info"><div class="up-pgname" title="${esc(pageName)}">${esc(pageName)}</div>${i.url?`<a class="up-link" href="${esc(_safeUrl(i.url))}" target="_blank" rel="noopener" onclick="event.stopPropagation()"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg> ${esc(i.url)}</a>`:""}${(i.description&&i.kind!=="note")?`<div class="up-dsc">${esc(i.description)}</div>`:""}<div class="hint" style="font-size:10.5px;margin-top:5px">${esc(fmtDay(i.created_at))}</div></div>`;
+  const foot=isAdmin?`<div class="up-foot"><button class="pg-fbtn" onclick="openUploadEdit('${i.id}','${pid}')"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg> Edit</button><button class="pg-fbtn danger" onclick="deleteFolderItem('${i.id}','${pid}')"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M6 6l1 14a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-14"/></svg> Delete</button></div>`:"";
+  return `<div class="up-card">${body}${info}${foot}</div>`;
+}
+let UP_CACHE=[];
+function openUploadEdit(id,pid){
+  const it=(function(){ try{ return (typeof MODITEMS!=="undefined"&&MODITEMS)?MODITEMS.find(function(x){return x.id===id;}):null; }catch(_){ return null; } })();
+  // fallback: read current values from DOM cache
+  const i=UP_CACHE.find(function(x){return x.id===id;})||it||{};
+  $("modal-root").innerHTML=`<div class="overlay overlay-sheet" onclick="if(event.target===this)closeModal()"><div class="modal more-sheet"><div class="ms-handle"></div><div class="ms-head"><h2 style="margin:0">Edit page</h2><button class="x" onclick="openProject('${pid}')">×</button></div><div style="padding:6px 18px 22px">
+    <label>Page name <span class="req">*</span></label><input id="ue-t" class="inp" value="${esc(i.title||i.file_name||"")}" placeholder="e.g. Home page"/>
+    <label style="margin-top:10px">Page link</label><input id="ue-u" class="inp" value="${esc(i.url||"")}" placeholder="https://…"/>
+    <label style="margin-top:10px">Description</label><textarea id="ue-d" class="inp" rows="4" placeholder="What this page shows / notes…">${esc(i.description||"")}</textarea>
+    <button class="btn btn-ok" style="margin-top:16px" id="ue-save" onclick="saveUploadEdit('${id}','${pid}')">Save changes</button>
+  </div></div></div>`;
+}
+async function saveUploadEdit(id,pid){
+  const t=($("ue-t").value||"").trim(); if(!t){toast("Page name is required.",true);return;}
+  const url=($("ue-u").value||"").trim()||null; const desc=($("ue-d").value||"").trim()||null;
+  const btn=$("ue-save"); if(btn){btn.disabled=true;btn.textContent="Saving…";}
+  const {error}=await sb.from("cr_module_items").update({title:t,url:url,description:desc}).eq("id",id);
+  if(error){toast(error.message,true); if(btn){btn.disabled=false;btn.textContent="Save changes";} return;}
+  toast("Page updated."); openProject(pid);
 }
 async function newFolder(pid,parentId){
   const name=(prompt("Folder name")||"").trim(); if(!name)return;
