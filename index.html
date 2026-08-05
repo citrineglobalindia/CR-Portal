@@ -4327,14 +4327,19 @@ async function deleteFolder(fid,pid){
 }
 function openUploadForm(pid,fid){
   MOD_PASTES=[];
-  $("modal-root").innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()"><div class="modal"><div class="mh"><h2 style="margin:0">⬆ Upload to this folder</h2><button class="x" onclick="openProject('${pid}')">×</button></div><div class="mb">
-    <label>Photos / Videos / Audio <span class="hint">(multiple)</span></label>
+  $("modal-root").innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()"><div class="modal"><div class="mh"><h2 style="margin:0">⬆ Upload page</h2><button class="x" onclick="openProject('${pid}')">×</button></div><div class="mb">
+    <label>Page name</label>
+    <input id="fu-name" class="inp" placeholder="e.g. Home page, Checkout…"/>
+    <label style="margin-top:10px">Page link <span class="hint">(optional)</span></label>
+    <input id="fu-link" class="inp" placeholder="https://…"/>
+    <label style="margin-top:10px">Description <span class="hint">(optional)</span></label>
+    <textarea id="fu-note" class="inp" rows="2" placeholder="What this page shows / notes…"></textarea>
+    <label style="margin-top:10px">Page image / file <span class="hint">(one or more)</span></label>
     <input id="fu-files" class="inp" type="file" accept="image/*,video/*,audio/*" multiple/>
-    <div class="paste-zone" tabindex="0" onpaste="modPaste(event)" style="margin-top:8px">📋 Or paste screenshots (Ctrl / Cmd + V)</div>
+    <div class="paste-zone" tabindex="0" onpaste="modPaste(event)" style="margin-top:8px">📋 Or paste a screenshot (Ctrl / Cmd + V)</div>
     <div id="md-paste-prev" class="photo-grid hidden" style="margin-top:8px"></div>
     ${recorderUI("mod","fu-rec-btn","fu-rec-player")}
-    <label style="margin-top:12px">Note / information <span class="hint">(optional)</span></label>
-    <textarea id="fu-note" class="inp" rows="2" placeholder="Describe this upload…"></textarea>
+    <div class="hint" style="margin-top:8px">Uploading multiple images? Each becomes its own page (name gets numbered). You can edit names later.</div>
     <div class="row" style="margin-top:14px"><button class="btn btn-sm btn-ok" id="fu-btn" onclick="saveUploads('${pid}','${fid}')">⬆ Upload</button><button class="btn btn-sm btn-ghost" onclick="openProject('${pid}')">Cancel</button></div>
   </div></div></div>`;
 }
@@ -4393,20 +4398,22 @@ function uploadSuccess(msg,sub){
     <button class="btn btn-sm btn-ok" style="width:auto;margin-top:16px" id="succ-btn">Done</button>
   </div></div></div>`;
 }
-async function uploadFolderItem(fid,file,kind,note,onProg){
+async function uploadFolderItem(fid,file,kind,note,onProg,title,url){
   const path=`folders/${fid}/${Date.now()}_${(file.name||"file").replace(/[^\w.\-]/g,"_")}`;
   await xhrUpload("cr-attachments",path,file,onProg);
-  const _ins=await sb.from("cr_module_items").insert({folder_id:fid,kind:kind||modKind(file),file_name:file.name||"file",file_path:path,mime_type:file.type||"application/octet-stream",description:note||null,created_by:(SESSION&&SESSION.user)?SESSION.user.id:null,created_by_name:(ME&&(ME.full_name||ME.username||ME.email))||null});
+  const _ins=await sb.from("cr_module_items").insert({folder_id:fid,kind:kind||modKind(file),file_name:file.name||"file",title:title||null,url:url||null,file_path:path,mime_type:file.type||"application/octet-stream",description:note||null,created_by:(SESSION&&SESSION.user)?SESSION.user.id:null,created_by_name:(ME&&(ME.full_name||ME.username||ME.email))||null});
   if(_ins&&_ins.error) throw new Error(_ins.error.message||"Could not save the file record");
 }
 async function saveUploads(pid,fid){
   const note=(($("fu-note")&&$("fu-note").value)||"").trim();
+  const pgName=(($("fu-name")&&$("fu-name").value)||"").trim();
+  const pgLink=(($("fu-link")&&$("fu-link").value)||"").trim();
   const fs=[...(MOD_PASTES||[])];
   if($("fu-files")&&$("fu-files").files){ for(const f of $("fu-files").files) fs.push(f); }
   if(RECORDED["mod"]) fs.push(new File([RECORDED["mod"]],"voice-note-"+Date.now()+".webm",{type:"audio/webm"}));
   if(!fs.length && !note){ toast("Nothing to upload.",true); return; }
   if(!fs.length && note){
-    const {error}=await sb.from("cr_module_items").insert({folder_id:fid,kind:"note",description:note,created_by:(SESSION&&SESSION.user)?SESSION.user.id:null,created_by_name:(ME&&(ME.full_name||ME.username||ME.email))||null});
+    const {error}=await sb.from("cr_module_items").insert({folder_id:fid,kind:"note",title:pgName||null,url:pgLink||null,description:note,created_by:(SESSION&&SESSION.user)?SESSION.user.id:null,created_by_name:(ME&&(ME.full_name||ME.username||ME.email))||null});
     if(error){toast(error.message,true);return;}
     CUR_FOLDER=fid; toast("Note added."); openProject(pid); return;
   }
@@ -4417,7 +4424,8 @@ async function saveUploads(pid,fid){
     const f=fs[i];
     setUploadProgress(i+1,total,f.name||"file",0,f.size);
     try{
-      await uploadFolderItem(fid,f,(f.name||"").indexOf("voice-note-")===0?"voice":null,note,function(p){ setUploadProgress(i+1,total,f.name||"file",p,f.size); });
+      const _title=pgName?(total>1?(pgName+" "+(i+1)):pgName):null;
+      await uploadFolderItem(fid,f,(f.name||"").indexOf("voice-note-")===0?"voice":null,note,function(p){ setUploadProgress(i+1,total,f.name||"file",p,f.size); },_title,pgLink||null);
       ok++; bytes+=(f.size||0);
     }catch(e){
       closeModal(); toast("Upload failed: "+((e&&e.message)||e),true);
