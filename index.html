@@ -813,6 +813,8 @@
   .wcal-ev{font-size:10.5px;font-weight:600;background:var(--panel2);border-radius:5px;padding:2px 5px;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .wcal-ev:hover{background:var(--chip)}
   @media(max-width:640px){.wcal-cell{min-height:64px}.wcal-ev{font-size:9px}}
+  .bud-bar{display:inline-block;width:70px;height:7px;border-radius:4px;background:var(--chip);overflow:hidden;vertical-align:middle;margin-right:6px}
+  .bud-bar i{display:block;height:100%}
   .ws-inv-tot{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-top:10px}
   /* 3D background + depth */
   #bg3d{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;opacity:.4}
@@ -5205,6 +5207,13 @@ async function wsBudgets(){
   const {data}=await sb.from('cr_ad_budgets').select('*').eq('client_id',cid).order('period_month',{ascending:false});
   const rows=data||[];
   const sum=f=>rows.reduce((s,b)=>s+(Number(b[f])||0),0);
+  const thr=(function(){try{return Number(localStorage.getItem('cr_bud_thr'))||80;}catch(_){return 80;}})();
+  const util=b=>{const a=Number(b.approved)||0;return a>0?Math.round((Number(b.spent)||0)/a*100):0;};
+  const over=rows.filter(b=>util(b)>=thr);
+  // monthly comparison
+  const byM={}; rows.forEach(b=>{const m=b.period_month?String(b.period_month).slice(0,7):'—';(byM[m]=byM[m]||{approved:0,spent:0}); byM[m].approved+=Number(b.approved)||0; byM[m].spent+=Number(b.spent)||0;});
+  const months=Object.keys(byM).filter(x=>x!=='—').sort().slice(-6);
+  const ubar=p=>{const c=p>=100?'#ff5b6b':(p>=thr?'#ffb020':'#22c55e');return `<div class="bud-bar"><i style="width:${Math.min(100,p)}%;background:${c}"></i></div><span class="hint" style="color:${c};font-weight:700">${p}%</span>`;};
   body.innerHTML=`
   <div class="ws-grid4">
     <div class="ws-stat-card" style="--c:#8e7cff"><b>${wsMoney(sum('approved'))}</b><span>Approved budget</span></div>
@@ -5212,9 +5221,17 @@ async function wsBudgets(){
     <div class="ws-stat-card" style="--c:#ff8a3d"><b>${wsMoney(sum('spent'))}</b><span>Actual spend</span></div>
     <div class="ws-stat-card" style="--c:#22c55e"><b>${wsMoney(sum('received')-sum('spent'))}</b><span>Available funds</span></div>
   </div>
-  ${wsCan()?`<button class="btn btn-sm btn-ok" style="width:auto;margin:0 0 12px" onclick="wsBudgetForm()">＋ Add budget line</button>`:''}
+  ${over.length?`<div class="ws-setup" style="border-color:#ffb020;background:rgba(255,176,32,.08);text-align:left;color:var(--txt)">⚠ ${over.length} budget line${over.length>1?'s have':' has'} reached ${thr}%+ utilisation. Review spend before it exceeds the approved budget.</div>`:''}
+  <div class="row" style="justify-content:space-between;align-items:center;margin:12px 0;flex-wrap:wrap;gap:10px">${wsCan()?`<button class="btn btn-sm btn-ok" style="width:auto;margin:0" onclick="wsBudgetForm()">＋ Add budget line</button>`:'<span></span>'}${wsCan()?`<label class="hint" style="margin:0">Alert at <input type="number" value="${thr}" style="width:56px" class="inp" onchange="try{localStorage.setItem('cr_bud_thr',this.value)}catch(_){ };wsBudgets()"/> %</label>`:''}</div>
   <div class="hint" style="margin-bottom:8px">Advertising funds are tracked separately from agency service fees and are never counted as agency revenue.</div>
-  <div class="table-wrap"><table class="lead-table"><thead><tr><th>Month</th><th>Platform</th><th>Campaign</th><th>Approved</th><th>Received</th><th>Spent</th><th>Remaining</th><th>Payer</th><th>Fee</th>${wsCan()?'<th></th>':''}</tr></thead><tbody>${rows.map(b=>`<tr><td>${b.period_month?esc(fmtDay(b.period_month)):'—'}</td><td>${esc(b.platform||'—')}</td><td>${esc(b.campaign||'—')}</td><td>${wsMoney(b.approved,b.currency)}</td><td>${wsMoney(b.received,b.currency)}</td><td>${wsMoney(b.spent,b.currency)}</td><td><b>${wsMoney((Number(b.approved)||0)-(Number(b.spent)||0),b.currency)}</b></td><td><span class="badge">${esc(b.payer||'agency')} pays</span></td><td>${wsMoney(b.agency_fee,b.currency)}</td>${wsCan()?`<td><button class="link-btn" onclick="wsBudgetForm('${b.id}')">edit</button></td>`:''}</tr>`).join('')||`<tr><td colspan="${wsCan()?10:9}" class="hint">No budget lines yet.</td></tr>`}</tbody></table></div></div>`;
+  <div class="table-wrap"><table class="lead-table"><thead><tr><th>Month</th><th>Platform</th><th>Campaign</th><th>Approved</th><th>Spent</th><th>Utilisation</th><th>Remaining</th><th>Payer</th>${wsCan()?'<th></th>':''}</tr></thead><tbody>${rows.map(b=>`<tr><td>${b.period_month?esc(fmtDay(b.period_month)):'—'}</td><td>${esc(b.platform||'—')}</td><td>${esc(b.campaign||'—')}</td><td>${wsMoney(b.approved,b.currency)}</td><td>${wsMoney(b.spent,b.currency)}</td><td style="min-width:120px">${ubar(util(b))}</td><td><b>${wsMoney((Number(b.approved)||0)-(Number(b.spent)||0),b.currency)}</b></td><td><span class="badge">${esc(b.payer||'agency')} pays</span></td>${wsCan()?`<td><button class="link-btn" onclick="wsBudgetForm('${b.id}')">edit</button> · <button class="link-btn" onclick="wsBudgetHist('${b.id}')">history</button></td>`:''}</tr>`).join('')||`<tr><td colspan="${wsCan()?9:8}" class="hint">No budget lines yet.</td></tr>`}</tbody></table></div>
+  ${months.length>1?`<div class="section-title">Monthly comparison</div><div class="table-wrap"><table class="lead-table"><thead><tr><th>Month</th><th>Approved</th><th>Spent</th><th>Utilisation</th><th>vs prev</th></tr></thead><tbody>${months.map((m,i)=>{const cur=byM[m];const prev=i>0?byM[months[i-1]]:null;const u=cur.approved>0?Math.round(cur.spent/cur.approved*100):0;const delta=prev&&prev.spent>0?Math.round((cur.spent-prev.spent)/prev.spent*100):null;return `<tr><td>${esc(m)}</td><td>${wsMoney(cur.approved)}</td><td>${wsMoney(cur.spent)}</td><td>${u}%</td><td>${delta===null?'—':`<b style="color:${delta>=0?'#ff8a3d':'#22c55e'}">${delta>=0?'▲':'▼'}${Math.abs(delta)}%</b>`}</td></tr>`;}).join('')}</tbody></table></div>`:''}
+  </div>`;
+}
+async function wsBudgetHist(id){
+  const {data}=await sb.from('cr_ad_budget_history').select('*').eq('budget_id',id).order('created_at',{ascending:false});
+  const rows=data||[];
+  $("modal-root").insertAdjacentHTML('beforeend',`<div class="overlay overlay-sheet" id="wsbh" onclick="if(event.target===this)this.remove()"><div class="modal more-sheet"><div class="ms-handle"></div><div class="ms-head"><h2 style="margin:0">Budget change history</h2><button class="x" onclick="document.getElementById('wsbh').remove()">×</button></div><div style="padding:6px 18px 20px"><div class="ws-list">${rows.map(h=>`<div class="ws-row"><span><b>${esc(h.field)}</b>: ${esc(h.old_val||'—')} → ${esc(h.new_val||'—')}</span><span class="hint">${esc(h.changed_by_name||'')} · ${esc(fmtDate(h.created_at))}</span></div>`).join('')||'<div class="hint">No changes recorded.</div>'}</div></div></div></div>`);
 }
 function wsBudgetForm(id){
   const b=id?null:null;
@@ -5234,7 +5251,7 @@ async function wsBudgetSave(id){
   const v=i=>{const e=$(i);return e?e.value:'';};
   const patch={client_id:WS.cid,platform:v('wb-plat')||null,campaign:v('wb-camp')||null,period_month:v('wb-month')||null,payer:v('wb-payer'),approved:Number(v('wb-appr'))||0,received:Number(v('wb-recv'))||0,spent:Number(v('wb-spent'))||0,agency_fee:Number(v('wb-fee'))||0,updated_at:new Date().toISOString()};
   let err;
-  if(id){ ({error:err}=await sb.from('cr_ad_budgets').update(patch).eq('id',id)); }
+  if(id){ try{ const {data:old}=await sb.from('cr_ad_budgets').select('*').eq('id',id).maybeSingle(); if(old){ const hist=[]; ['approved','received','spent','agency_fee','payer'].forEach(f=>{ if(String(old[f])!==String(patch[f])) hist.push({budget_id:id,field:f,old_val:String(old[f]),new_val:String(patch[f]),changed_by:(SESSION&&SESSION.user)?SESSION.user.id:null,changed_by_name:ME.full_name||ME.email}); }); if(hist.length) await sb.from('cr_ad_budget_history').insert(hist); } }catch(_){ } ({error:err}=await sb.from('cr_ad_budgets').update(patch).eq('id',id)); }
   else { patch.created_by=(SESSION&&SESSION.user)?SESSION.user.id:null; ({error:err}=await sb.from('cr_ad_budgets').insert(patch)); }
   if(err){ toast(err.message,true); return; }
   wsAudit('budget.'+(id?'updated':'created'),'budget',id);
