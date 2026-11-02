@@ -4901,6 +4901,25 @@ async function renderAdminClients(){
       <div class="prefix-preview" id="cl-prefix-prev"></div>
       <label style="margin-top:12px">Address</label>
       <textarea id="cl-address" class="inp" rows="2" placeholder="Business address"></textarea>
+      <div class="section-title" style="margin-top:14px">Onboarding &amp; agency details</div>
+      <div class="grid3">
+        <div><label>Industry</label><input id="cl-industry" class="inp" placeholder="e.g. Real estate"/></div>
+        <div><label>Designation <span class="hint">(primary contact)</span></label><input id="cl-designation" class="inp" placeholder="e.g. Director"/></div>
+        <div><label>WhatsApp number</label><input id="cl-whatsapp" class="inp" placeholder="+91…"/></div>
+        <div><label>Service start date</label><input id="cl-start" class="inp" type="date"/></div>
+        <div><label>Renewal date</label><input id="cl-renewal" class="inp" type="date"/></div>
+        <div><label>Status</label><select id="cl-status" class="inp"><option value="active">Active</option><option value="onboarding">Onboarding</option><option value="paused">Paused</option><option value="inactive">Inactive</option></select></div>
+      </div>
+      <label style="margin-top:12px">Billing address <span class="hint">(if different from above)</span></label>
+      <textarea id="cl-billing" class="inp" rows="2" placeholder="Billing address"></textarea>
+      <div class="grid2" style="margin-top:12px">
+        <div><label>Social media page URLs <span class="hint">one per line</span></label><textarea id="cl-social" class="inp" rows="3" placeholder="Instagram: https://…
+Facebook: https://…"></textarea></div>
+        <div><label>Advertising account IDs <span class="hint">one per line</span></label><textarea id="cl-adacc" class="inp" rows="3" placeholder="Meta: act_123…
+Google Ads: 123-456-7890"></textarea></div>
+      </div>
+      <label style="margin-top:12px">Internal notes <span class="hint">🔒 private — never shown to the client</span></label>
+      <textarea id="cl-internal" class="inp" rows="2" placeholder="Private notes for your team"></textarea>
       <label style="margin-top:12px">Logo</label>
       <div class="drop" id="cl-drop">
         <div class="big">📤 Drag &amp; drop a logo here, or <span style="color:var(--brand2)">browse</span></div>
@@ -5065,7 +5084,15 @@ function openClientEdit(id){
         <textarea id="e-pp-conv" class="inp" rows="2" placeholder="Style guide, naming, patterns the implementer should follow…">${esc(pp.conventions||"")}</textarea>
         <label style="margin-top:12px">Project notes <span class="hint">(optional)</span></label>
         <textarea id="e-pp-notes" class="inp" rows="2" placeholder="Anything an implementer should know about this project…">${esc(pp.notes||"")}</textarea>
-        <div class="section-title">Reset password</div>
+        <div class="section-title">Account access &amp; invitation</div>
+        <div class="row" style="gap:8px;flex-wrap:wrap;margin-bottom:6px">
+          <button class="btn btn-sm btn-ok" style="width:auto;margin:0" onclick="clientInvite('${c.id}','invite')">✉️ Send invite / set-password link</button>
+          <button class="btn btn-sm btn-ghost" style="width:auto;margin:0" onclick="clientInvite('${c.id}','reset')">🔑 Reset-password link</button>
+          <button class="btn btn-sm btn-ghost" style="width:auto;margin:0" onclick="clientInvite('${c.id}','deactivate')">⛔ Deactivate</button>
+          <button class="btn btn-sm btn-ghost" style="width:auto;margin:0" onclick="clientInvite('${c.id}','reactivate')">✅ Reactivate</button>
+        </div>
+        <div class="hint">Emails the client a secure link to set their own password (copied to your clipboard too, to share via WhatsApp). Passwords are never shown or stored in readable form.</div>
+        <div class="section-title">Set password manually</div>
         <div class="row">
           <input id="e-pass" class="inp" type="text" placeholder="New password (min 6 characters)" style="flex:1"/>
           <button class="btn btn-sm btn-ghost" onclick="resetClientPw('${c.id}')">Set new password</button>
@@ -5096,6 +5123,16 @@ async function resetClientPw(id){
   try{ await callFn("admin-update-client",{client_id:id,new_password:pw}); toast("Password reset for this client."); $("e-pass").value=""; }
   catch(e){ toast(e.message||"Could not reset password.",true); }
 }
+async function clientInvite(id,action){
+  if(action==='deactivate'&&!confirm("Deactivate this client's login? They won't be able to sign in until reactivated."))return;
+  try{
+    const r=await callFn("client-invite",{client_id:id,action:action});
+    if(action==='invite'||action==='reset'){
+      if(r&&r.action_link){ try{ await navigator.clipboard.writeText(r.action_link); }catch(_){ } toast("Secure set-password link copied — share it with "+((r&&r.email)||"the client")+"."); }
+      else toast("Invite sent to "+((r&&r.email)||"the client")+".");
+    } else toast(action==='deactivate'?"Client deactivated.":"Client reactivated.");
+  }catch(e){ toast((e&&e.message)||"Action failed.",true); }
+}
 async function saveClientEdit(id){
   const btn=$("e-save"); btn.disabled=true; btn.textContent="Saving…";
   try{
@@ -5124,12 +5161,18 @@ async function createClient(){
     if(LOGO_FILE){ logo_base64=await readAsBase64(LOGO_FILE); logo_name=LOGO_FILE.name; logo_type=LOGO_FILE.type||"image/png"; }
     const service_types=[]; if($("cl-svc-software")&&$("cl-svc-software").checked)service_types.push("software"); if($("cl-svc-digital")&&$("cl-svc-digital").checked)service_types.push("digital");
     if(!service_types.length){ toast("Select at least one service type.",true); if($("cl-btn")){$("cl-btn").disabled=false;$("cl-btn").textContent="Create client account";} return; }
+    const _v=i=>{const e=$(i);return e?e.value.trim():"";};
     await callFn("admin-create-client",{ username, password:pass, email, notify_emails:emails, full_name:name,
       company, phone:$("cl-phone").value.trim(), address:$("cl-address").value.trim(),
       gst_no:$("cl-gst").value.trim(), website:$("cl-web").value.trim(), client_code:code, cr_prefix:prefix,
-      service_types, logo_base64, logo_name, logo_type });
+      service_types, logo_base64, logo_name, logo_type,
+      industry:_v("cl-industry")||null, designation:_v("cl-designation")||null, whatsapp:_v("cl-whatsapp")||null,
+      billing_address:_v("cl-billing")||null, service_start:_v("cl-start")||null, renewal_date:_v("cl-renewal")||null,
+      client_status:($("cl-status")?$("cl-status").value:"active"),
+      social_urls:_v("cl-social")?{raw:_v("cl-social")}:null, ad_accounts:_v("cl-adacc")?{raw:_v("cl-adacc")}:null,
+      internal_notes:_v("cl-internal")||null });
     toast(`Client "${company}" created. Login: ${username}`);
-    ["cl-name","cl-company","cl-code","cl-prefix","cl-username","cl-pass","cl-email","cl-phone","cl-gst","cl-web","cl-address"].forEach(i=>$(i).value="");
+    ["cl-name","cl-company","cl-code","cl-prefix","cl-username","cl-pass","cl-email","cl-phone","cl-gst","cl-web","cl-address","cl-industry","cl-designation","cl-whatsapp","cl-billing","cl-start","cl-renewal","cl-social","cl-adacc","cl-internal"].forEach(i=>{const e=$(i);if(e)e.value="";});
     $("cl-code").dataset.touched=""; $("cl-prefix").dataset.touched=""; clearLogo(); updatePrefixPreview();
     await loadClients(); renderClientsList();
   }catch(e){ toast(e.message||"Could not create client.",true); }
