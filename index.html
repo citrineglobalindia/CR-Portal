@@ -800,6 +800,19 @@
   .ws-empty-ic{font-size:40px;margin-bottom:10px}
   .ws-setup{background:var(--panel2);border:1px dashed var(--line);border-radius:14px;padding:18px;text-align:center;color:var(--muted)}
   @media(max-width:820px){.ws-grid4{grid-template-columns:repeat(2,1fr)}.ws-2col{grid-template-columns:1fr}}
+  .wcal{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  .wcal-head{display:grid;grid-template-columns:repeat(7,1fr);background:var(--panel2);font-size:11px;font-weight:700;color:var(--muted)}
+  .wcal-head div{padding:8px;text-align:center}
+  .wcal-grid{display:grid;grid-template-columns:repeat(7,1fr)}
+  .wcal-grid.wk .wcal-cell{min-height:160px}
+  .wcal-cell{min-height:92px;border-top:1px solid var(--line);border-left:1px solid var(--line);padding:4px;display:flex;flex-direction:column;gap:3px}
+  .wcal-cell:nth-child(7n+1){border-left:0}
+  .wcal-cell.other{opacity:.4}
+  .wcal-cell.today{background:var(--g1)}
+  .wcal-d{font-size:11px;font-weight:700;color:var(--muted)}
+  .wcal-ev{font-size:10.5px;font-weight:600;background:var(--panel2);border-radius:5px;padding:2px 5px;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .wcal-ev:hover{background:var(--chip)}
+  @media(max-width:640px){.wcal-cell{min-height:64px}.wcal-ev{font-size:9px}}
   .ws-inv-tot{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-top:10px}
   /* 3D background + depth */
   #bg3d{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;opacity:.4}
@@ -5353,12 +5366,33 @@ async function wsReqScopeSave(id){
 const CC_ST=['Planned','In Production','Internal Review','Client Approval','Approved','Scheduled','Published','Changes Requested','Cancelled'];
 const CC_STC={Planned:'#9aa0bd','In Production':'#8e7cff','Internal Review':'#22d3ee','Client Approval':'#ffb020',Approved:'#22c55e',Scheduled:'#06b6d4',Published:'#16a34a','Changes Requested':'#ff8a3d',Cancelled:'#6b7280'};
 function ccBadge(s){const c=CC_STC[s]||'#9aa0bd';return `<span class="badge" style="background:${c}22;color:${c};border:1px solid ${c}66">${esc(s||'Planned')}</span>`;}
+let WS_CAL={view:'month',ref:new Date(),rows:[]};
 async function wsCalendar(){
   const cid=WS.cid, body=$('ws-body'); if(!body)return;
   const {data}=await sb.from('cr_content_items').select('*').eq('client_id',cid).order('planned_at',{ascending:true,nullsFirst:false});
-  const rows=data||[];
-  body.innerHTML=`${wsCan()?`<button class="btn btn-sm btn-ok" style="width:auto;margin:0 0 12px" onclick="wsCcForm()">＋ New content</button>`:''}
-  <div class="table-wrap"><table class="lead-table"><thead><tr><th>Planned</th><th>Platform</th><th>Type</th><th>Caption</th><th>Creator</th><th>Status</th><th></th></tr></thead><tbody>${rows.map(r=>`<tr><td>${r.planned_at?esc(fmtDay(r.planned_at))+' '+esc(fmtTime(r.planned_at)):'—'}</td><td>${esc(r.platform||'—')}</td><td>${esc(r.content_type||'—')}</td><td style="max-width:220px"><div class="cc-ell">${esc((r.caption||'').slice(0,80))}</div></td><td>${esc(r.creator_name||'—')}</td><td>${ccBadge(r.status)}</td><td><button class="link-btn" onclick="wsCcView('${r.id}')">open</button></td></tr>`).join('')||'<tr><td colspan="7" class="hint">No content planned yet.</td></tr>'}</tbody></table></div>`;
+  WS_CAL.rows=data||[];
+  wsCalRender();
+}
+function wsCalRender(){
+  const body=$('ws-body'); if(!body)return; const rows=WS_CAL.rows;
+  const seg=['month','week','list'].map(v=>`<button class="lf-chip ${WS_CAL.view===v?'on':''}" onclick="WS_CAL.view='${v}';wsCalRender()">${v.charAt(0).toUpperCase()+v.slice(1)}</button>`).join('');
+  const label=WS_CAL.view==='list'?'':`<div class="row" style="gap:6px;align-items:center;margin:0"><button class="btn btn-sm btn-ghost" style="width:auto;margin:0;padding:6px 10px" onclick="wsCalNav(-1)">‹</button><b>${wsCalTitle()}</b><button class="btn btn-sm btn-ghost" style="width:auto;margin:0;padding:6px 10px" onclick="wsCalNav(1)">›</button><button class="btn btn-sm btn-ghost" style="width:auto;margin:0" onclick="WS_CAL.ref=new Date();wsCalRender()">Today</button></div>`;
+  let view='';
+  if(WS_CAL.view==='list') view=`<div class="table-wrap"><table class="lead-table"><thead><tr><th>Planned</th><th>Platform</th><th>Type</th><th>Caption</th><th>Status</th><th></th></tr></thead><tbody>${rows.map(r=>`<tr><td>${r.planned_at?esc(fmtDay(r.planned_at))+' '+esc(fmtTime(r.planned_at)):'—'}</td><td>${esc(r.platform||'—')}</td><td>${esc(r.content_type||'—')}</td><td style="max-width:200px"><div class="cc-ell">${esc((r.caption||'').slice(0,70))}</div></td><td>${ccBadge(r.status)}</td><td><button class="link-btn" onclick="wsCcView('${r.id}')">open</button></td></tr>`).join('')||'<tr><td colspan="6" class="hint">No content planned yet.</td></tr>'}</tbody></table></div>`;
+  else view=wsCalGrid();
+  body.innerHTML=`<div class="row" style="justify-content:space-between;align-items:center;margin:0 0 12px;flex-wrap:wrap;gap:10px"><div class="lf-chips" style="margin:0">${seg}</div><div class="row" style="gap:8px;margin:0;align-items:center">${label}${wsCan()?`<button class="btn btn-sm btn-ok" style="width:auto;margin:0" onclick="wsCcForm()">＋ New</button>`:''}</div></div>${view}`;
+}
+function wsCalTitle(){ const d=WS_CAL.ref; if(WS_CAL.view==='week'){ const s=wsWeekStart(d); const e=new Date(s); e.setDate(e.getDate()+6); return s.toLocaleDateString('en-IN',{day:'numeric',month:'short'})+' – '+e.toLocaleDateString('en-IN',{day:'numeric',month:'short'}); } return d.toLocaleDateString('en-IN',{month:'long',year:'numeric'}); }
+function wsCalNav(n){ const d=new Date(WS_CAL.ref); if(WS_CAL.view==='week') d.setDate(d.getDate()+7*n); else d.setMonth(d.getMonth()+n); WS_CAL.ref=d; wsCalRender(); }
+function wsWeekStart(d){ const x=new Date(d); x.setHours(0,0,0,0); x.setDate(x.getDate()-x.getDay()); return x; }
+function wsCalGrid(){
+  const rows=WS_CAL.rows; const byDay={}; rows.forEach(r=>{ if(r.planned_at){ const k=new Date(r.planned_at).toDateString(); (byDay[k]=byDay[k]||[]).push(r); } });
+  let days=[]; if(WS_CAL.view==='week'){ const s=wsWeekStart(WS_CAL.ref); for(let i=0;i<7;i++){ const d=new Date(s); d.setDate(d.getDate()+i); days.push(d); } }
+  else { const first=new Date(WS_CAL.ref.getFullYear(),WS_CAL.ref.getMonth(),1); const start=new Date(first); start.setDate(1-first.getDay()); for(let i=0;i<42;i++){ const d=new Date(start); d.setDate(start.getDate()+i); days.push(d); } }
+  const today=new Date().toDateString(); const mon=WS_CAL.ref.getMonth();
+  const dow=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const cell=d=>{ const items=byDay[d.toDateString()]||[]; const other=WS_CAL.view==='month'&&d.getMonth()!==mon; return `<div class="wcal-cell ${d.toDateString()===today?'today':''} ${other?'other':''}"><div class="wcal-d">${d.getDate()}</div>${items.slice(0,4).map(r=>`<div class="wcal-ev" style="border-left:3px solid ${CC_STC[r.status]||'#8e7cff'}" onclick="wsCcView('${r.id}')" title="${esc(r.caption||'')}">${esc(r.platform||r.content_type||'post')}</div>`).join('')}${items.length>4?`<div class="hint" style="font-size:10px">+${items.length-4} more</div>`:''}</div>`; };
+  return `<div class="wcal"><div class="wcal-head">${dow.map(x=>`<div>${x}</div>`).join('')}</div><div class="wcal-grid ${WS_CAL.view==='week'?'wk':''}">${days.map(cell).join('')}</div></div>`;
 }
 function wsCcForm(){
   $("modal-root").insertAdjacentHTML('beforeend',`<div class="overlay overlay-sheet" id="wscc" onclick="if(event.target===this)this.remove()"><div class="modal" style="max-width:600px"><div class="mh"><h2 style="margin:0">New content</h2><button class="x" onclick="document.getElementById('wscc').remove()">×</button></div><div class="mb">
