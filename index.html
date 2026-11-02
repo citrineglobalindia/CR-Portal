@@ -5176,6 +5176,162 @@ async function wsBudgetSave(id){
   wsAudit('budget.'+(id?'updated':'created'),'budget',id);
   const m=document.getElementById('wsbf'); if(m)m.remove(); toast('Budget saved.'); wsBudgets();
 }
+// ---------- Contracts & signing ----------
+const CON_ST={draft:'#9aa0bd',sent:'#8e7cff',signed:'#22c55e',countersigned:'#16a34a',terminated:'#ff5b6b'};
+function conBadge(s){const c=CON_ST[s]||'#9aa0bd';return `<span class="badge" style="background:${c}22;color:${c};border:1px solid ${c}66;text-transform:capitalize">${esc(s||'draft')}</span>`;}
+async function wsContracts(){
+  const cid=WS.cid, body=$('ws-body'); if(!body)return;
+  const {data}=await sb.from('cr_contracts').select('*').eq('client_id',cid).order('created_at',{ascending:false});
+  const rows=data||[];
+  body.innerHTML=`${wsCan()?`<button class="btn btn-sm btn-ok" style="width:auto;margin:0 0 12px" onclick="wsConForm()">＋ New contract</button>`:''}
+  <div class="table-wrap"><table class="lead-table"><thead><tr><th>Title</th><th>Version</th><th>Period</th><th>Status</th><th></th></tr></thead><tbody>${rows.map(c=>`<tr><td><b>${esc(c.title||'Contract')}</b></td><td>v${c.version||1}</td><td>${c.service_start?esc(fmtDay(c.service_start)):'—'}${c.service_end?' → '+esc(fmtDay(c.service_end)):''}</td><td>${conBadge(c.status)}</td><td><button class="link-btn" onclick="wsConView('${c.id}')">open</button></td></tr>`).join('')||'<tr><td colspan="5" class="hint">No contracts yet.</td></tr>'}</tbody></table></div>`;
+}
+function wsConForm(id){
+  sb.from('cr_contracts').select('*').eq('id',id||'00000000-0000-0000-0000-000000000000').maybeSingle().then(({data})=>{
+    const d=data||{};
+    $("modal-root").insertAdjacentHTML('beforeend',`<div class="overlay overlay-sheet" id="wscf" onclick="if(event.target===this)this.remove()"><div class="modal" style="max-width:640px"><div class="mh"><h2 style="margin:0">${id?'Edit':'New'} contract</h2><button class="x" onclick="document.getElementById('wscf').remove()">×</button></div><div class="mb">
+      <label>Title</label><input id="co-title" class="inp" value="${esc(d.title||'Service agreement')}"/>
+      <div class="grid2" style="margin-top:10px"><div><label>Service start</label><input id="co-start" type="date" class="inp" value="${d.service_start||''}"/></div><div><label>Service end</label><input id="co-end" type="date" class="inp" value="${d.service_end||''}"/></div></div>
+      <label style="margin-top:10px">Scope &amp; deliverables</label><textarea id="co-scope" class="inp" rows="3">${esc(d.scope||'')}</textarea>
+      <label style="margin-top:10px">Payment schedule</label><textarea id="co-pay" class="inp" rows="2">${esc(d.payment_schedule||'')}</textarea>
+      <label style="margin-top:10px">Renewal terms</label><textarea id="co-renew" class="inp" rows="2">${esc(d.renewal||'')}</textarea>
+      <label style="margin-top:10px">Termination terms</label><textarea id="co-term" class="inp" rows="2">${esc(d.termination||'')}</textarea>
+      <label style="margin-top:10px">Full contract body <span class="hint">(this exact text is what gets signed)</span></label><textarea id="co-body" class="inp" rows="5">${esc(d.body||'')}</textarea>
+      <div class="row" style="margin-top:12px"><button class="btn btn-sm btn-ghost" style="width:auto;margin:0" onclick="wsConSave('${id||''}','draft')">Save draft</button><button class="btn btn-sm btn-ok" style="width:auto;margin:0" onclick="wsConSave('${id||''}','sent')">Save &amp; send to client</button></div>
+    </div></div></div>`);
+  });
+}
+async function wsConSave(id,status){
+  const v=i=>{const e=$(i);return e?e.value:'';};
+  const patch={client_id:WS.cid,title:v('co-title'),service_start:v('co-start')||null,service_end:v('co-end')||null,scope:v('co-scope')||null,payment_schedule:v('co-pay')||null,renewal:v('co-renew')||null,termination:v('co-term')||null,body:v('co-body')||null,status,updated_at:new Date().toISOString()};
+  let err,cid2=id;
+  if(id){ const {data:ex}=await sb.from('cr_contracts').select('status').eq('id',id).maybeSingle(); if(ex&&(ex.status==='signed'||ex.status==='countersigned')){toast('Signed contracts are immutable. Create a new version instead.',true);return;} ({error:err}=await sb.from('cr_contracts').update(patch).eq('id',id)); }
+  else { patch.version=1; patch.created_by=(SESSION&&SESSION.user)?SESSION.user.id:null; patch.created_by_name=ME.full_name||ME.email; const r=await sb.from('cr_contracts').insert(patch).select().single(); err=r.error; cid2=r.data&&r.data.id; }
+  if(err){toast(err.message,true);return;}
+  wsAudit('contract.'+status,'contract',cid2); document.getElementById('wscf').remove(); toast('Contract saved.'); wsContracts();
+}
+async function wsConView(id){
+  const {data:c}=await sb.from('cr_contracts').select('*').eq('id',id).maybeSingle();
+  const {data:sigs}=await sb.from('cr_signatures').select('*').eq('contract_id',id).order('signed_at');
+  if(!c)return; const locked=(c.status==='signed'||c.status==='countersigned'); const isClient=ME.role==='client';
+  const clientSigned=(sigs||[]).some(x=>x.signer_role==='client'); const agencySigned=(sigs||[]).some(x=>x.signer_role==='agency');
+  $("modal-root").insertAdjacentHTML('beforeend',`<div class="overlay overlay-sheet" id="wscv" onclick="if(event.target===this)this.remove()"><div class="modal" style="max-width:620px"><div class="mh"><div><h2 style="margin:0">${esc(c.title||'Contract')}</h2><div class="hint">v${c.version} · ${conBadge(c.status).replace(/<[^>]+>/g,'')}</div></div><button class="x" onclick="document.getElementById('wscv').remove()">×</button></div><div class="mb">
+    <div class="ws-kv"><div><span>Period</span><b>${c.service_start?esc(fmtDay(c.service_start)):'—'}${c.service_end?' → '+esc(fmtDay(c.service_end)):''}</b></div></div>
+    ${c.scope?`<div class="section-title">Scope</div><p>${esc(c.scope)}</p>`:''}
+    ${c.payment_schedule?`<div class="section-title">Payment schedule</div><p class="hint">${esc(c.payment_schedule)}</p>`:''}
+    ${c.renewal?`<div class="section-title">Renewal</div><p class="hint">${esc(c.renewal)}</p>`:''}
+    ${c.termination?`<div class="section-title">Termination</div><p class="hint">${esc(c.termination)}</p>`:''}
+    ${c.body?`<div class="section-title">Contract text</div><div class="ws-setup" style="text-align:left;white-space:pre-wrap">${esc(c.body)}</div>`:''}
+    <div class="section-title">Signatures</div>${(sigs||[]).length?(sigs||[]).map(x=>`<div class="ws-row"><span>${esc(x.signer_name||'')} <span class="badge">${esc(x.signer_role)}</span></span><span class="hint">${esc(x.method)} · ${esc(fmtDate(x.signed_at))}</span></div>`).join(''):'<div class="hint" style="padding:6px">Not signed yet.</div>'}
+    <div class="hint" style="margin-top:8px">⚠ This is a basic electronic acceptance (typed name + consent), not provider-backed digital signing. Enable an e-sign provider under Integrations for certified signatures.</div>
+    <div class="row" style="margin-top:14px;gap:8px;flex-wrap:wrap">
+      ${(isClient&&!clientSigned&&(c.status==='sent'||c.status==='draft'))?`<button class="btn btn-sm btn-ok" style="width:auto;margin:0" onclick="wsSignForm('${id}','client')">✍ Review &amp; sign</button>`:''}
+      ${(wsCan()&&clientSigned&&!agencySigned)?`<button class="btn btn-sm btn-ok" style="width:auto;margin:0" onclick="wsSignForm('${id}','agency')">✍ Countersign</button>`:''}
+      ${(wsCan()&&!locked)?`<button class="btn btn-sm btn-ghost" style="width:auto;margin:0" onclick="document.getElementById('wscv').remove();wsConForm('${id}')">Edit</button><button class="btn btn-sm btn-ghost" style="width:auto;margin:0" onclick="wsConNewVersion('${id}')">New version</button>`:''}
+      ${(wsCan()&&locked)?`<button class="btn btn-sm btn-ghost" style="width:auto;margin:0" onclick="wsConNewVersion('${id}')">Amend (new version)</button>`:''}
+    </div>
+  </div></div></div>`);
+}
+function wsSignForm(id,role){
+  $("modal-root").insertAdjacentHTML('beforeend',`<div class="overlay overlay-sheet" id="wssg" onclick="if(event.target===this)this.remove()"><div class="modal more-sheet"><div class="ms-handle"></div><div class="ms-head"><h2 style="margin:0">Sign contract</h2><button class="x" onclick="document.getElementById('wssg').remove()">×</button></div><div style="padding:6px 18px 20px">
+    <label>Type your full legal name</label><input id="sg-name" class="inp" value="${esc(ME.full_name||'')}"/>
+    <label class="hint" style="display:flex;gap:8px;margin-top:12px;align-items:flex-start"><input type="checkbox" id="sg-consent" style="margin-top:3px"><span>I have read and agree to this contract, and I consent to signing it electronically. I understand this records my identity, the time, and the contract version.</span></label>
+    <button class="btn btn-ok" style="margin-top:14px" onclick="wsSignSubmit('${id}','${role}')">Sign now</button>
+  </div></div></div>`);
+}
+async function wsSignSubmit(id,role){
+  const nm=($('sg-name')||{}).value||''; if(!nm.trim()){toast('Type your name.',true);return;}
+  if(!($('sg-consent')||{}).checked){toast('Please tick the consent box.',true);return;}
+  const {data:c}=await sb.from('cr_contracts').select('version').eq('id',id).maybeSingle();
+  const {error}=await sb.from('cr_signatures').insert({contract_id:id,signer_id:(SESSION&&SESSION.user)?SESSION.user.id:null,signer_name:nm,signer_role:role,method:'typed',consent:true,typed_name:nm,user_agent:navigator.userAgent,version:c?c.version:1,evidence:{at:new Date().toISOString(),ua:navigator.userAgent}});
+  if(error){toast(error.message,true);return;}
+  await sb.from('cr_contracts').update({status:role==='agency'?'countersigned':'signed',updated_at:new Date().toISOString()}).eq('id',id);
+  wsAudit('contract.signed.'+role,'contract',id);
+  document.getElementById('wssg').remove(); const v=document.getElementById('wscv');if(v)v.remove(); toast('Signed. A permanent, immutable record was created.'); wsContracts();
+}
+async function wsConNewVersion(id){
+  const {data:c}=await sb.from('cr_contracts').select('*').eq('id',id).maybeSingle(); if(!c)return;
+  await sb.from('cr_contract_versions').insert({contract_id:id,version:c.version,body:c.body,created_by:(SESSION&&SESSION.user)?SESSION.user.id:null,created_by_name:ME.full_name||ME.email});
+  await sb.from('cr_contracts').update({version:(c.version||1)+1,status:'draft',updated_at:new Date().toISOString()}).eq('id',id);
+  wsAudit('contract.version','contract',id); const v=document.getElementById('wscv');if(v)v.remove(); toast('New version created — previous signed version preserved.'); wsContracts();
+}
+
+// ---------- Proposals ----------
+const PROP_ST={draft:'#9aa0bd',sent:'#8e7cff',viewed:'#22d3ee',accepted:'#22c55e',rejected:'#ff5b6b',expired:'#ffb020',superseded:'#6b7280'};
+function propBadge(s){const c=PROP_ST[s]||'#9aa0bd';return `<span class="badge" style="background:${c}22;color:${c};border:1px solid ${c}66;text-transform:capitalize">${esc(s||'draft')}</span>`;}
+async function wsProposals(){
+  const cid=WS.cid, body=$('ws-body'); if(!body)return;
+  const {data}=await sb.from('cr_proposals').select('*').eq('client_id',cid).order('created_at',{ascending:false});
+  const rows=data||[];
+  body.innerHTML=`${wsCan()?`<button class="btn btn-sm btn-ok" style="width:auto;margin:0 0 12px" onclick="wsPropForm()">＋ New proposal</button>`:''}
+  <div class="table-wrap"><table class="lead-table"><thead><tr><th>Title</th><th>Version</th><th>One-time</th><th>Recurring</th><th>Ad budget</th><th>Valid till</th><th>Status</th><th></th></tr></thead><tbody>${rows.map(p=>`<tr><td><b>${esc(p.title||'Proposal')}</b></td><td>v${p.version||1}</td><td>${wsMoney(p.total_onetime,p.currency)}</td><td>${wsMoney(p.total_recurring,p.currency)}/mo</td><td>${wsMoney(p.ad_budget,p.currency)}</td><td>${p.validity_date?esc(fmtDay(p.validity_date)):'—'}</td><td>${propBadge(p.status)}</td><td><button class="link-btn" onclick="wsPropView('${p.id}')">open</button></td></tr>`).join('')||'<tr><td colspan="8" class="hint">No proposals yet.</td></tr>'}</tbody></table></div>`;
+}
+let WS_PROP_ITEMS=[];
+function wsPropForm(){
+  WS_PROP_ITEMS=[{section:'deliverable',name:'',fee:0,recurring:false}];
+  const c=WS.client||{};
+  $("modal-root").insertAdjacentHTML('beforeend',`<div class="overlay overlay-sheet" id="wspr" onclick="if(event.target===this)this.remove()"><div class="modal" style="max-width:640px"><div class="mh"><h2 style="margin:0">New proposal</h2><button class="x" onclick="document.getElementById('wspr').remove()">×</button></div><div class="mb">
+    <label>Title</label><input id="pr-title" class="inp" value="Digital marketing proposal — ${esc(c.company||'')}"/>
+    <label style="margin-top:10px">Introduction</label><textarea id="pr-intro" class="inp" rows="2"></textarea>
+    <label style="margin-top:10px">Objectives</label><textarea id="pr-obj" class="inp" rows="2"></textarea>
+    <label style="margin-top:10px">Proposed strategy</label><textarea id="pr-strat" class="inp" rows="2"></textarea>
+    <div class="section-title" style="margin-top:12px">Scope / deliverables &amp; fees</div><div id="pr-items"></div>
+    <button class="btn btn-sm btn-ghost" style="width:auto;margin:6px 0" onclick="wsPropAddItem()">＋ Add line</button>
+    <div class="grid3" style="margin-top:8px"><div><label>Advertising budget <span class="hint">(separate)</span></label><input id="pr-adbud" type="number" class="inp" value="0"/></div><div><label>Valid until</label><input id="pr-valid" type="date" class="inp"/></div><div><label>Currency</label><input id="pr-cur" class="inp" value="INR"/></div></div>
+    <label style="margin-top:10px">Payment terms</label><textarea id="pr-terms" class="inp" rows="2"></textarea>
+    <label style="margin-top:10px">Exclusions</label><textarea id="pr-excl" class="inp" rows="2"></textarea>
+    <div class="ws-inv-tot" id="pr-tot"></div>
+    <div class="row" style="margin-top:12px"><button class="btn btn-sm btn-ghost" style="width:auto;margin:0" onclick="wsPropSave('draft')">Save draft</button><button class="btn btn-sm btn-ok" style="width:auto;margin:0" onclick="wsPropSave('sent')">Save &amp; mark sent</button></div>
+  </div></div></div>`);
+  wsPropItemsRender();
+}
+function wsPropItemsRender(){ const b=$('pr-items'); if(!b)return; b.innerHTML=WS_PROP_ITEMS.map((it,i)=>`<div class="row" style="gap:6px;margin-bottom:6px"><select class="inp" style="max-width:120px" onchange="WS_PROP_ITEMS[${i}].section=this.value">${['deliverable','scope','optional','exclusion'].map(x=>`<option ${it.section===x?'selected':''}>${x}</option>`).join('')}</select><input class="inp" style="flex:2" placeholder="Description" value="${esc(it.name)}" oninput="WS_PROP_ITEMS[${i}].name=this.value"/><input class="inp" style="max-width:100px" type="number" placeholder="Fee" value="${it.fee}" oninput="WS_PROP_ITEMS[${i}].fee=this.value;wsPropTotals()"/><label class="hint" style="display:flex;align-items:center;gap:3px"><input type="checkbox" ${it.recurring?'checked':''} onchange="WS_PROP_ITEMS[${i}].recurring=this.checked;wsPropTotals()">/mo</label><button class="link-btn" style="color:#ff7b7b" onclick="WS_PROP_ITEMS.splice(${i},1);wsPropItemsRender()">×</button></div>`).join(''); wsPropTotals(); }
+function wsPropAddItem(){ WS_PROP_ITEMS.push({section:'deliverable',name:'',fee:0,recurring:false}); wsPropItemsRender(); }
+function wsPropCalc(){ let one=0,rec=0; WS_PROP_ITEMS.forEach(it=>{ if(it.section==='exclusion')return; const f=Number(it.fee)||0; if(it.recurring)rec+=f; else one+=f; }); return {one,rec}; }
+function wsPropTotals(){ const t=wsPropCalc(); const el=$('pr-tot'); if(el)el.innerHTML=`<div class="ws-row"><span>One-time total</span><b>${wsMoney(t.one)}</b></div><div class="ws-row"><span>Recurring</span><b>${wsMoney(t.rec)}/mo</b></div>`; }
+async function wsPropSave(status){
+  const t=wsPropCalc(); const v=i=>{const e=$(i);return e?e.value:'';};
+  const p={client_id:WS.cid,title:v('pr-title'),intro:v('pr-intro')||null,objectives:v('pr-obj')||null,strategy:v('pr-strat')||null,terms:v('pr-terms')||null,exclusions:v('pr-excl')||null,ad_budget:Number(v('pr-adbud'))||0,validity_date:v('pr-valid')||null,currency:v('pr-cur')||'INR',total_onetime:t.one,total_recurring:t.rec,status,version:1,created_by:(SESSION&&SESSION.user)?SESSION.user.id:null,created_by_name:ME.full_name||ME.email};
+  if(status==='sent')p.sent_at=new Date().toISOString();
+  const {data,error}=await sb.from('cr_proposals').insert(p).select().single();
+  if(error){toast(error.message,true);return;}
+  const its=WS_PROP_ITEMS.filter(it=>it.name); if(its.length) await sb.from('cr_proposal_items').insert(its.map((it,i)=>({proposal_id:data.id,section:it.section,name:it.name,fee:Number(it.fee)||0,recurring:!!it.recurring,sort:i})));
+  wsAudit('proposal.'+status,'proposal',data.id);
+  document.getElementById('wspr').remove(); toast('Proposal saved.'); wsProposals();
+}
+async function wsPropView(id){
+  const {data:p}=await sb.from('cr_proposals').select('*').eq('id',id).maybeSingle();
+  const {data:items}=await sb.from('cr_proposal_items').select('*').eq('proposal_id',id).order('sort');
+  if(!p)return;
+  const sect=s=>(items||[]).filter(i=>i.section===s);
+  const list=arr=>arr.length?`<div class="ws-list">${arr.map(i=>`<div class="ws-row"><span>${esc(i.name)}</span>${i.section!=='exclusion'?`<b>${wsMoney(i.fee,p.currency)}${i.recurring?'/mo':''}</b>`:''}</div>`).join('')}</div>`:'<div class="hint" style="padding:8px">—</div>';
+  const next={draft:['sent','Mark as sent'],sent:['accepted','Mark accepted'],viewed:['accepted','Mark accepted']};
+  $("modal-root").insertAdjacentHTML('beforeend',`<div class="overlay overlay-sheet" id="wspv" onclick="if(event.target===this)this.remove()"><div class="modal" style="max-width:600px"><div class="mh"><div><h2 style="margin:0">${esc(p.title||'Proposal')}</h2><div class="hint">v${p.version} · ${propBadge(p.status).replace(/<[^>]+>/g,'')}</div></div><button class="x" onclick="document.getElementById('wspv').remove()">×</button></div><div class="mb">
+    ${p.intro?`<p class="sub">${esc(p.intro)}</p>`:''}
+    ${p.objectives?`<div class="section-title">Objectives</div><p>${esc(p.objectives)}</p>`:''}
+    ${p.strategy?`<div class="section-title">Strategy</div><p>${esc(p.strategy)}</p>`:''}
+    <div class="section-title">Deliverables &amp; scope</div>${list(sect('deliverable').concat(sect('scope')))}
+    ${sect('optional').length?`<div class="section-title">Optional</div>${list(sect('optional'))}`:''}
+    ${sect('exclusion').length?`<div class="section-title">Exclusions</div>${list(sect('exclusion'))}`:''}
+    <div class="ws-inv-tot" style="margin-top:10px"><div class="ws-row"><span>One-time</span><b>${wsMoney(p.total_onetime,p.currency)}</b></div><div class="ws-row"><span>Recurring</span><b>${wsMoney(p.total_recurring,p.currency)}/mo</b></div><div class="ws-row"><span>Advertising budget (separate)</span><b>${wsMoney(p.ad_budget,p.currency)}</b></div></div>
+    ${p.terms?`<div class="section-title">Payment terms</div><p class="hint">${esc(p.terms)}</p>`:''}
+    ${p.accepted_at?`<div class="hint" style="margin-top:10px;color:#37d67a">✓ Accepted ${esc(fmtDate(p.accepted_at))}${p.accepted_name?' by '+esc(p.accepted_name):''}</div>`:''}
+    ${wsCan()?`<div class="row" style="margin-top:14px;gap:8px;flex-wrap:wrap">${next[p.status]?`<button class="btn btn-sm btn-ok" style="width:auto;margin:0" onclick="wsPropState('${id}','${next[p.status][0]}')">${next[p.status][1]}</button>`:''}${p.status!=='accepted'&&p.status!=='rejected'?`<button class="btn btn-sm btn-ghost" style="width:auto;margin:0;color:#ff8a8a" onclick="wsPropState('${id}','rejected')">Mark rejected</button>`:''}${p.status==='accepted'?`<button class="btn btn-sm btn-ok" style="width:auto;margin:0" onclick="wsPropConvert('${id}')">➜ Convert to contract</button>`:''}</div>`:''}
+  </div></div></div>`);
+  if(!p.viewed_at&&p.status==='sent'){ await sb.from('cr_proposals').update({viewed_at:new Date().toISOString(),status:'viewed'}).eq('id',id); }
+}
+async function wsPropState(id,st){
+  const patch={status:st}; if(st==='accepted'){patch.accepted_at=new Date().toISOString();patch.accepted_by=(SESSION&&SESSION.user)?SESSION.user.id:null;patch.accepted_name=ME.full_name||ME.email;}
+  const {error}=await sb.from('cr_proposals').update(patch).eq('id',id); if(error){toast(error.message,true);return;}
+  wsAudit('proposal.'+st,'proposal',id); const m=document.getElementById('wspv');if(m)m.remove(); toast('Proposal '+st+'.'); wsProposals();
+}
+async function wsPropConvert(id){
+  const {data:p}=await sb.from('cr_proposals').select('*').eq('id',id).maybeSingle(); if(!p)return;
+  const {data:c,error}=await sb.from('cr_contracts').insert({client_id:p.client_id,proposal_id:id,title:(p.title||'Contract').replace(/proposal/i,'agreement'),scope:p.strategy||p.objectives||null,status:'draft',version:1,created_by:(SESSION&&SESSION.user)?SESSION.user.id:null,created_by_name:ME.full_name||ME.email}).select().single();
+  if(error){toast(error.message,true);return;}
+  wsAudit('proposal.converted','contract',c.id); const m=document.getElementById('wspv');if(m)m.remove(); toast('Contract draft created from proposal.'); setWsTab('contracts');
+}
+
 // ---------- Invoices & Payments ----------
 const INV_ST={Draft:'#9aa0bd',Issued:'#8e7cff','Partially Paid':'#ffb020',Paid:'#22c55e',Overdue:'#ff5b6b',Cancelled:'#6b7280'};
 function invBadge(s){const c=INV_ST[s]||'#9aa0bd';return `<span class="badge" style="background:${c}22;color:${c};border:1px solid ${c}66">${esc(s||'Draft')}</span>`;}
