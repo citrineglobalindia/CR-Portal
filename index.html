@@ -5176,6 +5176,207 @@ async function wsBudgetSave(id){
   wsAudit('budget.'+(id?'updated':'created'),'budget',id);
   const m=document.getElementById('wsbf'); if(m)m.remove(); toast('Budget saved.'); wsBudgets();
 }
+// ---------- Portfolio & Assets ----------
+async function wsAssets(){
+  const cid=WS.cid, body=$('ws-body'); if(!body)return;
+  const {data}=await sb.from('cr_assets').select('*').eq('client_id',cid).order('created_at',{ascending:false});
+  const rows=data||[];
+  const del=rows.filter(a=>a.is_deliverable), work=rows.filter(a=>!a.is_deliverable);
+  const card=a=>{const u=a.file_path?logoUrl(a.file_path):'';const img=(a.mime_type||'').startsWith('image');return `<div class="pg-card"><div class="pg-thumb">${img&&u?`<img src="${esc(u)}">`:`<span class="pg-noimg">📄</span>`}</div><div class="pg-body"><div class="pg-title">${esc(a.name||'Asset')}</div>${a.tags&&a.tags.length?`<div class="hint">${a.tags.map(esc).join(', ')}</div>`:''}${a.public_consent?'<div class="hint" style="color:#37d67a">★ Public use approved</div>':''}</div>${wsCan()?`<div class="pg-foot">${u?`<a class="pg-fbtn" href="${esc(u)}" target="_blank">Open</a>`:''}<button class="pg-fbtn danger" onclick="wsAssetDel('${a.id}')">Delete</button></div>`:(u?`<div class="pg-foot"><a class="pg-fbtn" href="${esc(u)}" target="_blank">Open</a></div>`:'')}</div>`;};
+  body.innerHTML=`${wsCan()?`<label class="btn btn-sm btn-ok" style="width:auto;margin:0 0 12px;cursor:pointer">＋ Upload assets<input type="file" accept="image/*,video/*,.pdf" multiple hidden onchange="wsAssetUpload(this)"></label>`:''}
+  <div class="section-title">Approved deliverables</div><div class="pg-grid sz-md">${del.map(card).join('')||'<div class="hint">No deliverables yet.</div>'}</div>
+  ${wsCan()?`<div class="section-title">Working files <span class="hint">(internal — not shown to client)</span></div><div class="pg-grid sz-md">${work.map(card).join('')||'<div class="hint">No working files.</div>'}</div>`:''}`;
+}
+async function wsAssetUpload(inp){
+  const files=[...(inp.files||[])]; if(!files.length)return; toast('Uploading…');
+  for(const f of files){ try{ const path=`assets/${WS.cid}/${Date.now()}_${f.name.replace(/[^\w.\-]/g,'_')}`; await sb.storage.from('cr-logos').upload(path,f,{upsert:true}); await sb.from('cr_assets').insert({client_id:WS.cid,name:f.name.replace(/\.[^.]+$/,''),file_path:path,mime_type:f.type,kind:(f.type||'').split('/')[0],is_deliverable:false,created_by:(SESSION&&SESSION.user)?SESSION.user.id:null,created_by_name:ME.full_name||ME.email}); }catch(_){ } }
+  wsAudit('asset.uploaded','asset'); toast('Uploaded to working files. Mark items as deliverables to share with the client.'); wsAssets();
+}
+async function wsAssetDel(id){ if(!confirm('Delete this asset?'))return; await sb.from('cr_assets').delete().eq('id',id); toast('Deleted.'); wsAssets(); }
+
+// ---------- Reports ----------
+async function wsReports(){
+  const cid=WS.cid, body=$('ws-body'); if(!body)return;
+  const [rep,integ,acc]=await Promise.all([
+    sb.from('cr_reports').select('*').eq('client_id',cid).order('created_at',{ascending:false}),
+    sb.from('cr_integrations').select('kind,status').in('kind',['meta_ads','google_ads','ga4']),
+    sb.from('cr_ad_accounts').select('*').eq('client_id',cid)
+  ]);
+  const rows=rep.data||[]; const integs=integ.data||[];
+  const connected=integs.filter(i=>i.status==='connected').length;
+  body.innerHTML=`
+  <div class="ws-setup">
+    <div style="font-weight:700;color:var(--txt)">Live reporting integrations ${connected?`(${connected} connected)`:'(not connected)'}</div>
+    <div class="hint" style="margin-top:6px">${integs.map(i=>`${i.kind}: <b style="color:${i.status==='connected'?'#37d67a':'#ffb020'}">${i.status}</b>`).join(' · ')}</div>
+    <div class="hint" style="margin-top:6px">Connect Meta Ads, Google Ads and GA4 under <b>Settings → Integrations</b> to auto-sync. Until then, create reports manually — values you enter are labelled as manual.</div>
+  </div>
+  ${wsCan()?`<button class="btn btn-sm btn-ok" style="width:auto;margin:12px 0" onclick="wsReportForm()">＋ New report (manual)</button>`:''}
+  <div class="table-wrap"><table class="lead-table"><thead><tr><th>Title</th><th>Period</th><th>Platform</th><th>Source</th><th>Status</th><th></th></tr></thead><tbody>${rows.map(r=>`<tr><td><b>${esc(r.title||'Report')}</b></td><td>${r.period_start?esc(fmtDay(r.period_start)):'—'}${r.period_end?' → '+esc(fmtDay(r.period_end)):''}</td><td>${esc(r.platform||'—')}</td><td>${esc(r.source||'manual')}</td><td><span class="badge">${esc(r.status)}</span></td><td><button class="link-btn" onclick="wsReportView('${r.id}')">open</button></td></tr>`).join('')||'<tr><td colspan="6" class="hint">No reports yet.</td></tr>'}</tbody></table></div>`;
+}
+function wsReportForm(){
+  $("modal-root").insertAdjacentHTML('beforeend',`<div class="overlay overlay-sheet" id="wsrp" onclick="if(event.target===this)this.remove()"><div class="modal" style="max-width:600px"><div class="mh"><h2 style="margin:0">New report (manual)</h2><button class="x" onclick="document.getElementById('wsrp').remove()">×</button></div><div class="mb">
+    <label>Title</label><input id="rp-title" class="inp" value="Monthly performance report"/>
+    <div class="grid3" style="margin-top:10px"><div><label>Platform</label><input id="rp-plat" class="inp" placeholder="Meta Ads"/></div><div><label>Period start</label><input id="rp-ps" type="date" class="inp"/></div><div><label>Period end</label><input id="rp-pe" type="date" class="inp"/></div></div>
+    <div class="section-title" style="margin-top:12px">Metrics <span class="hint">leave blank for unavailable</span></div>
+    <div class="grid3">${['spend','impressions','reach','clicks','leads','cost_per_lead','conversions','roas','sessions'].map(k=>`<div><label>${k.replace(/_/g,' ')}</label><input id="rp-${k}" class="inp" placeholder="—"/></div>`).join('')}</div>
+    <label style="margin-top:10px">Agency observations</label><textarea id="rp-obs" class="inp" rows="2"></textarea>
+    <label style="margin-top:10px">Next steps</label><textarea id="rp-next" class="inp" rows="2"></textarea>
+    <button class="btn btn-ok" style="margin-top:14px" onclick="wsReportSave()">Save report</button>
+  </div></div></div>`);
+}
+async function wsReportSave(){
+  const v=i=>{const e=$(i);return e?e.value.trim():'';};
+  const keys=['spend','impressions','reach','clicks','leads','cost_per_lead','conversions','roas','sessions'];
+  const data={}; keys.forEach(k=>{ const x=v('rp-'+k); data[k]=x===''?null:(isNaN(Number(x))?x:Number(x)); });
+  const {data:d,error}=await sb.from('cr_reports').insert({client_id:WS.cid,title:v('rp-title'),platform:v('rp-plat')||null,period_start:v('rp-ps')||null,period_end:v('rp-pe')||null,data,observations:v('rp-obs')||null,next_steps:v('rp-next')||null,source:'manual',status:'draft',created_by:(SESSION&&SESSION.user)?SESSION.user.id:null,created_by_name:ME.full_name||ME.email}).select().single();
+  if(error){toast(error.message,true);return;}
+  wsAudit('report.created','report',d.id); document.getElementById('wsrp').remove(); toast('Report saved.'); wsReports();
+}
+async function wsReportView(id){
+  const {data:r}=await sb.from('cr_reports').select('*').eq('id',id).maybeSingle(); if(!r)return;
+  const d=r.data||{}; const fmt=(k,v)=>v===null||v===undefined?'<span class="hint">Not available</span>':(k==='spend'||k==='cost_per_lead'?wsMoney(v,r.currency):(k==='roas'?v+'x':String(v)));
+  const metric=(k,l)=>`<div class="ws-stat-card" style="--c:#8e7cff"><b style="font-size:17px">${fmt(k,d[k])}</b><span>${l}</span></div>`;
+  $("modal-root").insertAdjacentHTML('beforeend',`<div class="overlay overlay-sheet" id="wsrv" onclick="if(event.target===this)this.remove()"><div class="modal" style="max-width:620px"><div class="mh"><div><h2 style="margin:0">${esc(r.title||'Report')}</h2><div class="hint">${r.period_start?esc(fmtDay(r.period_start)):''}${r.period_end?' → '+esc(fmtDay(r.period_end)):''} · source: ${esc(r.source||'manual')} ${r.last_sync?'· synced '+esc(fmtDate(r.last_sync)):''}</div></div><button class="x" onclick="document.getElementById('wsrv').remove()">×</button></div><div class="mb">
+    ${r.source==='manual'?'<div class="hint" style="margin-bottom:10px">📝 Manually entered values. Not from a live platform sync.</div>':''}
+    <div class="ws-grid4" style="grid-template-columns:repeat(3,1fr)">${metric('spend','Spend')}${metric('impressions','Impressions')}${metric('reach','Reach')}${metric('clicks','Clicks')}${metric('leads','Leads')}${metric('cost_per_lead','Cost / lead')}${metric('conversions','Conversions')}${metric('roas','ROAS')}${metric('sessions','Sessions')}</div>
+    ${r.observations?`<div class="section-title">Observations</div><p>${esc(r.observations)}</p>`:''}
+    ${r.next_steps?`<div class="section-title">Next steps</div><p>${esc(r.next_steps)}</p>`:''}
+    <div class="hint" style="margin-top:8px">Currency ${esc(r.currency||'INR')} · timezone ${esc(r.timezone||'Asia/Kolkata')}</div>
+    ${wsCan()?`<div class="row" style="margin-top:14px;gap:8px">${r.status!=='shared'?`<button class="btn btn-sm btn-ok" style="width:auto;margin:0" onclick="wsReportShare('${id}')">Share with client</button>`:'<span class="hint">✓ Shared with client</span>'}<button class="btn btn-sm btn-ghost" style="width:auto;margin:0" onclick="window.print()">Export PDF</button></div>`:''}
+  </div></div></div>`);
+}
+async function wsReportShare(id){ const {error}=await sb.from('cr_reports').update({status:'shared',shared_at:new Date().toISOString()}).eq('id',id); if(error){toast(error.message,true);return;} wsAudit('report.shared','report',id); const m=document.getElementById('wsrv');if(m)m.remove(); toast('Report shared with client.'); wsReports(); }
+
+// ---------- Reviews ----------
+async function wsReviews(){
+  const cid=WS.cid, body=$('ws-body'); if(!body)return;
+  const {data}=await sb.from('cr_reviews').select('*').eq('client_id',cid).order('created_at',{ascending:false});
+  const rows=data||[];
+  const stars=n=>'★★★★★☆☆☆☆☆'.slice(5-Math.min(5,n||0),10-Math.min(5,n||0));
+  body.innerHTML=`${ME.role==='client'?`<button class="btn btn-sm btn-ok" style="width:auto;margin:0 0 12px" onclick="wsReviewForm()">＋ Leave feedback</button>`:''}
+  <div class="ws-list">${rows.map(r=>`<div class="ws-sec"><div class="ws-sec-h"><h3>${esc(r.title||r.type||'Feedback')} <span style="color:#ffb020">${r.rating?stars(r.rating):''}</span></h3><span class="badge">${esc(r.status)}</span></div><p>${esc(r.body||'')}</p><div class="hint">${esc(r.type)} · ${esc(fmtDate(r.created_at))}${r.public_consent?' · ★ public use approved':''}</div>${wsCan()?`<div class="row" style="margin-top:8px;gap:6px">${r.status!=='resolved'?`<button class="btn btn-sm btn-ok" style="width:auto;margin:0" onclick="wsReviewResolve('${r.id}')">Mark resolved</button>`:''}<button class="btn btn-sm btn-ghost" style="width:auto;margin:0" onclick="wsReviewConsent('${r.id}',${!r.public_consent})">${r.public_consent?'Revoke public use':'Allow public use'}</button></div>`:''}</div>`).join('')||'<div class="ws-empty"><div class="ws-empty-ic">⭐</div><div>No feedback yet.</div></div>'}</div>`;
+}
+let WS_RV_RATING=0;
+function wsReviewForm(){
+  WS_RV_RATING=0;
+  $("modal-root").insertAdjacentHTML('beforeend',`<div class="overlay overlay-sheet" id="wsrf" onclick="if(event.target===this)this.remove()"><div class="modal more-sheet"><div class="ms-handle"></div><div class="ms-head"><h2 style="margin:0">Your feedback</h2><button class="x" onclick="document.getElementById('wsrf').remove()">×</button></div><div style="padding:6px 18px 20px">
+    <label>Type</label><select id="rv-type" class="inp"><option value="feedback">Feedback</option><option value="complaint">Complaint</option><option value="suggestion">Suggestion</option></select>
+    <div id="rv-stars" class="fb-stars" style="margin-top:10px">${[1,2,3,4,5].map(n=>`<span onclick="WS_RV_RATING=${n};document.querySelectorAll('#rv-stars span').forEach((e,i)=>e.textContent=i<${n}?'★':'☆')">☆</span>`).join('')}</div>
+    <label style="margin-top:10px">Message</label><textarea id="rv-body" class="inp" rows="3"></textarea>
+    <button class="btn btn-ok" style="margin-top:12px" onclick="wsReviewSubmit()">Send</button>
+  </div></div></div>`);
+}
+async function wsReviewSubmit(){
+  const body=($('rv-body')||{}).value||''; if(!body.trim()&&!WS_RV_RATING){toast('Add a rating or message.',true);return;}
+  const {error}=await sb.from('cr_reviews').insert({client_id:WS.cid,rating:WS_RV_RATING||null,type:($('rv-type')||{}).value,body,status:'new',created_by:(SESSION&&SESSION.user)?SESSION.user.id:null,created_by_name:ME.full_name||ME.company||ME.email});
+  if(error){toast(error.message,true);return;}
+  wsAudit('review.submitted','review'); document.getElementById('wsrf').remove(); toast('Thanks for your feedback!'); wsReviews();
+}
+async function wsReviewResolve(id){ await sb.from('cr_reviews').update({status:'resolved',resolved_at:new Date().toISOString()}).eq('id',id); toast('Resolved.'); wsReviews(); }
+async function wsReviewConsent(id,val){ await sb.from('cr_reviews').update({public_consent:val}).eq('id',id); toast(val?'Public use approved.':'Consent revoked.'); wsReviews(); }
+
+// ---------- Projects & Change Requests ----------
+async function wsProjects(){
+  const cid=WS.cid, body=$('ws-body'); if(!body)return;
+  const {data}=await sb.from('cr_projects').select('*').eq('client_id',cid).order('created_at',{ascending:false});
+  const rows=data||[];
+  body.innerHTML=`<div class="hint" style="margin-bottom:10px">Projects for this client. Open one to manage folders, uploads, pages and tasks.</div>
+  <div class="projx-grid">${rows.map(p=>`<div class="projx-card" onclick="closeModal();setAdminTab&&setAdminTab('projects');setTimeout(()=>openProject('${p.id}'),200)"><div class="projx-head"><div class="projx-logo ph">${esc(initials(p.name||'P'))}</div><div class="projx-id"><div class="projx-nm">${esc(p.name||'Project')}</div><div class="projx-cl">${esc(p.status||'Active')}</div></div></div></div>`).join('')||'<div class="hint">No projects yet. Create one from the Projects module.</div>'}</div>`;
+}
+async function wsRequests(){
+  const cid=WS.cid, body=$('ws-body'); if(!body)return;
+  const {data}=await sb.from('cr_requests').select('*').eq('client_id',cid).is('deleted_at',null).order('created_at',{ascending:false});
+  const rows=data||[];
+  body.innerHTML=`<div class="table-wrap"><table class="lead-table"><thead><tr><th>Ref</th><th>Title</th><th>Priority</th><th>Scope</th><th>Estimate</th><th>Status</th>${wsCan()?'<th></th>':''}</tr></thead><tbody>${rows.map(r=>`<tr><td><span class="ref">${esc(r.ref_no||'')}</span></td><td>${esc(r.title||'')}</td><td class="pr-${esc(r.priority)}">${esc(r.priority||'')}</td><td>${r.chargeable?`<span class="badge" style="background:#ff8a3d22;color:#ff8a3d;border:1px solid #ff8a3d66">Chargeable</span>`:(r.in_scope?`<span class="badge" style="background:#22c55e22;color:#22c55e;border:1px solid #22c55e66">In scope</span>`:'—')}</td><td>${r.estimate?wsMoney(r.estimate):'—'}${r.chargeable?(r.estimate_approved?' ✓':' <span class="hint">pending</span>'):''}</td><td><span class="badge ${badgeClass(r.status)}">${esc(r.status)}</span></td>${wsCan()?`<td><button class="link-btn" onclick="wsReqScope('${r.id}')">scope</button></td>`:''}</tr>`).join('')||`<tr><td colspan="${wsCan()?7:6}" class="hint">No change requests.</td></tr>`}</tbody></table></div>`;
+}
+function wsReqScope(id){
+  sb.from('cr_requests').select('in_scope,chargeable,estimate,estimate_approved').eq('id',id).maybeSingle().then(({data:d})=>{
+    d=d||{};
+    $("modal-root").insertAdjacentHTML('beforeend',`<div class="overlay overlay-sheet" id="wsrs" onclick="if(event.target===this)this.remove()"><div class="modal more-sheet"><div class="ms-handle"></div><div class="ms-head"><h2 style="margin:0">Scope &amp; estimate</h2><button class="x" onclick="document.getElementById('wsrs').remove()">×</button></div><div style="padding:6px 18px 20px">
+      <label class="hint" style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="rs-scope" ${d.in_scope?'checked':''}> Within current scope (no charge)</label>
+      <label class="hint" style="display:flex;gap:8px;align-items:center;margin-top:8px"><input type="checkbox" id="rs-charge" ${d.chargeable?'checked':''}> Chargeable (additional work)</label>
+      <label style="margin-top:10px">Estimate</label><input id="rs-est" type="number" class="inp" value="${d.estimate||''}"/>
+      <label class="hint" style="display:flex;gap:8px;align-items:center;margin-top:8px"><input type="checkbox" id="rs-appr" ${d.estimate_approved?'checked':''}> Client approved the estimate</label>
+      <button class="btn btn-ok" style="margin-top:14px" onclick="wsReqScopeSave('${id}')">Save</button>
+    </div></div></div>`);
+  });
+}
+async function wsReqScopeSave(id){
+  const patch={in_scope:($('rs-scope')||{}).checked,chargeable:($('rs-charge')||{}).checked,estimate:Number(($('rs-est')||{}).value)||null,estimate_approved:($('rs-appr')||{}).checked,updated_at:new Date().toISOString()};
+  const {error}=await sb.from('cr_requests').update(patch).eq('id',id); if(error){toast(error.message,true);return;}
+  wsAudit('request.scoped','request',id); document.getElementById('wsrs').remove(); toast('Saved.'); wsRequests();
+}
+
+// ---------- Content Calendar ----------
+const CC_ST=['Planned','In Production','Internal Review','Client Approval','Approved','Scheduled','Published','Changes Requested','Cancelled'];
+const CC_STC={Planned:'#9aa0bd','In Production':'#8e7cff','Internal Review':'#22d3ee','Client Approval':'#ffb020',Approved:'#22c55e',Scheduled:'#06b6d4',Published:'#16a34a','Changes Requested':'#ff8a3d',Cancelled:'#6b7280'};
+function ccBadge(s){const c=CC_STC[s]||'#9aa0bd';return `<span class="badge" style="background:${c}22;color:${c};border:1px solid ${c}66">${esc(s||'Planned')}</span>`;}
+async function wsCalendar(){
+  const cid=WS.cid, body=$('ws-body'); if(!body)return;
+  const {data}=await sb.from('cr_content_items').select('*').eq('client_id',cid).order('planned_at',{ascending:true,nullsFirst:false});
+  const rows=data||[];
+  body.innerHTML=`${wsCan()?`<button class="btn btn-sm btn-ok" style="width:auto;margin:0 0 12px" onclick="wsCcForm()">＋ New content</button>`:''}
+  <div class="table-wrap"><table class="lead-table"><thead><tr><th>Planned</th><th>Platform</th><th>Type</th><th>Caption</th><th>Creator</th><th>Status</th><th></th></tr></thead><tbody>${rows.map(r=>`<tr><td>${r.planned_at?esc(fmtDay(r.planned_at))+' '+esc(fmtTime(r.planned_at)):'—'}</td><td>${esc(r.platform||'—')}</td><td>${esc(r.content_type||'—')}</td><td style="max-width:220px"><div class="cc-ell">${esc((r.caption||'').slice(0,80))}</div></td><td>${esc(r.creator_name||'—')}</td><td>${ccBadge(r.status)}</td><td><button class="link-btn" onclick="wsCcView('${r.id}')">open</button></td></tr>`).join('')||'<tr><td colspan="7" class="hint">No content planned yet.</td></tr>'}</tbody></table></div>`;
+}
+function wsCcForm(){
+  $("modal-root").insertAdjacentHTML('beforeend',`<div class="overlay overlay-sheet" id="wscc" onclick="if(event.target===this)this.remove()"><div class="modal" style="max-width:600px"><div class="mh"><h2 style="margin:0">New content</h2><button class="x" onclick="document.getElementById('wscc').remove()">×</button></div><div class="mb">
+    <div class="grid3"><div><label>Platform</label><input id="cc-plat" class="inp" placeholder="Instagram"/></div><div><label>Type</label><input id="cc-type" class="inp" placeholder="Reel / Post / Story"/></div><div><label>Pillar / Campaign</label><input id="cc-pillar" class="inp"/></div></div>
+    <label style="margin-top:10px">Caption</label><textarea id="cc-cap" class="inp" rows="3"></textarea>
+    <label style="margin-top:10px">Hashtags</label><input id="cc-tags" class="inp" placeholder="#..."/>
+    <div class="grid2" style="margin-top:10px"><div><label>Planned date &amp; time</label><input id="cc-when" type="datetime-local" class="inp"/></div><div><label>Creator</label><input id="cc-creator" class="inp" value="${esc(ME.full_name||'')}"/></div></div>
+    <label style="margin-top:10px">Creative files</label><input id="cc-files" type="file" accept="image/*,video/*" multiple class="inp"/>
+    <div class="row" style="margin-top:12px"><button class="btn btn-sm btn-ghost" style="width:auto;margin:0" onclick="wsCcSave('Planned')">Save as planned</button><button class="btn btn-sm btn-ok" style="width:auto;margin:0" onclick="wsCcSave('Client Approval')">Send for client approval</button></div>
+  </div></div></div>`);
+}
+async function wsCcSave(status){
+  const v=i=>{const e=$(i);return e?e.value:'';};
+  const {data,error}=await sb.from('cr_content_items').insert({client_id:WS.cid,platform:v('cc-plat')||null,content_type:v('cc-type')||null,pillar:v('cc-pillar')||null,caption:v('cc-cap')||null,hashtags:v('cc-tags')||null,planned_at:v('cc-when')||null,creator_id:(SESSION&&SESSION.user)?SESSION.user.id:null,creator_name:v('cc-creator')||null,status,created_by:(SESSION&&SESSION.user)?SESSION.user.id:null,created_by_name:ME.full_name||ME.email}).select().single();
+  if(error){toast(error.message,true);return;}
+  const files=$('cc-files'); if(files&&files.files) for(const f of files.files){ try{ const path=`content/${data.id}/${Date.now()}_${f.name.replace(/[^\w.\-]/g,'_')}`; await sb.storage.from('cr-logos').upload(path,f,{upsert:true}); await sb.from('cr_content_assets').insert({content_item_id:data.id,file_path:path,file_name:f.name,mime_type:f.type}); }catch(_){ } }
+  await sb.from('cr_content_versions').insert({content_item_id:data.id,version:1,caption:v('cc-cap'),hashtags:v('cc-tags'),status,created_by:(SESSION&&SESSION.user)?SESSION.user.id:null,created_by_name:ME.full_name||ME.email});
+  wsAudit('content.'+status,'content',data.id); document.getElementById('wscc').remove(); toast('Content saved.'); wsCalendar();
+}
+async function wsCcView(id){
+  const {data:r}=await sb.from('cr_content_items').select('*').eq('id',id).maybeSingle();
+  const {data:assets}=await sb.from('cr_content_assets').select('*').eq('content_item_id',id);
+  if(!r)return; const isClient=ME.role==='client';
+  const imgs=(assets||[]).map(a=>`<img src="${esc(logoUrl(a.file_path))}" style="width:100%;border-radius:10px;margin-top:6px">`).join('');
+  $("modal-root").insertAdjacentHTML('beforeend',`<div class="overlay overlay-sheet" id="wscp" onclick="if(event.target===this)this.remove()"><div class="modal" style="max-width:560px"><div class="mh"><div><h2 style="margin:0">${esc(r.platform||'Content')} · ${esc(r.content_type||'')}</h2><div class="hint">${ccBadge(r.status).replace(/<[^>]+>/g,'')}${r.planned_at?' · '+esc(fmtDate(r.planned_at)):''}</div></div><button class="x" onclick="document.getElementById('wscp').remove()">×</button></div><div class="mb">
+    ${imgs||'<div class="hint">No creative uploaded.</div>'}
+    ${r.caption?`<div class="section-title">Caption</div><p style="white-space:pre-wrap">${esc(r.caption)}</p>`:''}
+    ${r.hashtags?`<div class="hint">${esc(r.hashtags)}</div>`:''}
+    ${r.approval_comment?`<div class="section-title">Comments</div><p class="hint">${esc(r.approval_comment)}</p>`:''}
+    <div class="row" style="margin-top:14px;gap:8px;flex-wrap:wrap">
+      ${(isClient&&r.status==='Client Approval')?`<button class="btn btn-sm btn-ok" style="width:auto;margin:0" onclick="wsCcDecide('${id}','Approved')">✓ Approve</button><button class="btn btn-sm btn-ghost" style="width:auto;margin:0;color:#ff8a3d" onclick="wsCcChanges('${id}')">Request changes</button>`:''}
+      ${(wsCan()&&r.status==='Internal Review')?`<button class="btn btn-sm btn-ok" style="width:auto;margin:0" onclick="wsCcDecide('${id}','Client Approval')">Send to client</button>`:''}
+      ${(wsCan()&&r.status==='Approved')?`<button class="btn btn-sm btn-ok" style="width:auto;margin:0" onclick="wsCcDecide('${id}','Scheduled')">Schedule</button>`:''}
+      ${(wsCan()&&r.status==='Scheduled')?`<button class="btn btn-sm btn-ok" style="width:auto;margin:0" onclick="wsCcPublish('${id}')">Mark published (manual)</button>`:''}
+    </div>
+    ${(wsCan()&&r.status==='Scheduled')?'<div class="hint" style="margin-top:6px">No social integration is connected, so publishing is confirmed manually. Connect a platform under Integrations for automatic publishing.</div>':''}
+  </div></div></div>`);
+}
+async function wsCcDecide(id,status){ const {error}=await sb.from('cr_content_items').update({status,updated_at:new Date().toISOString()}).eq('id',id); if(error){toast(error.message,true);return;} wsAudit('content.'+status,'content',id); const m=document.getElementById('wscp');if(m)m.remove(); toast('Updated.'); wsCalendar(); }
+async function wsCcPublish(id){ const {error}=await sb.from('cr_content_items').update({status:'Published',published_at:new Date().toISOString(),publish_mode:'manual'}).eq('id',id); if(error){toast(error.message,true);return;} wsAudit('content.published','content',id); const m=document.getElementById('wscp');if(m)m.remove(); toast('Marked as published.'); wsCalendar(); }
+async function wsCcChanges(id){ const note=prompt('What changes are needed?'); if(note===null)return; await sb.from('cr_content_items').update({status:'Changes Requested',approval_comment:note}).eq('id',id); wsAudit('content.changes','content',id); const m=document.getElementById('wscp');if(m)m.remove(); toast('Change requested.'); wsCalendar(); }
+
+// ---------- Approvals inbox ----------
+async function wsApprovals(){
+  const cid=WS.cid, body=$('ws-body'); if(!body)return;
+  const [cc,pr,co,rq]=await Promise.all([
+    sb.from('cr_content_items').select('id,platform,content_type,status').eq('client_id',cid).eq('status','Client Approval'),
+    sb.from('cr_proposals').select('id,title,status').eq('client_id',cid).in('status',['sent','viewed']),
+    sb.from('cr_contracts').select('id,title,status').eq('client_id',cid).eq('status','sent'),
+    sb.from('cr_requests').select('id,ref_no,title,status').eq('client_id',cid).eq('status','Client Review')
+  ]);
+  const row=(ic,t,sub,fn)=>`<div class="ws-row"><span>${ic} <b>${esc(t)}</b> <span class="hint">${esc(sub)}</span></span><button class="link-btn" onclick="${fn}">open</button></div>`;
+  const items=[]
+    .concat((cc.data||[]).map(x=>row('🎨',(x.platform||'Content')+' '+(x.content_type||''),'awaiting creative approval',`setWsTab('calendar');setTimeout(()=>wsCcView('${x.id}'),200)`)))
+    .concat((pr.data||[]).map(x=>row('📄',x.title||'Proposal','awaiting decision',`setWsTab('proposals');setTimeout(()=>wsPropView('${x.id}'),200)`)))
+    .concat((co.data||[]).map(x=>row('✍️',x.title||'Contract','awaiting signature',`setWsTab('contracts');setTimeout(()=>wsConView('${x.id}'),200)`)))
+    .concat((rq.data||[]).map(x=>row('📋',(x.ref_no||'')+' '+(x.title||''),'awaiting your review','setWsTab(\'requests\')')));
+  body.innerHTML=items.length?`<div class="ws-sec"><div class="ws-sec-h"><h3>Awaiting approval</h3><span class="badge">${items.length}</span></div><div class="ws-list">${items.join('')}</div></div>`:`<div class="ws-empty"><div class="ws-empty-ic">✅</div><div>Nothing is waiting for approval.</div></div>`;
+}
+
 // ---------- Contracts & signing ----------
 const CON_ST={draft:'#9aa0bd',sent:'#8e7cff',signed:'#22c55e',countersigned:'#16a34a',terminated:'#ff5b6b'};
 function conBadge(s){const c=CON_ST[s]||'#9aa0bd';return `<span class="badge" style="background:${c}22;color:${c};border:1px solid ${c}66;text-transform:capitalize">${esc(s||'draft')}</span>`;}
