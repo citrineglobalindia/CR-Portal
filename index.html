@@ -766,6 +766,41 @@
   .lf-clear{margin-left:auto;background:transparent;border:1px solid var(--line);color:var(--muted);padding:8px 14px;border-radius:999px;font-size:12.5px;font-weight:700;cursor:pointer}
   .lf-clear:hover{color:#ff8a8a;border-color:rgba(255,107,107,.5)}
   @media(max-width:640px){.lf-dates label{flex:1}.lf-dates input[type=date]{max-width:none;width:100%}.lf-clear{margin-left:0;width:100%}}
+  /* agency workspace */
+  .ws-wrap{width:100%;max-width:1100px;margin:0 auto;background:var(--panel);display:flex;flex-direction:column;height:100vh;height:100dvh}
+  .ws-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px;border-bottom:1px solid var(--line);background:linear-gradient(135deg,var(--g1),transparent)}
+  .ws-head-l{display:flex;align-items:center;gap:12px;min-width:0}
+  .ws-logo{width:46px;height:46px;border-radius:13px;background:#fff;display:grid;place-items:center;overflow:hidden;font-weight:800;color:var(--brand);flex:0 0 auto}
+  .ws-logo img{width:100%;height:100%;object-fit:contain;background:#fff}
+  .ws-nm{font-size:18px;font-weight:800}
+  .ws-sub{font-size:12.5px;color:var(--muted)}
+  .ws-stat{text-transform:capitalize;padding:1px 7px;border-radius:999px;font-weight:700;font-size:11px}
+  .ws-stat.active{background:rgba(34,197,94,.16);color:#37d67a}.ws-stat.inactive,.ws-stat.paused{background:rgba(255,107,107,.16);color:#ff8a8a}.ws-stat.onboarding{background:rgba(255,176,32,.16);color:#ffb020}
+  .ws-tabs{display:flex;gap:4px;padding:8px 12px;overflow-x:auto;border-bottom:1px solid var(--line);white-space:nowrap}
+  .ws-tab{display:inline-flex;align-items:center;gap:6px;flex:0 0 auto;background:transparent;border:1px solid transparent;color:var(--muted);padding:8px 12px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer}
+  .ws-tab:hover{color:var(--txt);background:var(--panel2)}
+  .ws-tab.on{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff}
+  .ws-body{flex:1;overflow-y:auto;padding:18px;background:var(--bg)}
+  .ws-grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+  .ws-stat-card{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--c,var(--brand));border-radius:14px;padding:14px}
+  .ws-stat-card b{display:block;font-size:22px;font-weight:900;color:var(--txt)}
+  .ws-stat-card span{font-size:12px;color:var(--muted)}
+  .ws-2col{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+  .ws-sec{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:14px}
+  .ws-sec-h{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+  .ws-sec-h h3{margin:0;font-size:15px}
+  .ws-kv{display:flex;flex-direction:column;gap:8px}
+  .ws-kv>div{display:flex;justify-content:space-between;gap:10px;font-size:13px;border-bottom:1px solid var(--line);padding-bottom:7px}
+  .ws-kv>div:last-child{border-bottom:0}
+  .ws-kv span{color:var(--muted)}.ws-kv b{text-align:right}
+  .ws-list{display:flex;flex-direction:column}
+  .ws-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 2px;border-bottom:1px solid var(--line);font-size:13px}
+  .ws-row:last-child{border-bottom:0}
+  .ws-empty{text-align:center;color:var(--muted);padding:48px 16px}
+  .ws-empty-ic{font-size:40px;margin-bottom:10px}
+  .ws-setup{background:var(--panel2);border:1px dashed var(--line);border-radius:14px;padding:18px;text-align:center;color:var(--muted)}
+  @media(max-width:820px){.ws-grid4{grid-template-columns:repeat(2,1fr)}.ws-2col{grid-template-columns:1fr}}
+  .ws-inv-tot{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-top:10px}
   /* 3D background + depth */
   #bg3d{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;opacity:.4}
   #auth-view,#app-view{position:relative;z-index:1}
@@ -5025,13 +5060,227 @@ function renderClientsList(){
         ${s.last?`<span class="cc-chip time">⏱ ${esc(fmtDay(new Date(s.last).toISOString()))}</span>`:""}
       </div>
       <div class="cc-actions">
-        <button class="btn btn-sm cc-primary" onclick="viewClientCRs('${esc(nm)}')">📋 View CRs</button>
+        <button class="btn btn-sm cc-primary" onclick="openWorkspace('${c.id}')">🏢 Workspace</button>
+        <button class="btn btn-sm btn-ghost" onclick="viewClientCRs('${esc(nm)}')">📋 CRs</button>
         <button class="btn btn-sm btn-ghost" onclick="openClientEdit('${c.id}')">✏️ Edit</button>
         <button class="btn btn-sm btn-ghost" onclick="openVault('${c.id}')">🔒 Vault</button>
         <button class="btn btn-sm btn-ghost" onclick="openNotes('${c.id}')">📝 Notes</button>
       </div>
     </div>`;}).join("")}</div>`:`<div class="empty">${term?"No clients match your search.":"No clients yet. Create your first one above."}</div>`;
 }
+
+// ===================== AGENCY CLIENT WORKSPACE =====================
+let WS={cid:null,tab:'overview',client:null};
+const WS_TABS=[['overview','Overview','M3 11l9-8 9 8M5 10v10h14V10'],['proposals','Proposals','M8 3h8l2 2v14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z'],['contracts','Contracts','M8 3h8l2 2v14a2 2 0 0 1-2 2H8V3zM9 9h6M9 13h6'],['projects','Projects & Tasks','M4 7a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z'],['calendar','Content Calendar','M3 5h18v16H3zM3 9h18M8 3v4M16 3v4'],['approvals','Approvals','M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11'],['assets','Portfolio & Assets','M3 7h18v12H3zM3 7l3-3h6l3 3'],['reports','Reports','M3 21h18M6 18V9m6 9V5m6 13v-6'],['budgets','Ad Budgets','M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6'],['invoices','Invoices & Payments','M6 2h9l3 3v17l-3-2-3 2-3-2-3 2V5a3 3 0 0 1 3-3zM9 8h6M9 12h6'],['requests','Change Requests','M4 4h16v12H5.2L4 17.5z'],['reviews','Reviews','M12 2l2.9 5.9 6.6.9-4.8 4.6 1.2 6.5L12 18l-5.9 3.1 1.2-6.5L2.5 9.8l6.6-.9z']];
+function wsMoney(n,c){ const cur=c||'INR'; const v=Number(n)||0; return (cur==='INR'?'₹':cur+' ')+v.toLocaleString('en-IN',{maximumFractionDigits:2}); }
+function wsCan(){ return ME&&(ME.role==='admin'||ME.role==='super_admin'||ME.role==='account_manager'||ME.role==='manager'); }
+async function openWorkspace(id){
+  WS={cid:id,tab:'overview',client:(CLIENTS||[]).find(x=>x.id===id)||null};
+  if(!WS.client){ try{ const {data}=await sb.from('cr_profiles').select('*').eq('id',id).maybeSingle(); WS.client=data; }catch(_){ } }
+  const c=WS.client||{}; const lg=logoUrl(c.logo_path);
+  $("modal-root").innerHTML=`<div class="overlay" style="align-items:stretch;padding:0"><div class="ws-wrap">
+    <div class="ws-head">
+      <div class="ws-head-l"><div class="ws-logo">${lg?`<img src="${esc(lg)}">`:esc(initials(c.company||c.full_name||'C'))}</div>
+        <div style="min-width:0"><div class="ws-nm">${esc(c.company||c.full_name||c.username||'Client')}</div><div class="ws-sub">${esc(c.industry||'')}${c.client_code?` · ${esc(c.client_code)}`:''}${c.client_status?` · <span class="ws-stat ${esc(c.client_status)}">${esc(c.client_status)}</span>`:''}</div></div></div>
+      <button class="x" onclick="closeModal()">×</button>
+    </div>
+    <div class="ws-tabs" id="ws-tabs">${WS_TABS.map(t=>`<button id="wst-${t[0]}" class="ws-tab" onclick="setWsTab('${t[0]}')"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="${t[2]}"/></svg> ${t[1]}</button>`).join('')}</div>
+    <div class="ws-body" id="ws-body"></div>
+  </div></div>`;
+  setWsTab('overview');
+}
+function setWsTab(t){
+  WS.tab=t;
+  document.querySelectorAll('.ws-tab').forEach(b=>b.classList.remove('on')); const b=$('wst-'+t); if(b)b.classList.add('on');
+  const body=$('ws-body'); if(!body)return; body.innerHTML='<div class="hint" style="padding:20px">Loading…</div>';
+  const nm='ws'+t.charAt(0).toUpperCase()+t.slice(1);
+  const fn=(typeof window[nm]==='function')?window[nm]:null;
+  if(fn){ try{ fn(); }catch(e){ body.innerHTML='<div class="hint" style="padding:20px">'+esc((e&&e.message)||'Error')+'</div>'; } }
+  else body.innerHTML=wsSoon(t);
+}
+function wsSoon(t){ return `<div class="ws-empty"><div class="ws-empty-ic">🚧</div><div>This section is being rolled out.</div></div>`; }
+function wsCard(title,extra){ return `<div class="ws-sec"><div class="ws-sec-h"><h3>${title}</h3>${extra||''}</div>`; }
+
+// ---------- Overview ----------
+async function wsOverview(){
+  const cid=WS.cid, body=$('ws-body'); if(!body)return;
+  const [svc,proj,inv,bud,act,am]=await Promise.all([
+    sb.from('cr_client_services').select('name,fee,recurring,status').eq('client_id',cid),
+    sb.from('cr_projects').select('id,name,status,updated_at').eq('client_id',cid),
+    sb.from('cr_invoices').select('total,paid,status,invoice_no,due_date').eq('client_id',cid),
+    sb.from('cr_ad_budgets').select('approved,received,spent').eq('client_id',cid),
+    sb.from('cr_audit_log').select('action,created_at,actor_name,detail').eq('client_id',cid).order('created_at',{ascending:false}).limit(8),
+    WS.client&&WS.client.account_manager?sb.from('cr_profiles').select('full_name,email').eq('id',WS.client.account_manager).maybeSingle():Promise.resolve({data:null})
+  ]);
+  const services=svc.data||[], projects=proj.data||[], invoices=inv.data||[], budgets=bud.data||[];
+  const outstanding=invoices.filter(i=>i.status!=='Paid'&&i.status!=='Cancelled'&&i.status!=='Draft').reduce((s,i)=>s+((Number(i.total)||0)-(Number(i.paid)||0)),0);
+  const bApproved=budgets.reduce((s,b)=>s+(Number(b.approved)||0),0), bSpent=budgets.reduce((s,b)=>s+(Number(b.spent)||0),0), bRecv=budgets.reduce((s,b)=>s+(Number(b.received)||0),0);
+  const amName=(am&&am.data&&am.data.full_name)||'—';
+  const stat=(v,l,c)=>`<div class="ws-stat-card" style="--c:${c}"><b>${v}</b><span>${l}</span></div>`;
+  body.innerHTML=`
+  <div class="ws-grid4">
+    ${stat(services.length,'Active services','#8e7cff')}
+    ${stat(projects.length,'Projects','#22d3ee')}
+    ${stat(wsMoney(outstanding),'Outstanding','#ff8a3d')}
+    ${stat(wsMoney(bApproved-bSpent),'Ad budget left','#22c55e')}
+  </div>
+  <div class="ws-2col">
+    ${wsCard('Account')}<div class="ws-kv"><div><span>Account manager</span><b>${esc(amName)}</b></div><div><span>Services</span><b>${services.map(s=>esc(s.name)).join(', ')||'—'}</b></div><div><span>Renewal</span><b>${WS.client&&WS.client.renewal_date?esc(fmtDay(WS.client.renewal_date)):'—'}</b></div></div></div>
+    ${wsCard('Advertising budget')}<div class="ws-kv"><div><span>Approved</span><b>${wsMoney(bApproved)}</b></div><div><span>Funds received</span><b>${wsMoney(bRecv)}</b></div><div><span>Spent</span><b>${wsMoney(bSpent)}</b></div><div><span>Available funds</span><b>${wsMoney(bRecv-bSpent)}</b></div></div></div>
+  </div>
+  <div class="ws-2col">
+    ${wsCard('Current projects')}${projects.length?`<div class="ws-list">${projects.slice(0,6).map(p=>`<div class="ws-row"><span>${esc(p.name||'Project')}</span><span class="badge">${esc(p.status||'Active')}</span></div>`).join('')}</div>`:'<div class="hint" style="padding:10px">No projects yet.</div>'}</div>
+    ${wsCard('Outstanding invoices')}${invoices.filter(i=>i.status!=='Paid'&&i.status!=='Draft'&&i.status!=='Cancelled').length?`<div class="ws-list">${invoices.filter(i=>i.status!=='Paid'&&i.status!=='Draft'&&i.status!=='Cancelled').slice(0,6).map(i=>`<div class="ws-row"><span>${esc(i.invoice_no||'—')}</span><span>${wsMoney((Number(i.total)||0)-(Number(i.paid)||0))} <span class="badge">${esc(i.status)}</span></span></div>`).join('')}</div>`:'<div class="hint" style="padding:10px">Nothing outstanding.</div>'}</div>
+  </div>
+  ${wsCard('Recent activity')}${(act.data||[]).length?`<div class="ws-list">${(act.data||[]).map(a=>`<div class="ws-row"><span>${esc(a.action)}</span><span class="hint">${esc(fmtDate(a.created_at))}</span></div>`).join('')}</div>`:'<div class="hint" style="padding:10px">No activity yet.</div>'}</div>`;
+}
+
+// ---------- Ad Budgets ----------
+async function wsBudgets(){
+  const cid=WS.cid, body=$('ws-body'); if(!body)return;
+  const {data}=await sb.from('cr_ad_budgets').select('*').eq('client_id',cid).order('period_month',{ascending:false});
+  const rows=data||[];
+  const sum=f=>rows.reduce((s,b)=>s+(Number(b[f])||0),0);
+  body.innerHTML=`
+  <div class="ws-grid4">
+    <div class="ws-stat-card" style="--c:#8e7cff"><b>${wsMoney(sum('approved'))}</b><span>Approved budget</span></div>
+    <div class="ws-stat-card" style="--c:#22d3ee"><b>${wsMoney(sum('received'))}</b><span>Funds received</span></div>
+    <div class="ws-stat-card" style="--c:#ff8a3d"><b>${wsMoney(sum('spent'))}</b><span>Actual spend</span></div>
+    <div class="ws-stat-card" style="--c:#22c55e"><b>${wsMoney(sum('received')-sum('spent'))}</b><span>Available funds</span></div>
+  </div>
+  ${wsCan()?`<button class="btn btn-sm btn-ok" style="width:auto;margin:0 0 12px" onclick="wsBudgetForm()">＋ Add budget line</button>`:''}
+  <div class="hint" style="margin-bottom:8px">Advertising funds are tracked separately from agency service fees and are never counted as agency revenue.</div>
+  <div class="table-wrap"><table class="lead-table"><thead><tr><th>Month</th><th>Platform</th><th>Campaign</th><th>Approved</th><th>Received</th><th>Spent</th><th>Remaining</th><th>Payer</th><th>Fee</th>${wsCan()?'<th></th>':''}</tr></thead><tbody>${rows.map(b=>`<tr><td>${b.period_month?esc(fmtDay(b.period_month)):'—'}</td><td>${esc(b.platform||'—')}</td><td>${esc(b.campaign||'—')}</td><td>${wsMoney(b.approved,b.currency)}</td><td>${wsMoney(b.received,b.currency)}</td><td>${wsMoney(b.spent,b.currency)}</td><td><b>${wsMoney((Number(b.approved)||0)-(Number(b.spent)||0),b.currency)}</b></td><td><span class="badge">${esc(b.payer||'agency')} pays</span></td><td>${wsMoney(b.agency_fee,b.currency)}</td>${wsCan()?`<td><button class="link-btn" onclick="wsBudgetForm('${b.id}')">edit</button></td>`:''}</tr>`).join('')||`<tr><td colspan="${wsCan()?10:9}" class="hint">No budget lines yet.</td></tr>`}</tbody></table></div></div>`;
+}
+function wsBudgetForm(id){
+  const b=id?null:null;
+  const g=(x)=>'';
+  sb.from('cr_ad_budgets').select('*').eq('id',id||'00000000-0000-0000-0000-000000000000').maybeSingle().then(r=>{
+    const d=r.data||{};
+    $("modal-root").insertAdjacentHTML('beforeend',`<div class="overlay overlay-sheet" id="wsbf" onclick="if(event.target===this)this.remove()"><div class="modal more-sheet"><div class="ms-handle"></div><div class="ms-head"><h2 style="margin:0">${id?'Edit':'Add'} budget line</h2><button class="x" onclick="document.getElementById('wsbf').remove()">×</button></div><div style="padding:6px 18px 20px">
+      <div class="grid2"><div><label>Platform</label><input id="wb-plat" class="inp" value="${esc(d.platform||'')}" placeholder="Meta / Google"/></div><div><label>Campaign</label><input id="wb-camp" class="inp" value="${esc(d.campaign||'')}"/></div>
+      <div><label>Month</label><input id="wb-month" type="date" class="inp" value="${d.period_month||''}"/></div><div><label>Payer</label><select id="wb-payer" class="inp"><option ${d.payer==='agency'?'selected':''}>agency</option><option ${d.payer==='client'?'selected':''}>client</option></select></div>
+      <div><label>Approved budget</label><input id="wb-appr" type="number" class="inp" value="${d.approved||''}"/></div><div><label>Funds received</label><input id="wb-recv" type="number" class="inp" value="${d.received||''}"/></div>
+      <div><label>Actual spend</label><input id="wb-spent" type="number" class="inp" value="${d.spent||''}"/></div><div><label>Agency service fee</label><input id="wb-fee" type="number" class="inp" value="${d.agency_fee||''}"/></div></div>
+      <button class="btn btn-ok" style="margin-top:14px" onclick="wsBudgetSave('${id||''}')">Save</button>
+    </div></div></div>`);
+  });
+}
+async function wsBudgetSave(id){
+  const v=i=>{const e=$(i);return e?e.value:'';};
+  const patch={client_id:WS.cid,platform:v('wb-plat')||null,campaign:v('wb-camp')||null,period_month:v('wb-month')||null,payer:v('wb-payer'),approved:Number(v('wb-appr'))||0,received:Number(v('wb-recv'))||0,spent:Number(v('wb-spent'))||0,agency_fee:Number(v('wb-fee'))||0,updated_at:new Date().toISOString()};
+  let err;
+  if(id){ ({error:err}=await sb.from('cr_ad_budgets').update(patch).eq('id',id)); }
+  else { patch.created_by=(SESSION&&SESSION.user)?SESSION.user.id:null; ({error:err}=await sb.from('cr_ad_budgets').insert(patch)); }
+  if(err){ toast(err.message,true); return; }
+  wsAudit('budget.'+(id?'updated':'created'),'budget',id);
+  const m=document.getElementById('wsbf'); if(m)m.remove(); toast('Budget saved.'); wsBudgets();
+}
+// ---------- Invoices & Payments ----------
+const INV_ST={Draft:'#9aa0bd',Issued:'#8e7cff','Partially Paid':'#ffb020',Paid:'#22c55e',Overdue:'#ff5b6b',Cancelled:'#6b7280'};
+function invBadge(s){const c=INV_ST[s]||'#9aa0bd';return `<span class="badge" style="background:${c}22;color:${c};border:1px solid ${c}66">${esc(s||'Draft')}</span>`;}
+function invStatus(i){ if(i.status==='Paid'||i.status==='Cancelled'||i.status==='Draft')return i.status; const bal=(Number(i.total)||0)-(Number(i.paid)||0); if(bal<=0&&(Number(i.total)||0)>0)return 'Paid'; if(i.due_date&&new Date(i.due_date)<new Date()&&bal>0)return 'Overdue'; if((Number(i.paid)||0)>0&&bal>0)return 'Partially Paid'; return i.status||'Issued'; }
+async function wsInvoices(){
+  const cid=WS.cid, body=$('ws-body'); if(!body)return;
+  const {data}=await sb.from('cr_invoices').select('*').eq('client_id',cid).order('created_at',{ascending:false});
+  const rows=data||[];
+  const out=rows.filter(i=>['Issued','Partially Paid','Overdue'].includes(invStatus(i))).reduce((s,i)=>s+((Number(i.total)||0)-(Number(i.paid)||0)),0);
+  const paid=rows.reduce((s,i)=>s+(Number(i.paid)||0),0);
+  body.innerHTML=`
+  <div class="ws-grid4">
+    <div class="ws-stat-card" style="--c:#8e7cff"><b>${rows.length}</b><span>Invoices</span></div>
+    <div class="ws-stat-card" style="--c:#ff8a3d"><b>${wsMoney(out)}</b><span>Outstanding</span></div>
+    <div class="ws-stat-card" style="--c:#22c55e"><b>${wsMoney(paid)}</b><span>Collected</span></div>
+    <div class="ws-stat-card" style="--c:#22d3ee"><b>${rows.filter(i=>invStatus(i)==='Overdue').length}</b><span>Overdue</span></div>
+  </div>
+  ${wsCan()?`<button class="btn btn-sm btn-ok" style="width:auto;margin:0 0 12px" onclick="wsInvoiceForm()">＋ New invoice</button>`:''}
+  <div class="table-wrap"><table class="lead-table"><thead><tr><th>Invoice</th><th>Issued</th><th>Due</th><th>Total</th><th>Paid</th><th>Balance</th><th>Status</th><th></th></tr></thead><tbody>${rows.map(i=>{const st=invStatus(i);const bal=(Number(i.total)||0)-(Number(i.paid)||0);return `<tr><td><b>${esc(i.invoice_no||'(draft)')}</b><div class="hint">${esc(i.kind||'')}</div></td><td>${i.issue_date?esc(fmtDay(i.issue_date)):'—'}</td><td>${i.due_date?esc(fmtDay(i.due_date)):'—'}</td><td>${wsMoney(i.total,i.currency)}</td><td>${wsMoney(i.paid,i.currency)}</td><td><b>${wsMoney(bal,i.currency)}</b></td><td>${invBadge(st)}</td><td><button class="link-btn" onclick="wsInvoiceView('${i.id}')">open</button></td></tr>`;}).join('')||'<tr><td colspan="8" class="hint">No invoices yet.</td></tr>'}</tbody></table></div>`;
+}
+let WS_INV_ITEMS=[];
+function wsInvoiceForm(){
+  WS_INV_ITEMS=[{name:'',qty:1,rate:0}];
+  $("modal-root").insertAdjacentHTML('beforeend',`<div class="overlay overlay-sheet" id="wsif" onclick="if(event.target===this)this.remove()"><div class="modal" style="max-width:640px"><div class="mh"><h2 style="margin:0">New invoice</h2><button class="x" onclick="document.getElementById('wsif').remove()">×</button></div><div class="mb">
+    <div class="grid3"><div><label>Type</label><select id="iv-kind" class="inp"><option value="retainer">Retainer</option><option value="one-time">One-time service</option><option value="additional">Additional work</option><option value="ad-funding">Advertising funding</option></select></div><div><label>Due date</label><input id="iv-due" type="date" class="inp"/></div><div><label>Currency</label><input id="iv-cur" class="inp" value="INR"/></div>
+    <div><label>Service period start</label><input id="iv-ps" type="date" class="inp"/></div><div><label>Service period end</label><input id="iv-pe" type="date" class="inp"/></div><div><label>Tax %</label><input id="iv-tax" type="number" class="inp" value="18"/></div></div>
+    <div class="section-title" style="margin-top:12px">Line items</div>
+    <div id="iv-items"></div>
+    <button class="btn btn-sm btn-ghost" style="width:auto;margin:6px 0" onclick="wsInvAddItem()">＋ Add item</button>
+    <div class="grid2" style="margin-top:8px"><div><label>Discount</label><input id="iv-disc" type="number" class="inp" value="0" oninput="wsInvTotals()"/></div><div><label>Payment instructions</label><input id="iv-pay" class="inp" placeholder="Bank / UPI details"/></div></div>
+    <label style="margin-top:10px">Notes</label><textarea id="iv-notes" class="inp" rows="2"></textarea>
+    <div class="ws-inv-tot" id="iv-tot"></div>
+    <div class="row" style="margin-top:12px"><button class="btn btn-sm btn-ghost" style="width:auto;margin:0" onclick="wsInvoiceSave('draft')">Save draft</button><button class="btn btn-sm btn-ok" style="width:auto;margin:0" onclick="wsInvoiceSave('issue')">Issue invoice</button></div>
+    <div class="hint" style="margin-top:6px">Issuing assigns a permanent invoice number and makes it visible to the client. Issued invoices are preserved; corrections create a new version.</div>
+  </div></div></div>`);
+  wsInvItemsRender();
+}
+function wsInvItemsRender(){ const b=$('iv-items'); if(!b)return; b.innerHTML=WS_INV_ITEMS.map((it,i)=>`<div class="row" style="gap:6px;margin-bottom:6px"><input class="inp" style="flex:2" placeholder="Description" value="${esc(it.name)}" oninput="WS_INV_ITEMS[${i}].name=this.value"/><input class="inp" style="max-width:70px" type="number" placeholder="Qty" value="${it.qty}" oninput="WS_INV_ITEMS[${i}].qty=this.value;wsInvTotals()"/><input class="inp" style="max-width:100px" type="number" placeholder="Rate" value="${it.rate}" oninput="WS_INV_ITEMS[${i}].rate=this.value;wsInvTotals()"/><button class="link-btn" onclick="WS_INV_ITEMS.splice(${i},1);wsInvItemsRender();wsInvTotals()" style="color:#ff7b7b">×</button></div>`).join(''); wsInvTotals(); }
+function wsInvAddItem(){ WS_INV_ITEMS.push({name:'',qty:1,rate:0}); wsInvItemsRender(); }
+function wsInvCalc(){ const sub=WS_INV_ITEMS.reduce((s,it)=>s+((Number(it.qty)||0)*(Number(it.rate)||0)),0); const disc=Number(($('iv-disc')||{}).value)||0; const taxr=Number(($('iv-tax')||{}).value)||0; const taxable=Math.max(0,sub-disc); const tax=taxable*taxr/100; return {sub,disc,taxr,tax,total:taxable+tax}; }
+function wsInvTotals(){ const t=wsInvCalc(); const el=$('iv-tot'); if(el) el.innerHTML=`<div class="ws-row"><span>Subtotal</span><b>${wsMoney(t.sub)}</b></div><div class="ws-row"><span>Discount</span><b>-${wsMoney(t.disc)}</b></div><div class="ws-row"><span>Tax (${t.taxr}%)</span><b>${wsMoney(t.tax)}</b></div><div class="ws-row" style="font-size:16px"><span><b>Total</b></span><b>${wsMoney(t.total)}</b></div>`; }
+async function wsInvoiceSave(mode){
+  const items=WS_INV_ITEMS.filter(it=>it.name||Number(it.rate)); if(!items.length){ toast('Add at least one line item.',true); return; }
+  const t=wsInvCalc(); const v=i=>{const e=$(i);return e?e.value:'';};
+  const inv={client_id:WS.cid,kind:v('iv-kind'),due_date:v('iv-due')||null,period_start:v('iv-ps')||null,period_end:v('iv-pe')||null,currency:v('iv-cur')||'INR',subtotal:t.sub,discount:t.disc,tax_rate:t.taxr,tax:t.tax,total:t.total,paid:0,notes:v('iv-notes')||null,payment_instructions:v('iv-pay')||null,status:mode==='issue'?'Issued':'Draft',created_by:(SESSION&&SESSION.user)?SESSION.user.id:null,created_by_name:ME.full_name||ME.email};
+  const {data,error}=await sb.from('cr_invoices').insert(inv).select().single();
+  if(error){ toast(error.message,true); return; }
+  await sb.from('cr_invoice_items').insert(items.map((it,idx)=>({invoice_id:data.id,name:it.name,qty:Number(it.qty)||1,rate:Number(it.rate)||0,amount:(Number(it.qty)||0)*(Number(it.rate)||0),sort:idx})));
+  wsAudit('invoice.'+(mode==='issue'?'issued':'drafted'),'invoice',data.id);
+  const m=document.getElementById('wsif'); if(m)m.remove(); toast(mode==='issue'?('Invoice '+(data.invoice_no||'')+' issued.'):'Draft saved.'); wsInvoices();
+}
+async function wsInvoiceView(id){
+  const {data:i}=await sb.from('cr_invoices').select('*').eq('id',id).maybeSingle();
+  const {data:items}=await sb.from('cr_invoice_items').select('*').eq('invoice_id',id).order('sort');
+  const {data:pays}=await sb.from('cr_payments').select('*').eq('invoice_id',id).order('paid_at',{ascending:false});
+  if(!i)return; const st=invStatus(i); const bal=(Number(i.total)||0)-(Number(i.paid)||0);
+  const wa=(WS.client&&(WS.client.whatsapp||WS.client.phone)||'').replace(/[^0-9]/g,'');
+  $("modal-root").insertAdjacentHTML('beforeend',`<div class="overlay overlay-sheet" id="wsiv" onclick="if(event.target===this)this.remove()"><div class="modal" style="max-width:600px"><div class="mh"><div><h2 style="margin:0">${esc(i.invoice_no||'Draft invoice')}</h2><div class="hint">${esc(i.kind||'')} · ${invBadge(st).replace(/<[^>]+>/g,'')}</div></div><button class="x" onclick="document.getElementById('wsiv').remove()">×</button></div><div class="mb">
+    <div class="ws-kv"><div><span>Issued</span><b>${i.issue_date?esc(fmtDay(i.issue_date)):'—'}</b></div><div><span>Due</span><b>${i.due_date?esc(fmtDay(i.due_date)):'—'}</b></div><div><span>Status</span><b>${invBadge(st)}</b></div></div>
+    <div class="table-wrap" style="margin-top:12px"><table class="lead-table"><thead><tr><th>Item</th><th>Qty</th><th>Rate</th><th>Amount</th></tr></thead><tbody>${(items||[]).map(it=>`<tr><td>${esc(it.name)}</td><td>${it.qty}</td><td>${wsMoney(it.rate,i.currency)}</td><td>${wsMoney(it.amount,i.currency)}</td></tr>`).join('')}</tbody></table></div>
+    <div class="ws-inv-tot" style="margin-top:10px"><div class="ws-row"><span>Subtotal</span><b>${wsMoney(i.subtotal,i.currency)}</b></div><div class="ws-row"><span>Discount</span><b>-${wsMoney(i.discount,i.currency)}</b></div><div class="ws-row"><span>Tax (${i.tax_rate}%)</span><b>${wsMoney(i.tax,i.currency)}</b></div><div class="ws-row" style="font-size:16px"><span><b>Total</b></span><b>${wsMoney(i.total,i.currency)}</b></div><div class="ws-row"><span>Paid</span><b>${wsMoney(i.paid,i.currency)}</b></div><div class="ws-row"><span><b>Balance</b></span><b>${wsMoney(bal,i.currency)}</b></div></div>
+    ${pays&&pays.length?`<div class="section-title">Payments</div>${pays.map(p=>`<div class="ws-row"><span>${esc(fmtDay(p.paid_at))} · ${esc(p.method||'')}</span><b>${wsMoney(p.amount,i.currency)}</b></div>`).join('')}`:''}
+    ${wsCan()?`<div class="row" style="margin-top:14px;gap:8px;flex-wrap:wrap">
+      ${i.status==='Draft'?`<button class="btn btn-sm btn-ok" style="width:auto;margin:0" onclick="wsInvoiceIssue('${i.id}')">Issue</button>`:''}
+      ${st!=='Paid'&&i.status!=='Draft'&&i.status!=='Cancelled'?`<button class="btn btn-sm btn-ok" style="width:auto;margin:0" onclick="wsPaymentForm('${i.id}',${bal})">Record payment</button>`:''}
+      ${i.status!=='Draft'&&wa?`<button class="btn btn-sm btn-ghost" style="width:auto;margin:0" onclick="wsInvoiceWhatsApp('${i.id}')">📲 Share on WhatsApp</button>`:''}
+      ${i.status!=='Cancelled'&&i.status!=='Paid'?`<button class="btn btn-sm btn-ghost" style="width:auto;margin:0;color:#ff8a8a" onclick="wsInvoiceCancel('${i.id}')">Cancel</button>`:''}
+    </div><div class="hint" style="margin-top:6px">WhatsApp opens a prepared message to the client's number — you review and send it. Delivery is not auto-confirmed.</div>`:''}
+  </div></div></div>`);
+}
+async function wsInvoiceIssue(id){ const {error}=await sb.from('cr_invoices').update({status:'Issued'}).eq('id',id); if(error){toast(error.message,true);return;} wsAudit('invoice.issued','invoice',id); const m=document.getElementById('wsiv');if(m)m.remove(); toast('Invoice issued.'); wsInvoices(); }
+async function wsInvoiceCancel(id){ if(!confirm('Cancel this invoice?'))return; const {error}=await sb.from('cr_invoices').update({status:'Cancelled'}).eq('id',id); if(error){toast(error.message,true);return;} wsAudit('invoice.cancelled','invoice',id); const m=document.getElementById('wsiv');if(m)m.remove(); toast('Invoice cancelled.'); wsInvoices(); }
+function wsPaymentForm(id,bal){
+  $("modal-root").insertAdjacentHTML('beforeend',`<div class="overlay overlay-sheet" id="wspf" onclick="if(event.target===this)this.remove()"><div class="modal more-sheet"><div class="ms-handle"></div><div class="ms-head"><h2 style="margin:0">Record payment</h2><button class="x" onclick="document.getElementById('wspf').remove()">×</button></div><div style="padding:6px 18px 20px">
+    <label>Amount</label><input id="pm-amt" type="number" class="inp" value="${bal||''}"/>
+    <div class="grid2" style="margin-top:10px"><div><label>Method</label><input id="pm-method" class="inp" placeholder="UPI / Bank / Cash"/></div><div><label>Reference</label><input id="pm-ref" class="inp"/></div></div>
+    <label style="margin-top:10px">Date</label><input id="pm-date" type="date" class="inp" value="${new Date().toISOString().slice(0,10)}"/>
+    <button class="btn btn-ok" style="margin-top:14px" onclick="wsPaySave('${id}')">Save payment</button>
+  </div></div></div>`);
+}
+async function wsPaySave(id){
+  const amt=Number(($('pm-amt')||{}).value)||0; if(amt<=0){toast('Enter an amount.',true);return;}
+  const {data:i}=await sb.from('cr_invoices').select('paid,total,client_id').eq('id',id).maybeSingle();
+  const {error}=await sb.from('cr_payments').insert({invoice_id:id,client_id:i.client_id,amount:amt,method:($('pm-method')||{}).value||null,reference:($('pm-ref')||{}).value||null,paid_at:($('pm-date')||{}).value||new Date().toISOString(),created_by:(SESSION&&SESSION.user)?SESSION.user.id:null,created_by_name:ME.full_name||ME.email});
+  if(error){toast(error.message,true);return;}
+  const newPaid=(Number(i.paid)||0)+amt; const status=newPaid>=(Number(i.total)||0)?'Paid':'Partially Paid';
+  await sb.from('cr_invoices').update({paid:newPaid,status}).eq('id',id);
+  wsAudit('invoice.payment','invoice',id);
+  document.getElementById('wspf').remove(); const v=document.getElementById('wsiv');if(v)v.remove(); toast('Payment recorded.'); wsInvoices();
+}
+function wsInvoiceWhatsApp(id){
+  sb.from('cr_invoices').select('*').eq('id',id).maybeSingle().then(({data:i})=>{
+    const wa=(WS.client&&(WS.client.whatsapp||WS.client.phone)||'').replace(/[^0-9]/g,'');
+    if(!wa){ toast('No WhatsApp number on file for this client.',true); return; }
+    const num=wa.length===10?('91'+wa):wa;
+    const bal=(Number(i.total)||0)-(Number(i.paid)||0);
+    const link=location.origin+'/?inv='+id;
+    const msg=`Hello ${WS.client.full_name||WS.client.company||''},%0A%0AYour invoice ${i.invoice_no||''} for ${wsMoney(i.total,i.currency)} is ready (balance ${wsMoney(bal,i.currency)}).%0ADue: ${i.due_date||'-'}.%0AView & pay: ${encodeURIComponent(link)}%0A%0AThank you,%0AStepstones`;
+    window.open('https://wa.me/'+num+'?text='+msg,'_blank');
+    wsAudit('invoice.whatsapp_opened','invoice',id);
+    toast('WhatsApp opened — review and send the message.');
+  });
+}
+async function wsAudit(action,entity,eid){ try{ await sb.from('cr_audit_log').insert({actor_id:(SESSION&&SESSION.user)?SESSION.user.id:null,actor_name:ME.full_name||ME.email,action,entity,entity_id:eid||null,client_id:WS.cid}); }catch(_){ } }
+
 let EDIT_EMAILS=[];
 function deleteClientAsk(id){ const c=CLIENTS.find(x=>x.id===id); $("modal-root").innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()"><div class="modal" style="max-width:470px"><div class="mh"><h2 style="margin:0;color:#ffb4b4">Delete client</h2><button class="x" onclick="closeModal()">×</button></div><div class="mb"><p style="line-height:1.55">Permanently delete <b>${esc(c?(c.company||c.full_name||c.username):"this client")}</b> and <b>all</b> of their change requests, files, vault entries and notes? This cannot be undone.</p><div class="row" style="margin-top:14px"><button class="btn btn-sm btn-danger" id="dc-btn" onclick="confirmDeleteClient('${id}')">Yes, delete permanently</button><button class="btn btn-sm btn-ghost" onclick="openClientEdit('${id}')">Cancel</button></div></div></div></div>`; }
 async function confirmDeleteClient(id){ const btn=$("dc-btn"); if(btn){btn.disabled=true;btn.textContent="Deleting…";} try{ await callFn("admin-delete-client",{client_id:id}); deleteFx(); toast("Client deleted."); closeModal(); await loadClients(); renderClientsList(); }catch(e){ toast(e.message||"Could not delete client.",true); if(btn){btn.disabled=false;btn.textContent="Yes, delete permanently";} } }
