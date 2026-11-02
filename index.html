@@ -5380,13 +5380,65 @@ async function wsReviewResolve(id){ await sb.from('cr_reviews').update({status:'
 async function wsReviewConsent(id,val){ await sb.from('cr_reviews').update({public_consent:val}).eq('id',id); toast(val?'Public use approved.':'Consent revoked.'); wsReviews(); }
 
 // ---------- Projects & Change Requests ----------
+const TASK_PR={Low:'#9aa0bd',Medium:'#8e7cff',High:'#ff8a3d',Urgent:'#ff5b6b'};
+const TASK_ST=['To do','In Progress','Blocked','Review','Done'];
 async function wsProjects(){
   const cid=WS.cid, body=$('ws-body'); if(!body)return;
-  const {data}=await sb.from('cr_projects').select('*').eq('client_id',cid).order('created_at',{ascending:false});
-  const rows=data||[];
-  body.innerHTML=`<div class="hint" style="margin-bottom:10px">Projects for this client. Open one to manage folders, uploads, pages and tasks.</div>
-  <div class="projx-grid">${rows.map(p=>`<div class="projx-card" onclick="closeModal();setAdminTab&&setAdminTab('projects');setTimeout(()=>openProject('${p.id}'),200)"><div class="projx-head"><div class="projx-logo ph">${esc(initials(p.name||'P'))}</div><div class="projx-id"><div class="projx-nm">${esc(p.name||'Project')}</div><div class="projx-cl">${esc(p.status||'Active')}</div></div></div></div>`).join('')||'<div class="hint">No projects yet. Create one from the Projects module.</div>'}</div>`;
+  const {data:projs}=await sb.from('cr_projects').select('*').eq('client_id',cid).order('created_at',{ascending:false});
+  const pIds=(projs||[]).map(p=>p.id);
+  let tasks=[]; if(pIds.length){ const {data:t}=await sb.from('cr_project_tasks').select('*').in('project_id',pIds).order('created_at',{ascending:false}); tasks=t||[]; }
+  WS._projs=projs||[];
+  const prBadge=p=>{const c=TASK_PR[p]||'#8e7cff';return `<span class="badge" style="background:${c}22;color:${c};border:1px solid ${c}66">${esc(p||'Medium')}</span>`;};
+  const ck=t=>{const l=(t.checklist||[]);const d=l.filter(x=>x.done).length;return l.length?`${d}/${l.length}`:'';};
+  body.innerHTML=`<div class="ws-sec-h"><h3 style="margin:0">Projects</h3></div>
+  <div class="projx-grid" style="margin-bottom:16px">${(projs||[]).map(p=>`<div class="projx-card" onclick="closeModal();setAdminTab&&setAdminTab('projects');setTimeout(()=>openProject('${p.id}'),200)"><div class="projx-head"><div class="projx-logo ph">${esc(initials(p.name||'P'))}</div><div class="projx-id"><div class="projx-nm">${esc(p.name||'Project')}</div><div class="projx-cl">${esc(p.status||'Active')}</div></div></div></div>`).join('')||'<div class="hint">No projects yet. Create one from the Projects module.</div>'}</div>
+  <div class="ws-sec-h"><h3 style="margin:0">Tasks</h3>${wsCan()&&pIds.length?`<button class="btn btn-sm btn-ok" style="width:auto;margin:0" onclick="wsTaskForm()">＋ New task</button>`:''}</div>
+  <div class="table-wrap"><table class="lead-table"><thead><tr><th>Task</th><th>Owner</th><th>Priority</th><th>Due</th><th>Checklist</th><th>Status</th><th></th></tr></thead><tbody>${tasks.map(t=>`<tr><td><b>${esc(t.title||t.description||'Task')}</b></td><td>${esc(t.owner_name||'—')}</td><td>${prBadge(t.priority)}</td><td>${t.due_date?esc(fmtDay(t.due_date)):'—'}</td><td>${ck(t)||'—'}</td><td><span class="badge">${esc(t.status||'To do')}</span></td><td><button class="link-btn" onclick="wsTaskView('${t.id}')">open</button></td></tr>`).join('')||'<tr><td colspan="7" class="hint">No tasks yet.</td></tr>'}</tbody></table></div>`;
 }
+let WS_TASK_CK=[];
+async function wsTaskForm(id){
+  await loadStaff();
+  const projs=WS._projs||[]; const t=id?(await sb.from('cr_project_tasks').select('*').eq('id',id).maybeSingle()).data:null;
+  WS_TASK_CK=t&&t.checklist?t.checklist.slice():[];
+  const staffOpts=STAFF.map(x=>`<option value="${x.id}" ${t&&t.owner===x.id?'selected':''}>${esc(x.full_name||x.email)}</option>`).join('');
+  $("modal-root").insertAdjacentHTML('beforeend',`<div class="overlay overlay-sheet" id="wstf" onclick="if(event.target===this)this.remove()"><div class="modal" style="max-width:560px"><div class="mh"><h2 style="margin:0">${id?'Edit':'New'} task</h2><button class="x" onclick="document.getElementById('wstf').remove()">×</button></div><div class="mb">
+    <label>Title</label><input id="tk-title" class="inp" value="${t?esc(t.title||''):''}"/>
+    <div class="grid3" style="margin-top:10px"><div><label>Project</label><select id="tk-proj" class="inp">${projs.map(p=>`<option value="${p.id}" ${t&&t.project_id===p.id?'selected':''}>${esc(p.name)}</option>`).join('')}</select></div><div><label>Owner</label><select id="tk-owner" class="inp"><option value="">—</option>${staffOpts}</select></div><div><label>Priority</label><select id="tk-pri" class="inp">${['Low','Medium','High','Urgent'].map(x=>`<option ${t&&t.priority===x?'selected':(!t&&x==='Medium'?'selected':'')}>${x}</option>`).join('')}</select></div>
+    <div><label>Due date</label><input id="tk-due" type="date" class="inp" value="${t?(t.due_date||''):''}"/></div><div><label>Status</label><select id="tk-status" class="inp">${TASK_ST.map(x=>`<option ${t&&t.status===x?'selected':''}>${x}</option>`).join('')}</select></div></div>
+    <label style="margin-top:10px">Description</label><textarea id="tk-desc" class="inp" rows="2">${t?esc(t.description||''):''}</textarea>
+    <div class="section-title" style="margin-top:12px">Checklist</div><div id="tk-ck"></div><div class="row" style="gap:6px;margin-top:6px"><input id="tk-ckadd" class="inp" placeholder="Add checklist item" onkeydown="if(event.key==='Enter'){wsTaskCkAdd();}"/><button class="btn btn-sm btn-ghost" style="width:auto;margin:0" onclick="wsTaskCkAdd()">Add</button></div>
+    <button class="btn btn-ok" style="margin-top:14px" onclick="wsTaskSave('${id||''}')">Save task</button>
+  </div></div></div>`);
+  wsTaskCkRender();
+}
+function wsTaskCkRender(){ const b=$('tk-ck'); if(!b)return; b.innerHTML=WS_TASK_CK.map((c,i)=>`<label class="ws-row" style="cursor:pointer"><span><input type="checkbox" ${c.done?'checked':''} onchange="WS_TASK_CK[${i}].done=this.checked"> ${esc(c.text)}</span><button class="link-btn" style="color:#ff7b7b" onclick="WS_TASK_CK.splice(${i},1);wsTaskCkRender()">×</button></label>`).join(''); }
+function wsTaskCkAdd(){ const v=($('tk-ckadd').value||'').trim(); if(!v)return; WS_TASK_CK.push({text:v,done:false}); $('tk-ckadd').value=''; wsTaskCkRender(); }
+async function wsTaskSave(id){
+  const v=i=>{const e=$(i);return e?e.value:'';}; const title=v('tk-title').trim(); if(!title){toast('Title required.',true);return;}
+  const owner=v('tk-owner'); const on=(STAFF.find(x=>x.id===owner)||{}).full_name||null;
+  const patch={project_id:v('tk-proj'),client_id:WS.cid,title,description:v('tk-desc')||null,owner:owner||null,owner_name:on,priority:v('tk-pri'),due_date:v('tk-due')||null,status:v('tk-status'),checklist:WS_TASK_CK,updated_at:new Date().toISOString()};
+  let err; if(id){({error:err}=await sb.from('cr_project_tasks').update(patch).eq('id',id));} else {patch.created_by=(SESSION&&SESSION.user)?SESSION.user.id:null;patch.created_by_name=ME.full_name||ME.email;({error:err}=await sb.from('cr_project_tasks').insert(patch));}
+  if(err){toast(err.message,true);return;}
+  wsAudit('task.'+(id?'updated':'created'),'task',id); if(owner&&!id) wsNotify(owner,'Task assigned',title,'task'); document.getElementById('wstf').remove(); toast('Task saved.'); wsProjects();
+}
+async function wsTaskView(id){
+  const {data:t}=await sb.from('cr_project_tasks').select('*').eq('id',id).maybeSingle(); if(!t)return;
+  const {data:cm}=await sb.from('cr_task_comments').select('*').eq('task_id',id).order('created_at');
+  const {data:fs}=await sb.from('cr_task_files').select('*').eq('task_id',id);
+  const ck=(t.checklist||[]);
+  $("modal-root").insertAdjacentHTML('beforeend',`<div class="overlay overlay-sheet" id="wstv" onclick="if(event.target===this)this.remove()"><div class="modal" style="max-width:560px"><div class="mh"><div><h2 style="margin:0">${esc(t.title||'Task')}</h2><div class="hint">${esc(t.owner_name||'Unassigned')} · ${esc(t.priority||'')} · <span class="badge">${esc(t.status||'To do')}</span>${t.due_date?' · due '+esc(fmtDay(t.due_date)):''}</div></div><button class="x" onclick="document.getElementById('wstv').remove()">×</button></div><div class="mb">
+    ${t.description?`<p>${esc(t.description)}</p>`:''}
+    ${ck.length?`<div class="section-title">Checklist</div>${ck.map((c,i)=>`<label class="ws-row" style="cursor:pointer"><span><input type="checkbox" ${c.done?'checked':''} onchange="wsTaskCkToggle('${id}',${i},this.checked)"> ${esc(c.text)}</span></label>`).join('')}`:''}
+    <div class="section-title">Attachments</div>${(fs||[]).map(f=>`<div class="ws-row"><a href="${esc(logoUrl(f.file_path))}" target="_blank">${esc(f.file_name)}</a></div>`).join('')||'<div class="hint" style="padding:4px">None.</div>'}${wsCan()?`<label class="btn btn-sm btn-ghost" style="width:auto;margin:6px 0;cursor:pointer">＋ Attach<input type="file" hidden onchange="wsTaskUpload(this,'${id}')"></label>`:''}
+    <div class="section-title">Comments</div><div class="ws-list">${(cm||[]).map(c=>`<div class="ws-row"><span><b>${esc(c.author_name||'')}</b>: ${esc(c.body)}</span><span class="hint">${esc(fmtDate(c.created_at))}</span></div>`).join('')||'<div class="hint" style="padding:4px">No comments.</div>'}</div>
+    <div class="row" style="gap:6px;margin-top:8px"><input id="tk-cmt" class="inp" placeholder="Add a comment" onkeydown="if(event.key==='Enter')wsTaskComment('${id}')"/><button class="btn btn-sm btn-ok" style="width:auto;margin:0" onclick="wsTaskComment('${id}')">Send</button></div>
+    ${wsCan()?`<div class="row" style="margin-top:12px;gap:8px"><button class="btn btn-sm btn-ghost" style="width:auto;margin:0" onclick="document.getElementById('wstv').remove();wsTaskForm('${id}')">Edit</button><button class="btn btn-sm btn-ghost" style="width:auto;margin:0;color:#ff8a8a" onclick="wsTaskDel('${id}')">Delete</button></div>`:''}
+  </div></div></div>`);
+}
+async function wsTaskCkToggle(id,i,val){ const {data:t}=await sb.from('cr_project_tasks').select('checklist').eq('id',id).maybeSingle(); const ck=(t&&t.checklist)||[]; if(ck[i]){ck[i].done=val; await sb.from('cr_project_tasks').update({checklist:ck}).eq('id',id);} }
+async function wsTaskComment(id){ const inp=$('tk-cmt'); const b=(inp&&inp.value||'').trim(); if(!b)return; await sb.from('cr_task_comments').insert({task_id:id,author_id:(SESSION&&SESSION.user)?SESSION.user.id:null,author_name:ME.full_name||ME.company||ME.email,body:b}); const m=document.getElementById('wstv');if(m)m.remove(); wsTaskView(id); }
+async function wsTaskUpload(inp,id){ const f=inp&&inp.files&&inp.files[0]; if(!f)return; try{ const path=`tasks/${id}/${Date.now()}_${f.name.replace(/[^\w.\-]/g,'_')}`; await sb.storage.from('cr-logos').upload(path,f,{upsert:true}); await sb.from('cr_task_files').insert({task_id:id,file_path:path,file_name:f.name,mime_type:f.type,uploaded_by:(SESSION&&SESSION.user)?SESSION.user.id:null}); const m=document.getElementById('wstv');if(m)m.remove(); wsTaskView(id); }catch(e){ toast('Upload failed',true); } }
+async function wsTaskDel(id){ if(!confirm('Delete this task?'))return; await sb.from('cr_project_tasks').delete().eq('id',id); const m=document.getElementById('wstv');if(m)m.remove(); toast('Deleted.'); wsProjects(); }
 async function wsRequests(){
   const cid=WS.cid, body=$('ws-body'); if(!body)return;
   const {data}=await sb.from('cr_requests').select('*').eq('client_id',cid).is('deleted_at',null).order('created_at',{ascending:false});
