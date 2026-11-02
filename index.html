@@ -5628,7 +5628,7 @@ async function wsInvoices(){
     <div class="ws-stat-card" style="--c:#22d3ee"><b>${rows.filter(i=>invStatus(i)==='Overdue').length}</b><span>Overdue</span></div>
   </div>
   ${wsCan()?`<button class="btn btn-sm btn-ok" style="width:auto;margin:0 0 12px" onclick="wsInvoiceForm()">＋ New invoice</button>`:''}
-  <div class="table-wrap"><table class="lead-table"><thead><tr><th>Invoice</th><th>Issued</th><th>Due</th><th>Total</th><th>Paid</th><th>Balance</th><th>Status</th><th></th></tr></thead><tbody>${rows.map(i=>{const st=invStatus(i);const bal=(Number(i.total)||0)-(Number(i.paid)||0);return `<tr><td><b>${esc(i.invoice_no||'(draft)')}</b><div class="hint">${esc(i.kind||'')}</div></td><td>${i.issue_date?esc(fmtDay(i.issue_date)):'—'}</td><td>${i.due_date?esc(fmtDay(i.due_date)):'—'}</td><td>${wsMoney(i.total,i.currency)}</td><td>${wsMoney(i.paid,i.currency)}</td><td><b>${wsMoney(bal,i.currency)}</b></td><td>${invBadge(st)}</td><td><button class="link-btn" onclick="wsInvoiceView('${i.id}')">open</button></td></tr>`;}).join('')||'<tr><td colspan="8" class="hint">No invoices yet.</td></tr>'}</tbody></table></div>`;
+  <div class="table-wrap"><table class="lead-table"><thead><tr><th>Invoice</th><th>Issued</th><th>Due</th><th>Total</th><th>Paid</th><th>Balance</th><th>Status</th><th></th></tr></thead><tbody>${rows.map(i=>{const st=invStatus(i);const bal=(Number(i.total)||0)-(Number(i.paid)||0);return `<tr><td><b>${esc(i.invoice_no||'(draft)')}</b><div class="hint">${esc(i.kind||'')}${i.recurring?' · 🔁 recurring':''}</div></td><td>${i.issue_date?esc(fmtDay(i.issue_date)):'—'}</td><td>${i.due_date?esc(fmtDay(i.due_date)):'—'}</td><td>${wsMoney(i.total,i.currency)}</td><td>${wsMoney(i.paid,i.currency)}</td><td><b>${wsMoney(bal,i.currency)}</b></td><td>${invBadge(st)}</td><td><button class="link-btn" onclick="wsInvoiceView('${i.id}')">open</button></td></tr>`;}).join('')||'<tr><td colspan="8" class="hint">No invoices yet.</td></tr>'}</tbody></table></div>`;
 }
 let WS_INV_ITEMS=[];
 function wsInvoiceForm(){
@@ -5640,6 +5640,7 @@ function wsInvoiceForm(){
     <div id="iv-items"></div>
     <button class="btn btn-sm btn-ghost" style="width:auto;margin:6px 0" onclick="wsInvAddItem()">＋ Add item</button>
     <div class="grid2" style="margin-top:8px"><div><label>Discount</label><input id="iv-disc" type="number" class="inp" value="0" oninput="wsInvTotals()"/></div><div><label>Payment instructions</label><input id="iv-pay" class="inp" placeholder="Bank / UPI details"/></div></div>
+    <label class="hint" style="display:flex;gap:8px;align-items:center;margin-top:10px"><input type="checkbox" id="iv-recur"> Recurring monthly retainer — auto-generate a new invoice each month</label>
     <label style="margin-top:10px">Notes</label><textarea id="iv-notes" class="inp" rows="2"></textarea>
     <div class="ws-inv-tot" id="iv-tot"></div>
     <div class="row" style="margin-top:12px"><button class="btn btn-sm btn-ghost" style="width:auto;margin:0" onclick="wsInvoiceSave('draft')">Save draft</button><button class="btn btn-sm btn-ok" style="width:auto;margin:0" onclick="wsInvoiceSave('issue')">Issue invoice</button></div>
