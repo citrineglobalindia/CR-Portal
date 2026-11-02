@@ -5502,6 +5502,7 @@ async function wsConView(id){
     <div class="section-title">Signatures</div>${(sigs||[]).length?(sigs||[]).map(x=>`<div class="ws-row"><span>${esc(x.signer_name||'')} <span class="badge">${esc(x.signer_role)}</span></span><span class="hint">${esc(x.method)} · ${esc(fmtDate(x.signed_at))}</span></div>`).join(''):'<div class="hint" style="padding:6px">Not signed yet.</div>'}
     <div class="hint" style="margin-top:8px">⚠ This is a basic electronic acceptance (typed name + consent), not provider-backed digital signing. Enable an e-sign provider under Integrations for certified signatures.</div>
     <div class="row" style="margin-top:14px;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-sm btn-ghost" style="width:auto;margin:0" onclick="wsConPDF('${id}')">⬇ PDF</button>
       ${(isClient&&!clientSigned&&(c.status==='sent'||c.status==='draft'))?`<button class="btn btn-sm btn-ok" style="width:auto;margin:0" onclick="wsSignForm('${id}','client')">✍ Review &amp; sign</button>`:''}
       ${(wsCan()&&clientSigned&&!agencySigned)?`<button class="btn btn-sm btn-ok" style="width:auto;margin:0" onclick="wsSignForm('${id}','agency')">✍ Countersign</button>`:''}
       ${(wsCan()&&!locked)?`<button class="btn btn-sm btn-ghost" style="width:auto;margin:0" onclick="document.getElementById('wscv').remove();wsConForm('${id}')">Edit</button><button class="btn btn-sm btn-ghost" style="width:auto;margin:0" onclick="wsConNewVersion('${id}')">New version</button>`:''}
@@ -5593,7 +5594,7 @@ async function wsPropView(id){
     <div class="ws-inv-tot" style="margin-top:10px"><div class="ws-row"><span>One-time</span><b>${wsMoney(p.total_onetime,p.currency)}</b></div><div class="ws-row"><span>Recurring</span><b>${wsMoney(p.total_recurring,p.currency)}/mo</b></div><div class="ws-row"><span>Advertising budget (separate)</span><b>${wsMoney(p.ad_budget,p.currency)}</b></div></div>
     ${p.terms?`<div class="section-title">Payment terms</div><p class="hint">${esc(p.terms)}</p>`:''}
     ${p.accepted_at?`<div class="hint" style="margin-top:10px;color:#37d67a">✓ Accepted ${esc(fmtDate(p.accepted_at))}${p.accepted_name?' by '+esc(p.accepted_name):''}</div>`:''}
-    ${wsCan()?`<div class="row" style="margin-top:14px;gap:8px;flex-wrap:wrap">${next[p.status]?`<button class="btn btn-sm btn-ok" style="width:auto;margin:0" onclick="wsPropState('${id}','${next[p.status][0]}')">${next[p.status][1]}</button>`:''}${p.status!=='accepted'&&p.status!=='rejected'?`<button class="btn btn-sm btn-ghost" style="width:auto;margin:0;color:#ff8a8a" onclick="wsPropState('${id}','rejected')">Mark rejected</button>`:''}${p.status==='accepted'?`<button class="btn btn-sm btn-ok" style="width:auto;margin:0" onclick="wsPropConvert('${id}')">➜ Convert to contract</button>`:''}</div>`:''}
+    ${true?`<div class="row" style="margin-top:14px;gap:8px;flex-wrap:wrap"><button class="btn btn-sm btn-ghost" style="width:auto;margin:0" onclick="wsPropPDF('${id}')">⬇ PDF</button>${next[p.status]?`<button class="btn btn-sm btn-ok" style="width:auto;margin:0" onclick="wsPropState('${id}','${next[p.status][0]}')">${next[p.status][1]}</button>`:''}${p.status!=='accepted'&&p.status!=='rejected'?`<button class="btn btn-sm btn-ghost" style="width:auto;margin:0;color:#ff8a8a" onclick="wsPropState('${id}','rejected')">Mark rejected</button>`:''}${wsCan()&&p.status==='accepted'?`<button class="btn btn-sm btn-ok" style="width:auto;margin:0" onclick="wsPropConvert('${id}')">➜ Convert to contract</button>`:''}</div>`:''}
   </div></div></div>`);
   if(!p.viewed_at&&p.status==='sent'){ await sb.from('cr_proposals').update({viewed_at:new Date().toISOString(),status:'viewed'}).eq('id',id); }
 }
@@ -5674,7 +5675,7 @@ async function wsInvoiceView(id){
     ${wsCan()?`<div class="row" style="margin-top:14px;gap:8px;flex-wrap:wrap">
       ${i.status==='Draft'?`<button class="btn btn-sm btn-ok" style="width:auto;margin:0" onclick="wsInvoiceIssue('${i.id}')">Issue</button>`:''}
       ${st!=='Paid'&&i.status!=='Draft'&&i.status!=='Cancelled'?`<button class="btn btn-sm btn-ok" style="width:auto;margin:0" onclick="wsPaymentForm('${i.id}',${bal})">Record payment</button>`:''}
-      ${i.status!=='Draft'&&wa?`<button class="btn btn-sm btn-ghost" style="width:auto;margin:0" onclick="wsInvoiceWhatsApp('${i.id}')">📲 Share on WhatsApp</button>`:''}
+      ${i.status!=='Draft'&&wa?`<button class="btn btn-sm btn-ghost" style="width:auto;margin:0" onclick="wsInvoiceWhatsApp('${i.id}')">📲 WhatsApp</button>`:''}<button class="btn btn-sm btn-ghost" style="width:auto;margin:0" onclick="wsInvoicePDF('${i.id}')">⬇ PDF</button>
       ${i.status!=='Cancelled'&&i.status!=='Paid'?`<button class="btn btn-sm btn-ghost" style="width:auto;margin:0;color:#ff8a8a" onclick="wsInvoiceCancel('${i.id}')">Cancel</button>`:''}
     </div><div class="hint" style="margin-top:6px">WhatsApp opens a prepared message to the client's number — you review and send it. Delivery is not auto-confirmed.</div>`:''}
   </div></div></div>`);
@@ -5711,6 +5712,39 @@ function wsInvoiceWhatsApp(id){
     wsAudit('invoice.whatsapp_opened','invoice',id);
     toast('WhatsApp opened — review and send the message.');
   });
+}
+// ---------- PDF export (jsPDF) ----------
+function wsPdfHead(doc,title,sub){ const brand=(getComputedStyle(document.documentElement).getPropertyValue('--brand')||'#6c5ce7').trim(); const rgb=(function(h){h=h.replace('#','');return [parseInt(h.substr(0,2),16),parseInt(h.substr(2,2),16),parseInt(h.substr(4,2),16)];})(brand.length>=7?brand:'#6c5ce7'); doc.setFillColor(rgb[0],rgb[1],rgb[2]); doc.rect(0,0,210,26,'F'); doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(16); doc.text('Stepstones',14,13); doc.setFontSize(11); doc.text(title,14,20); doc.setTextColor(255,255,255); doc.setFontSize(9); doc.setFont('helvetica','normal'); doc.text(sub||'',196,13,{align:'right'}); doc.setTextColor(30,30,40); return 34; }
+function wsClientLine(){ const c=WS.client||{}; return [c.company||c.full_name||'',c.billing_address||c.address||'',c.gst_no?('GSTIN: '+c.gst_no):''].filter(Boolean); }
+async function wsInvoicePDF(id){
+  const {jsPDF}=window.jspdf; const {data:i}=await sb.from('cr_invoices').select('*').eq('id',id).maybeSingle(); const {data:items}=await sb.from('cr_invoice_items').select('*').eq('invoice_id',id).order('sort'); if(!i)return;
+  const doc=new jsPDF(); let y=wsPdfHead(doc,'INVOICE '+(i.invoice_no||'(draft)'),fmtDay(i.issue_date||new Date()));
+  doc.setFontSize(10); doc.setFont('helvetica','bold'); doc.text('Bill to',14,y); doc.setFont('helvetica','normal'); wsClientLine().forEach((l,k)=>doc.text(String(l),14,y+5+k*5));
+  doc.setFont('helvetica','bold'); doc.text('Due: '+(i.due_date?fmtDay(i.due_date):'—'),196,y,{align:'right'}); doc.setFont('helvetica','normal'); doc.text('Status: '+invStatus(i),196,y+5,{align:'right'});
+  doc.autoTable({ startY:y+22, head:[['Description','Qty','Rate','Amount']], body:(items||[]).map(it=>[it.name,String(it.qty),wsMoney(it.rate,i.currency),wsMoney(it.amount,i.currency)]), styles:{fontSize:9}, headStyles:{fillColor:[108,92,231]} });
+  let ty=doc.lastAutoTable.finalY+8; const line=(l,v,b)=>{ doc.setFont('helvetica',b?'bold':'normal'); doc.text(l,140,ty); doc.text(v,196,ty,{align:'right'}); ty+=6; };
+  line('Subtotal',wsMoney(i.subtotal,i.currency)); line('Discount','-'+wsMoney(i.discount,i.currency)); line('Tax ('+i.tax_rate+'%)',wsMoney(i.tax,i.currency)); line('Total',wsMoney(i.total,i.currency),true); line('Paid',wsMoney(i.paid,i.currency)); line('Balance',wsMoney((Number(i.total)||0)-(Number(i.paid)||0),i.currency),true);
+  if(i.payment_instructions){ ty+=6; doc.setFont('helvetica','bold'); doc.text('Payment instructions',14,ty); doc.setFont('helvetica','normal'); doc.text(doc.splitTextToSize(i.payment_instructions,180),14,ty+5); }
+  doc.save((i.invoice_no||'invoice')+'.pdf');
+}
+async function wsPropPDF(id){
+  const {jsPDF}=window.jspdf; const {data:p}=await sb.from('cr_proposals').select('*').eq('id',id).maybeSingle(); const {data:items}=await sb.from('cr_proposal_items').select('*').eq('proposal_id',id).order('sort'); if(!p)return;
+  const doc=new jsPDF(); let y=wsPdfHead(doc,'PROPOSAL',fmtDay(p.created_at)); doc.setFontSize(14); doc.setFont('helvetica','bold'); doc.text(doc.splitTextToSize(p.title||'Proposal',180),14,y); y+=10;
+  const para=(h,t)=>{ if(!t)return; doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.text(h,14,y); y+=5; doc.setFont('helvetica','normal'); const ls=doc.splitTextToSize(t,182); doc.text(ls,14,y); y+=ls.length*5+4; if(y>260){doc.addPage();y=20;} };
+  para('Introduction',p.intro); para('Objectives',p.objectives); para('Strategy',p.strategy);
+  doc.autoTable({ startY:y+2, head:[['Section','Item','Fee']], body:(items||[]).map(it=>[it.section,it.name,it.section==='exclusion'?'—':wsMoney(it.fee,p.currency)+(it.recurring?'/mo':'')]), styles:{fontSize:9}, headStyles:{fillColor:[108,92,231]} });
+  let ty=doc.lastAutoTable.finalY+8; doc.setFont('helvetica','bold'); doc.text('One-time: '+wsMoney(p.total_onetime,p.currency),14,ty); doc.text('Recurring: '+wsMoney(p.total_recurring,p.currency)+'/mo',14,ty+6); doc.text('Advertising budget (separate): '+wsMoney(p.ad_budget,p.currency),14,ty+12);
+  doc.save('proposal-'+(p.title||'').replace(/[^\w]+/g,'_').slice(0,30)+'.pdf');
+}
+async function wsConPDF(id){
+  const {jsPDF}=window.jspdf; const {data:c}=await sb.from('cr_contracts').select('*').eq('id',id).maybeSingle(); const {data:sigs}=await sb.from('cr_signatures').select('*').eq('contract_id',id).order('signed_at'); if(!c)return;
+  const doc=new jsPDF(); let y=wsPdfHead(doc,'CONTRACT (v'+c.version+')',c.status.toUpperCase()); doc.setFontSize(13); doc.setFont('helvetica','bold'); doc.text(doc.splitTextToSize(c.title||'Service agreement',180),14,y); y+=9;
+  const para=(h,t)=>{ if(!t)return; doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.text(h,14,y); y+=5; doc.setFont('helvetica','normal'); const ls=doc.splitTextToSize(t,182); if(y+ls.length*5>275){doc.addPage();y=20;} doc.text(ls,14,y); y+=ls.length*5+4; };
+  para('Period',(c.service_start?fmtDay(c.service_start):'')+(c.service_end?' to '+fmtDay(c.service_end):'')); para('Scope',c.scope); para('Payment schedule',c.payment_schedule); para('Renewal',c.renewal); para('Termination',c.termination); para('Contract',c.body);
+  if(y>250){doc.addPage();y=20;} doc.setFont('helvetica','bold'); doc.text('Signatures',14,y); y+=6; doc.setFont('helvetica','normal'); doc.setFontSize(9);
+  (sigs||[]).forEach(sgn=>{ doc.text(`${sgn.signer_role.toUpperCase()}: ${sgn.signer_name} — ${sgn.method} — ${fmtDate(sgn.signed_at)}`,14,y); y+=5; });
+  if(!(sigs||[]).length) doc.text('Not signed.',14,y);
+  doc.save('contract-'+(c.title||'').replace(/[^\w]+/g,'_').slice(0,30)+'.pdf');
 }
 async function wsAudit(action,entity,eid){ try{ await sb.from('cr_audit_log').insert({actor_id:(SESSION&&SESSION.user)?SESSION.user.id:null,actor_name:ME.full_name||ME.email,action,entity,entity_id:eid||null,client_id:WS.cid}); }catch(_){ } }
 
