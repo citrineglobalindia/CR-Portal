@@ -1658,6 +1658,15 @@ async function staffSave(id){
   try{ await callFn('admin-staff',payload); toast('Saved.'); document.getElementById('stedit').remove(); openStaff(); }catch(e){ toast(e.message||'Could not save.',true); }
 }
 async function staffDelete(id,name){ if(!confirm('Remove '+(name||'this member')+'?'))return; try{ await callFn('admin-staff',{action:'delete',user_id:id}); toast('Removed.'); openStaff(); }catch(e){ toast(e.message||'Could not remove.',true); } }
+async function openAudit(clientId){
+  const q=sb.from('cr_audit_log').select('*').order('created_at',{ascending:false}).limit(200);
+  if(clientId) q.eq('client_id',clientId);
+  const {data}=await q; const rows=data||[];
+  $("modal-root").innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()"><div class="modal" style="max-width:680px"><div class="mh"><h2 style="margin:0">Activity &amp; audit log</h2><button class="x" onclick="closeModal()">×</button></div><div class="mb">
+    <div class="hint" style="margin-bottom:8px">Immutable record of important actions — approvals, contract versions, invoice and budget changes, permission changes.</div>
+    <div class="table-wrap"><table class="lead-table"><thead><tr><th>When</th><th>Who</th><th>Action</th><th>Entity</th></tr></thead><tbody>${rows.map(a=>`<tr><td class="hint" style="white-space:nowrap">${esc(fmtDate(a.created_at))}</td><td>${esc(a.actor_name||'—')}</td><td><b>${esc(a.action||'')}</b>${a.detail?`<div class="hint">${esc(JSON.stringify(a.detail).slice(0,80))}</div>`:''}</td><td>${esc(a.entity||'')}</td></tr>`).join('')||'<tr><td colspan="4" class="hint">No activity recorded yet.</td></tr>'}</tbody></table></div>
+  </div></div></div>`;
+}
 function amOptions(sel){ const ams=(STAFF||[]).filter(x=>["admin","super_admin","account_manager","manager"].includes(x.role)); return `<option value="">— unassigned —</option>`+ams.map(a=>`<option value="${a.id}" ${sel===a.id?"selected":""}>${esc(a.full_name||a.email)}${a.role==="account_manager"?" (AM)":""}</option>`).join(""); }
 
 async function callFn(name,body){
@@ -4968,7 +4977,7 @@ async function exportCRPdf(id){
 async function renderAdminClients(){
   await loadStaff();
   $("admin-pane").innerHTML=`
-    <div class="lead-bar" style="margin:0 0 12px"><h2 style="margin:0">Clients</h2><button class="btn btn-sm btn-ghost" style="width:auto;margin:0" onclick="openStaff()">👥 Team &amp; account managers</button></div>
+    <div class="lead-bar" style="margin:0 0 12px"><h2 style="margin:0">Clients</h2><div class="row" style="gap:8px;margin:0"><button class="btn btn-sm btn-ghost" style="width:auto;margin:0" onclick="openStaff()">👥 Team</button><button class="btn btn-sm btn-ghost" style="width:auto;margin:0" onclick="openAudit()">🧾 Activity log</button></div></div>
     <div class="card">
       <h2>Create a Client</h2>
       <div class="sub">Set up the client's login (username + password), their contact email for notifications, business details and logo.</div>
@@ -5325,7 +5334,7 @@ async function wsReviewSubmit(){
   const body=($('rv-body')||{}).value||''; if(!body.trim()&&!WS_RV_RATING){toast('Add a rating or message.',true);return;}
   const {error}=await sb.from('cr_reviews').insert({client_id:WS.cid,rating:WS_RV_RATING||null,type:($('rv-type')||{}).value,body,status:'new',created_by:(SESSION&&SESSION.user)?SESSION.user.id:null,created_by_name:ME.full_name||ME.company||ME.email});
   if(error){toast(error.message,true);return;}
-  wsAudit('review.submitted','review'); document.getElementById('wsrf').remove(); toast('Thanks for your feedback!'); wsReviews();
+  wsAudit('review.submitted','review'); wsNotify(wsAM(),'New client feedback',(WS.client&&WS.client.company||'A client')+' left feedback','review'); document.getElementById('wsrf').remove(); toast('Thanks for your feedback!'); wsReviews();
 }
 async function wsReviewResolve(id){ await sb.from('cr_reviews').update({status:'resolved',resolved_at:new Date().toISOString()}).eq('id',id); toast('Resolved.'); wsReviews(); }
 async function wsReviewConsent(id,val){ await sb.from('cr_reviews').update({public_consent:val}).eq('id',id); toast(val?'Public use approved.':'Consent revoked.'); wsReviews(); }
@@ -5431,9 +5440,9 @@ async function wsCcView(id){
     ${(wsCan()&&r.status==='Scheduled')?'<div class="hint" style="margin-top:6px">No social integration is connected, so publishing is confirmed manually. Connect a platform under Integrations for automatic publishing.</div>':''}
   </div></div></div>`);
 }
-async function wsCcDecide(id,status){ const {error}=await sb.from('cr_content_items').update({status,updated_at:new Date().toISOString()}).eq('id',id); if(error){toast(error.message,true);return;} wsAudit('content.'+status,'content',id); const m=document.getElementById('wscp');if(m)m.remove(); toast('Updated.'); wsCalendar(); }
+async function wsCcDecide(id,status){ const {error}=await sb.from('cr_content_items').update({status,updated_at:new Date().toISOString()}).eq('id',id); if(error){toast(error.message,true);return;} wsAudit('content.'+status,'content',id); if(status==='Client Approval') wsNotify(WS.cid,'Content awaiting approval','A new post is ready for your approval','content'); if(status==='Approved'||status==='Changes Requested') wsNotify(wsAM(),'Content '+status,(WS.client&&WS.client.company||'')+': '+status,'content'); const m=document.getElementById('wscp');if(m)m.remove(); toast('Updated.'); wsCalendar(); }
 async function wsCcPublish(id){ const {error}=await sb.from('cr_content_items').update({status:'Published',published_at:new Date().toISOString(),publish_mode:'manual'}).eq('id',id); if(error){toast(error.message,true);return;} wsAudit('content.published','content',id); const m=document.getElementById('wscp');if(m)m.remove(); toast('Marked as published.'); wsCalendar(); }
-async function wsCcChanges(id){ const note=prompt('What changes are needed?'); if(note===null)return; await sb.from('cr_content_items').update({status:'Changes Requested',approval_comment:note}).eq('id',id); wsAudit('content.changes','content',id); const m=document.getElementById('wscp');if(m)m.remove(); toast('Change requested.'); wsCalendar(); }
+async function wsCcChanges(id){ const note=prompt('What changes are needed?'); if(note===null)return; await sb.from('cr_content_items').update({status:'Changes Requested',approval_comment:note}).eq('id',id); wsAudit('content.changes','content',id); wsNotify(wsAM(),'Content changes requested',(WS.client&&WS.client.company||'')+' requested changes','content'); const m=document.getElementById('wscp');if(m)m.remove(); toast('Change requested.'); wsCalendar(); }
 
 // ---------- Approvals inbox ----------
 async function wsApprovals(){
@@ -5524,7 +5533,7 @@ async function wsSignSubmit(id,role){
   const {error}=await sb.from('cr_signatures').insert({contract_id:id,signer_id:(SESSION&&SESSION.user)?SESSION.user.id:null,signer_name:nm,signer_role:role,method:'typed',consent:true,typed_name:nm,user_agent:navigator.userAgent,version:c?c.version:1,evidence:{at:new Date().toISOString(),ua:navigator.userAgent}});
   if(error){toast(error.message,true);return;}
   await sb.from('cr_contracts').update({status:role==='agency'?'countersigned':'signed',updated_at:new Date().toISOString()}).eq('id',id);
-  wsAudit('contract.signed.'+role,'contract',id);
+  wsAudit('contract.signed.'+role,'contract',id); if(role==='client') wsNotify(wsAM(),'Contract signed',(WS.client&&WS.client.company||'')+' signed a contract','contract');
   document.getElementById('wssg').remove(); const v=document.getElementById('wscv');if(v)v.remove(); toast('Signed. A permanent, immutable record was created.'); wsContracts();
 }
 async function wsConNewVersion(id){
@@ -5601,7 +5610,7 @@ async function wsPropView(id){
 async function wsPropState(id,st){
   const patch={status:st}; if(st==='accepted'){patch.accepted_at=new Date().toISOString();patch.accepted_by=(SESSION&&SESSION.user)?SESSION.user.id:null;patch.accepted_name=ME.full_name||ME.email;}
   const {error}=await sb.from('cr_proposals').update(patch).eq('id',id); if(error){toast(error.message,true);return;}
-  wsAudit('proposal.'+st,'proposal',id); const m=document.getElementById('wspv');if(m)m.remove(); toast('Proposal '+st+'.'); wsProposals();
+  wsAudit('proposal.'+st,'proposal',id); wsNotify(wsAM(),'Proposal '+st,(WS.client&&WS.client.company||'')+' '+st+' a proposal','proposal'); const m=document.getElementById('wspv');if(m)m.remove(); toast('Proposal '+st+'.'); wsProposals();
 }
 async function wsPropConvert(id){
   const {data:p}=await sb.from('cr_proposals').select('*').eq('id',id).maybeSingle(); if(!p)return;
@@ -5659,7 +5668,7 @@ async function wsInvoiceSave(mode){
   const {data,error}=await sb.from('cr_invoices').insert(inv).select().single();
   if(error){ toast(error.message,true); return; }
   await sb.from('cr_invoice_items').insert(items.map((it,idx)=>({invoice_id:data.id,name:it.name,qty:Number(it.qty)||1,rate:Number(it.rate)||0,amount:(Number(it.qty)||0)*(Number(it.rate)||0),sort:idx})));
-  wsAudit('invoice.'+(mode==='issue'?'issued':'drafted'),'invoice',data.id);
+  wsAudit('invoice.'+(mode==='issue'?'issued':'drafted'),'invoice',data.id); if(mode==='issue') wsNotify(WS.cid,'New invoice '+(data.invoice_no||''),'An invoice for '+wsMoney(data.total,data.currency)+' has been issued','invoice');
   const m=document.getElementById('wsif'); if(m)m.remove(); toast(mode==='issue'?('Invoice '+(data.invoice_no||'')+' issued.'):'Draft saved.'); wsInvoices();
 }
 async function wsInvoiceView(id){
@@ -5681,7 +5690,7 @@ async function wsInvoiceView(id){
     </div><div class="hint" style="margin-top:6px">WhatsApp opens a prepared message to the client's number — you review and send it. Delivery is not auto-confirmed.</div>`:''}
   </div></div></div>`);
 }
-async function wsInvoiceIssue(id){ const {error}=await sb.from('cr_invoices').update({status:'Issued'}).eq('id',id); if(error){toast(error.message,true);return;} wsAudit('invoice.issued','invoice',id); const m=document.getElementById('wsiv');if(m)m.remove(); toast('Invoice issued.'); wsInvoices(); }
+async function wsInvoiceIssue(id){ const {error}=await sb.from('cr_invoices').update({status:'Issued'}).eq('id',id); if(error){toast(error.message,true);return;} wsAudit('invoice.issued','invoice',id); wsNotify(WS.cid,'New invoice issued','An invoice has been issued to you','invoice'); const m=document.getElementById('wsiv');if(m)m.remove(); toast('Invoice issued.'); wsInvoices(); }
 async function wsInvoiceCancel(id){ if(!confirm('Cancel this invoice?'))return; const {error}=await sb.from('cr_invoices').update({status:'Cancelled'}).eq('id',id); if(error){toast(error.message,true);return;} wsAudit('invoice.cancelled','invoice',id); const m=document.getElementById('wsiv');if(m)m.remove(); toast('Invoice cancelled.'); wsInvoices(); }
 function wsPaymentForm(id,bal){
   $("modal-root").insertAdjacentHTML('beforeend',`<div class="overlay overlay-sheet" id="wspf" onclick="if(event.target===this)this.remove()"><div class="modal more-sheet"><div class="ms-handle"></div><div class="ms-head"><h2 style="margin:0">Record payment</h2><button class="x" onclick="document.getElementById('wspf').remove()">×</button></div><div style="padding:6px 18px 20px">
@@ -5748,6 +5757,8 @@ async function wsConPDF(id){
   doc.save('contract-'+(c.title||'').replace(/[^\w]+/g,'_').slice(0,30)+'.pdf');
 }
 async function wsAudit(action,entity,eid){ try{ await sb.from('cr_audit_log').insert({actor_id:(SESSION&&SESSION.user)?SESSION.user.id:null,actor_name:ME.full_name||ME.email,action,entity,entity_id:eid||null,client_id:WS.cid}); }catch(_){ } }
+async function wsNotify(user,title,body,type){ if(!user)return; try{ await sb.rpc('cr_notify',{p_user:user,p_title:title,p_body:body||null,p_type:type||'agency'}); }catch(_){ } }
+function wsAM(){ return WS.client&&WS.client.account_manager; }
 
 let EDIT_EMAILS=[];
 function deleteClientAsk(id){ const c=CLIENTS.find(x=>x.id===id); $("modal-root").innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()"><div class="modal" style="max-width:470px"><div class="mh"><h2 style="margin:0;color:#ffb4b4">Delete client</h2><button class="x" onclick="closeModal()">×</button></div><div class="mb"><p style="line-height:1.55">Permanently delete <b>${esc(c?(c.company||c.full_name||c.username):"this client")}</b> and <b>all</b> of their change requests, files, vault entries and notes? This cannot be undone.</p><div class="row" style="margin-top:14px"><button class="btn btn-sm btn-danger" id="dc-btn" onclick="confirmDeleteClient('${id}')">Yes, delete permanently</button><button class="btn btn-sm btn-ghost" onclick="openClientEdit('${id}')">Cancel</button></div></div></div></div>`; }
