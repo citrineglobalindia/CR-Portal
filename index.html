@@ -1608,6 +1608,44 @@ async function uploadRecording(key,reqId){
 function tagChips(tags){ return (tags&&tags.length)?`<div style="margin:6px 0 2px">${tags.map(t=>`<span class="filechip">#${esc(t)}</span>`).join("")}</div>`:""; }
 let ADMINS=[];
 async function loadAdmins(){ const {data}=await sb.from("cr_profiles").select("id,full_name,username,email").eq("role","admin"); ADMINS=data||[]; return ADMINS; }
+let STAFF=[], STAFF_LOADED=false;
+async function loadStaff(){ try{ const {data}=await sb.from("cr_profiles").select("id,full_name,email,role,fin_access").in("role",["admin","super_admin","account_manager","manager","team_member"]).order("full_name"); STAFF=data||[]; STAFF_LOADED=true; }catch(_){ STAFF=[]; } return STAFF; }
+async function openStaff(){
+  await loadStaff();
+  const staff=(STAFF||[]).filter(x=>["account_manager","team_member","manager","super_admin"].includes(x.role));
+  const roleBadge=r=>({account_manager:'Account manager',team_member:'Team member',manager:'Manager',super_admin:'Super admin'}[r]||r);
+  $("modal-root").innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()"><div class="modal" style="max-width:640px"><div class="mh"><h2 style="margin:0">Team &amp; account managers</h2><button class="x" onclick="closeModal()">×</button></div><div class="mb">
+    <div class="table-wrap"><table class="lead-table"><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Finance</th><th></th></tr></thead><tbody>${staff.map(u=>`<tr><td><b>${esc(u.full_name||'—')}</b></td><td class="hint">${esc(u.email||'')}</td><td><span class="badge">${esc(roleBadge(u.role))}</span></td><td>${u.fin_access?'✅':'—'}</td><td><button class="link-btn" onclick="staffEdit('${u.id}')">edit</button> · <button class="link-btn" style="color:#ff7b7b" onclick="staffDelete('${u.id}','${esc((u.full_name||'').replace(/'/g,''))}')">remove</button></td></tr>`).join('')||'<tr><td colspan="5" class="hint">No team members yet.</td></tr>'}</tbody></table></div>
+    <div class="section-title">Add team member</div>
+    <div class="grid2"><div><label>Full name</label><input id="st-name" class="inp"/></div><div><label>Email</label><input id="st-email" class="inp" type="email"/></div>
+    <div><label>Password <span class="hint">min 8</span></label><input id="st-pass" class="inp" type="text"/></div>
+    <div><label>Role</label><select id="st-role" class="inp"><option value="account_manager">Account manager</option><option value="team_member">Team member</option><option value="manager">Manager</option><option value="super_admin">Super admin</option></select></div></div>
+    <label class="hint" style="display:flex;gap:8px;align-items:center;margin-top:8px"><input type="checkbox" id="st-fin"> Allow financial access (invoices, budgets, payments)</label>
+    <div class="row" style="margin-top:12px"><button class="btn btn-sm btn-ok" style="width:auto;margin:0" id="st-btn" onclick="staffCreate()">＋ Add member</button></div>
+  </div></div></div>`;
+}
+async function staffCreate(){
+  const full_name=($('st-name').value||'').trim(), email=($('st-email').value||'').trim(), password=$('st-pass').value||'', role=$('st-role').value, fin_access=$('st-fin').checked;
+  if(!full_name||!email||password.length<8){ toast('Name, email and 8+ char password required.',true); return; }
+  const btn=$('st-btn'); if(btn){btn.disabled=true;btn.textContent='Adding…';}
+  try{ await callFn('admin-staff',{action:'create',full_name,email,password,role,fin_access}); toast('Team member added.'); openStaff(); }
+  catch(e){ toast(e.message||'Could not add.',true); if(btn){btn.disabled=false;btn.textContent='＋ Add member';} }
+}
+async function staffEdit(id){
+  const u=(STAFF||[]).find(x=>x.id===id); if(!u)return;
+  $("modal-root").insertAdjacentHTML('beforeend',`<div class="overlay overlay-sheet" id="stedit" onclick="if(event.target===this)this.remove()"><div class="modal more-sheet"><div class="ms-handle"></div><div class="ms-head"><h2 style="margin:0">Edit ${esc(u.full_name||'member')}</h2><button class="x" onclick="document.getElementById('stedit').remove()">×</button></div><div style="padding:6px 18px 20px">
+    <label>Role</label><select id="se-role" class="inp"><option value="account_manager" ${u.role==='account_manager'?'selected':''}>Account manager</option><option value="team_member" ${u.role==='team_member'?'selected':''}>Team member</option><option value="manager" ${u.role==='manager'?'selected':''}>Manager</option><option value="super_admin" ${u.role==='super_admin'?'selected':''}>Super admin</option></select>
+    <label class="hint" style="display:flex;gap:8px;align-items:center;margin-top:10px"><input type="checkbox" id="se-fin" ${u.fin_access?'checked':''}> Financial access</label>
+    <label style="margin-top:10px">Reset password <span class="hint">(optional)</span></label><input id="se-pw" class="inp" type="text" placeholder="new password"/>
+    <button class="btn btn-ok" style="margin-top:14px" onclick="staffSave('${id}')">Save</button>
+  </div></div></div>`);
+}
+async function staffSave(id){
+  const payload={action:'update',user_id:id,role:$('se-role').value,fin_access:$('se-fin').checked}; const pw=$('se-pw').value; if(pw) payload.new_password=pw;
+  try{ await callFn('admin-staff',payload); toast('Saved.'); document.getElementById('stedit').remove(); openStaff(); }catch(e){ toast(e.message||'Could not save.',true); }
+}
+async function staffDelete(id,name){ if(!confirm('Remove '+(name||'this member')+'?'))return; try{ await callFn('admin-staff',{action:'delete',user_id:id}); toast('Removed.'); openStaff(); }catch(e){ toast(e.message||'Could not remove.',true); } }
+function amOptions(sel){ const ams=(STAFF||[]).filter(x=>["admin","super_admin","account_manager","manager"].includes(x.role)); return `<option value="">— unassigned —</option>`+ams.map(a=>`<option value="${a.id}" ${sel===a.id?"selected":""}>${esc(a.full_name||a.email)}${a.role==="account_manager"?" (AM)":""}</option>`).join(""); }
 
 async function callFn(name,body){
   const {data,error}=await sb.functions.invoke(name,{body});
@@ -4915,7 +4953,9 @@ async function exportCRPdf(id){
 
 // ----- Admin: Clients -----
 async function renderAdminClients(){
+  await loadStaff();
   $("admin-pane").innerHTML=`
+    <div class="lead-bar" style="margin:0 0 12px"><h2 style="margin:0">Clients</h2><button class="btn btn-sm btn-ghost" style="width:auto;margin:0" onclick="openStaff()">👥 Team &amp; account managers</button></div>
     <div class="card">
       <h2>Create a Client</h2>
       <div class="sub">Set up the client's login (username + password), their contact email for notifications, business details and logo.</div>
@@ -4945,6 +4985,7 @@ async function renderAdminClients(){
         <div><label>Service start date</label><input id="cl-start" class="inp" type="date"/></div>
         <div><label>Renewal date</label><input id="cl-renewal" class="inp" type="date"/></div>
         <div><label>Status</label><select id="cl-status" class="inp"><option value="active">Active</option><option value="onboarding">Onboarding</option><option value="paused">Paused</option><option value="inactive">Inactive</option></select></div>
+        <div><label>Account manager</label><select id="cl-am" class="inp">${amOptions("")}</select></div>
       </div>
       <label style="margin-top:12px">Billing address <span class="hint">(if different from above)</span></label>
       <textarea id="cl-billing" class="inp" rows="2" placeholder="Billing address"></textarea>
@@ -5645,7 +5686,7 @@ async function confirmDeleteClient(id){ const btn=$("dc-btn"); if(btn){btn.disab
 function renderEmailChips(){ const el=$("e-emails"); if(!el)return; el.innerHTML=EDIT_EMAILS.length?EDIT_EMAILS.map((e,i)=>`<span class="chip">${esc(e)}<button type="button" title="Remove" onclick="removeEmailChip(${i})">×</button></span>`).join(""):`<span class="hint">No emails yet — add at least one below.</span>`; }
 function addEmailChip(){ const inp=$("e-email-add"); const v=(inp.value||"").trim().toLowerCase(); if(!v||!v.includes("@")){toast("Enter a valid email address.",true);return;} if(!EDIT_EMAILS.includes(v)) EDIT_EMAILS.push(v); inp.value=""; renderEmailChips(); inp.focus(); }
 function removeEmailChip(i){ EDIT_EMAILS.splice(i,1); renderEmailChips(); }
-function openClientEdit(id){
+function openClientEdit(id){ if(!STAFF_LOADED){ loadStaff().then(()=>openClientEdit(id)); return; }
   const c=CLIENTS.find(x=>x.id===id); if(!c)return;
   EDIT_LOGO_FILE=null;
   EDIT_EMAILS=(c.notify_emails&&c.notify_emails.length)?c.notify_emails.slice():(c.notify_email?[c.notify_email]:[]);
@@ -5667,6 +5708,8 @@ function openClientEdit(id){
           <div><label>GST / Tax ID</label><input id="e-gst" class="inp" value="${esc(c.gst_no||"")}"/></div>
           <div><label>Website</label><input id="e-web" class="inp" value="${esc(c.website||"")}"/></div>
           <div><label>CR number prefix</label><input id="e-prefix" class="inp" value="${esc(c.cr_prefix||("CR-"+(c.client_code||"")))}" oninput="updateEditPreview()"/></div>
+          <div><label>Account manager</label><select id="e-am" class="inp">${amOptions(c.account_manager)}</select></div>
+          <div><label>Status</label><select id="e-status" class="inp">${["active","onboarding","paused","inactive"].map(x=>`<option ${c.client_status===x?"selected":""}>${x}</option>`).join("")}</select></div>
         </div>
         <label style="margin-top:12px">Address</label>
         <textarea id="e-address" class="inp" rows="2">${esc(c.address||"")}</textarea>
@@ -5748,6 +5791,7 @@ async function saveClientEdit(id){
       company:$("e-company").value.trim(), full_name:$("e-name").value.trim(),
       notify_email:emails[0]||null, notify_emails:emails, phone:$("e-phone").value.trim(), gst_no:$("e-gst").value.trim(),
       website:$("e-web").value.trim(), address:$("e-address").value.trim(), cr_prefix:$("e-prefix").value.trim(),
+      account_manager:($("e-am")&&$("e-am").value)||null, client_status:($("e-status")?$("e-status").value:undefined),
       project_profile:{ stack:($("e-pp-stack")?$("e-pp-stack").value.trim():""), framework:($("e-pp-framework")?$("e-pp-framework").value.trim():""), repo:($("e-pp-repo")?$("e-pp-repo").value.trim():""), site:($("e-pp-site")?$("e-pp-site").value.trim():""), conventions:($("e-pp-conv")?$("e-pp-conv").value.trim():""), notes:($("e-pp-notes")?$("e-pp-notes").value.trim():"") } };
     delete body.email;
     if(EDIT_LOGO_FILE){ body.logo_base64=await readAsBase64(EDIT_LOGO_FILE); body.logo_name=EDIT_LOGO_FILE.name; body.logo_type=EDIT_LOGO_FILE.type||"image/png"; }
@@ -5775,7 +5819,7 @@ async function createClient(){
       service_types, logo_base64, logo_name, logo_type,
       industry:_v("cl-industry")||null, designation:_v("cl-designation")||null, whatsapp:_v("cl-whatsapp")||null,
       billing_address:_v("cl-billing")||null, service_start:_v("cl-start")||null, renewal_date:_v("cl-renewal")||null,
-      client_status:($("cl-status")?$("cl-status").value:"active"),
+      client_status:($("cl-status")?$("cl-status").value:"active"), account_manager:($("cl-am")&&$("cl-am").value)||null,
       social_urls:_v("cl-social")?{raw:_v("cl-social")}:null, ad_accounts:_v("cl-adacc")?{raw:_v("cl-adacc")}:null,
       internal_notes:_v("cl-internal")||null });
     toast(`Client "${company}" created. Login: ${username}`);
