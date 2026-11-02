@@ -2611,6 +2611,7 @@ function drawClientHome(el,d){
   }
   // quick actions + support strip
   let qa="";
+  qa+=`<button class="qa-btn" onclick="openWorkspace(ME.parent_client_id||ME.id)"><span class="qa-ic" style="background:#8e7cff22;color:#8e7cff">🏢</span><div><div class="qa-t">My workspace</div><div class="qa-s">Proposals, approvals, invoices</div></div></button>`;
   if(d.hasSw) qa+=`<button class="qa-btn" onclick="setClientTab('create')"><span class="qa-ic" style="background:#8e7cff22;color:#8e7cff">＋</span><div><div class="qa-t">Raise a request</div><div class="qa-s">New change request</div></div></button>`;
   if(d.hasDm) qa+=`<button class="qa-btn" onclick="setClientTab('enquiries')"><span class="qa-ic" style="background:#22d3ee22;color:#22d3ee">📈</span><div><div class="qa-t">Marketing</div><div class="qa-s">Leads &amp; analytics</div></div></button>`;
   qa+=`<button class="qa-btn" onclick="setClientTab('support')"><span class="qa-ic" style="background:#22c55e22;color:#22c55e">🎫</span><div><div class="qa-t">Support</div><div class="qa-s">${d.openTk?d.openTk+" open":"Raise a ticket"}</div></div></button>`;
