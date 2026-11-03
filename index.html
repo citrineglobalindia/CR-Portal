@@ -410,13 +410,15 @@ const IC={
  reports:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><rect x="5" y="11" width="3" height="7" rx="1"/><rect x="10.5" y="6" width="3" height="12" rx="1"/><rect x="16" y="9" width="3" height="9" rx="1"/></svg>',
  finance:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18v12H3z"/><path d="M3 11h18"/><circle cx="8" cy="15" r="1.3"/></svg>',
  assets:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 15l5-4 4 3 4-4 5 4"/><circle cx="8.5" cy="9" r="1.3"/></svg>',
+reviews:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.9 5.9 6.6.9-4.8 4.6 1.2 6.5L12 18l-5.9 3.1 1.2-6.5L2.5 9.8l6.6-.9z"/></svg>',
+ support:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
  changes:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h13l-3-3M21 17H8l3 3"/></svg>',
  settings:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1l2-1.5-2-3.5-2.3 1a7 7 0 0 0-1.7-1L14.5 2h-5l-.4 2.5a7 7 0 0 0-1.7 1l-2.3-1-2 3.5L3.1 11a7 7 0 0 0 0 2l-2 1.5 2 3.5 2.3-1a7 7 0 0 0 1.7 1l.4 2.5h5l.4-2.5a7 7 0 0 0 1.7-1l2.3 1 2-3.5-2-1.5a7 7 0 0 0 .1-1z"/></svg>',
  bell:'<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 6 2.5 8 2.5 8h-17S6 14 6 8"/><path d="M10.2 21a2 2 0 0 0 3.6 0"/></svg>',
  search:'<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.2-3.2"/></svg>',
  plus:'<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>'
 };
-const NAV=[["overview","Overview"],["clients","Clients"],["proposals","Proposals"],["contracts","Contracts"],["calendar","Content Calendar"],["approvals","Approvals"],["projects","Projects"],["reports","Reports"],["finance","Finance & Accounts"],["assets","Asset Library"],["changes","Change Requests"]];
+const NAV=[["overview","Overview"],["clients","Clients"],["proposals","Proposals"],["contracts","Contracts"],["calendar","Content Calendar"],["approvals","Approvals"],["projects","Projects"],["reports","Reports"],["finance","Finance & Accounts"],["assets","Asset Library"],["reviews","Reviews"],["support","Support"],["changes","Change Requests"]];
 
 /* ================= AUTH ================= */
 async function boot(){
@@ -519,13 +521,13 @@ function renderNav(){
   }).join("");
   $("#nv-settings").className=r==="settings"?"on":"";
 }
-const TITLES={overview:"Overview",clients:"Clients",proposals:"Proposals",contracts:"Contracts",calendar:"Content Calendar",approvals:"Approvals",projects:"Projects",reports:"Reports",finance:"Finance",assets:"Asset Library",changes:"Change Requests",settings:"Settings"};
+const TITLES={overview:"Overview",clients:"Clients",proposals:"Proposals",contracts:"Contracts",calendar:"Content Calendar",approvals:"Approvals",projects:"Projects",reports:"Reports",finance:"Finance",assets:"Asset Library",reviews:"Reviews",support:"Support",changes:"Change Requests",settings:"Settings"};
 function renderRoute(){
   renderNav();
   const r=route(), c=$("#content"); if(!c)return;
   $("#crumb").innerHTML=`Workspace <span class="sep">/</span> <b>${esc(TITLES[r]||"")}</b>`;
   c.scrollTop=0;
-  const map={overview:viewOverview,clients:viewClients,proposals:viewProposals,contracts:viewContracts,calendar:viewCalendar,approvals:viewApprovals,projects:viewProjects,reports:viewReports,finance:viewFinance,assets:viewAssets,changes:viewChanges,settings:viewSettings};
+  const map={overview:viewOverview,clients:viewClients,proposals:viewProposals,contracts:viewContracts,calendar:viewCalendar,approvals:viewApprovals,projects:viewProjects,reports:viewReports,finance:viewFinance,assets:viewAssets,reviews:viewReviews,support:viewSupport,changes:viewChanges,settings:viewSettings};
   (map[r]||soon)(c);
 }
 function soon(c){const r=route();c.innerHTML=`<div class="ph"><div class="ph-ic">${IC[r]||IC.overview}</div><div><h1>${esc(TITLES[r]||"")}</h1><div class="psub">This screen is being built in the new design.</div></div></div><div class="card pad empty"><div class="ei">${IC[r]||IC.settings}</div><div><b>Coming online next</b></div><div class="psub" style="margin-top:6px">The ${esc(TITLES[r])} module is next in the rollout.</div></div>`;}
@@ -1092,7 +1094,7 @@ function v(id){const e=document.getElementById(id);return e?e.value:"";}
 
 /* ============ FINANCE ============ */
 let FIN={tab:"overview"}, FD={acc:[],tx:[],exp:[],pay:[],inv:[]};
-const FIN_TABS=[["overview","Overview"],["ledger","General ledger"],["profit","Client profitability"],["payroll","Payroll"],["expenses","Expenses"],["accounts","Accounts"],["recon","Reconciliation"]];
+const FIN_TABS=[["overview","Overview"],["ledger","General ledger"],["profit","Client profitability"],["payroll","Payroll"],["expenses","Expenses"],["accounts","Accounts"],["budgets","Ad budgets"],["recon","Reconciliation"]];
 async function viewFinance(c){
   if(!cr_can_fin_client()){ c.innerHTML=`<div class="card pad empty"><div class="ei">${IC.finance}</div><div><b>Finance access required</b></div><div class="psub" style="margin-top:6px">Ask an admin to grant you financial access.</div></div>`; return; }
   c.innerHTML=`<div class="ph"><div><h1>Finance &amp; Accounts</h1><div class="psub">Your agency's finances, in one place.</div></div><div class="ph-r" id="fin-actions"></div></div><div class="subtabs" id="fin-tabs">${FIN_TABS.map(([k,l])=>`<button class="${FIN.tab===k?'on':''}" onclick="FIN.tab='${k}';finRender()">${l}</button>`).join("")}</div><div id="fin-body"><div class="psub">Loading…</div></div>`;
@@ -1113,7 +1115,7 @@ function mKey(){ return new Date().toISOString().slice(0,7); }
 function finRender(){
   document.querySelectorAll("#fin-tabs button").forEach(b=>b.classList.remove("on"));
   const idx=FIN_TABS.findIndex(t=>t[0]===FIN.tab); const btns=document.querySelectorAll("#fin-tabs button"); if(btns[idx])btns[idx].classList.add("on");
-  ({overview:finOverview,ledger:finLedger,profit:finProfit,payroll:finPayroll,expenses:finExpenses,accounts:finAccounts,recon:finRecon}[FIN.tab]||finOverview)();
+  ({overview:finOverview,ledger:finLedger,profit:finProfit,payroll:finPayroll,expenses:finExpenses,accounts:finAccounts,budgets:finBudgets,recon:finRecon}[FIN.tab]||finOverview)();
 }
 function finOverview(){
   const b=$("#fin-body"), act=$("#fin-actions"); if(!b)return;
@@ -1440,6 +1442,61 @@ async function repSave(){
   const {data:d,error}=await sb.from("cr_reports").insert({client_id:v("rp-client"),title:v("rp-title"),platform:v("rp-plat")||null,period_start:v("rp-ps")||null,period_end:v("rp-pe")||null,data,observations:v("rp-obs")||null,source:"manual",status:"draft",created_by:SESSION.user.id,created_by_name:ME.full_name||ME.email});
   if(error){toast(error.message,true);return;} closeModal();toast("Report saved");viewReports($("#content"));
 }
+
+
+/* ============ FINANCE: AD BUDGETS ============ */
+let BUD=[];
+async function finBudgets(){ const b=$("#fin-body"),act=$("#fin-actions"); act.innerHTML=`<button class="btn" onclick="budForm()"><span>${IC.plus}</span> Add budget line</button>`;
+  if(!CLIENTS.length){const {data}=await sb.from("cr_profiles").select("id,company,full_name").eq("role","client");CLIENTS=data||[];}
+  const {data}=await sb.from("cr_ad_budgets").select("*").order("period_month",{ascending:false}); BUD=data||[];
+  const sum=f=>BUD.reduce((s,x)=>s+(Number(x[f])||0),0);
+  const util=x=>{const a=Number(x.approved)||0;return a>0?Math.round((Number(x.spent)||0)/a*100):0;};
+  b.innerHTML=`<div class="fin-stats"><div class="fin-s"><div class="fl">Approved budget</div><div class="fv">${money(sum('approved'))}</div></div><div class="fin-s"><div class="fl">Funds received</div><div class="fv">${money(sum('received'))}</div></div><div class="fin-s"><div class="fl">Actual spend</div><div class="fv">${money(sum('spent'))}</div></div><div class="fin-s hl"><div class="fl">Available funds</div><div class="fv">${money(sum('received')-sum('spent'))}</div></div></div>
+   <div class="card pad"><div class="card-h"><h3 class="sec-title" style="font-size:17px">Advertising budgets</h3><span class="sub1">Ad funds are tracked separately from agency revenue.</span></div><table class="tbl"><thead><tr><th>Month</th><th>Client</th><th>Platform</th><th>Approved</th><th>Spent</th><th>Utilisation</th><th>Remaining</th><th>Payer</th></tr></thead><tbody>${BUD.map(x=>{const u=util(x);const c=u>=100?'#c23b3b':(u>=80?'#b4740f':'#15803d');return `<tr><td>${x.period_month?fmtD(x.period_month):'—'}</td><td>${esc(clientName(x.client_id))}</td><td>${esc(x.platform||'—')}</td><td>${money(x.approved,x.currency)}</td><td>${money(x.spent,x.currency)}</td><td><div style="display:flex;align-items:center;gap:6px"><div class="prog" style="width:60px"><i style="width:${Math.min(100,u)}%;background:${c}"></i></div><b style="color:${c}">${u}%</b></div></td><td><b>${money((Number(x.approved)||0)-(Number(x.spent)||0),x.currency)}</b></td><td><span class="tag">${esc(x.payer||'agency')}</span></td></tr>`;}).join("")||'<tr><td colspan="8" class="sub1" style="text-align:center;padding:16px">No budget lines yet.</td></tr>'}</tbody></table></div>`;
+}
+function budForm(){ sheet("Ad budget line",`<div class="g2"><div class="fld2"><label>Client</label><select id="bd-client" class="inp">${CLIENTS.map(c=>`<option value="${c.id}">${esc(c.company||c.full_name)}</option>`).join("")}</select></div><div class="fld2"><label>Platform</label><input id="bd-plat" class="inp" placeholder="Meta"/></div><div class="fld2"><label>Campaign</label><input id="bd-camp" class="inp"/></div><div class="fld2"><label>Month</label><input id="bd-month" type="date" class="inp"/></div><div class="fld2"><label>Approved</label><input id="bd-appr" type="number" class="inp"/></div><div class="fld2"><label>Received</label><input id="bd-recv" type="number" class="inp"/></div><div class="fld2"><label>Spent</label><input id="bd-spent" type="number" class="inp"/></div><div class="fld2"><label>Payer</label><select id="bd-payer" class="inp"><option>agency</option><option>client</option></select></div></div><button class="btn block" onclick="budSave()">Save</button>`); }
+async function budSave(){ const {error}=await sb.from("cr_ad_budgets").insert({client_id:v("bd-client"),platform:v("bd-plat")||null,campaign:v("bd-camp")||null,period_month:v("bd-month")||null,approved:Number(v("bd-appr"))||0,received:Number(v("bd-recv"))||0,spent:Number(v("bd-spent"))||0,payer:v("bd-payer"),created_by:SESSION.user.id}); if(error){toast(error.message,true);return;} closeModal();toast("Budget saved");FIN.tab="budgets";viewFinance($("#content")); }
+
+/* ============ REVIEWS ============ */
+let RVW=[];
+async function viewReviews(c){
+  c.innerHTML=`<div class="ph"><div class="ph-ic">${IC.reviews}</div><div><h1>Reviews &amp; feedback</h1><div class="psub">Client ratings, complaints and suggestions.</div></div></div><div id="rv-body"><div class="psub">Loading…</div></div>`;
+  if(!CLIENTS.length){const {data}=await sb.from("cr_profiles").select("id,company,full_name").eq("role","client");CLIENTS=data||[];}
+  const {data}=await sb.from("cr_reviews").select("*").order("created_at",{ascending:false}); RVW=data||[]; rvRender();
+}
+function rvRender(){ const b=$("#rv-body"); if(!b)return;
+  const nw=RVW.filter(r=>r.status==="new").length, res=RVW.filter(r=>r.status==="resolved").length, avg=RVW.filter(r=>r.rating).length?(RVW.reduce((s,r)=>s+(r.rating||0),0)/RVW.filter(r=>r.rating).length).toFixed(1):"—";
+  b.innerHTML=`<div class="stat-row">${psStat(IC.reviews,"#15803d","Total feedback",String(RVW.length).padStart(2,"0"),"")}${psStat(IC.approvals,"#b4740f","New / open",String(nw).padStart(2,"0"),"")}${psStat(IC.reviews,"#15803d","Avg rating",avg,"")}${psStat(IC.approvals,"#15803d","Resolved",String(res).padStart(2,"0"),"")}</div>
+   <div class="grid" style="gap:12px">${RVW.map(r=>{const stars="★★★★★☆☆☆☆☆".slice(5-Math.min(5,r.rating||0),10-Math.min(5,r.rating||0));return `<div class="card pad"><div class="card-h" style="margin-bottom:8px"><div><b style="font-size:15px">${esc(clientName(r.client_id))}</b> <span style="color:#f0a500">${r.rating?stars:""}</span> <span class="tag">${esc(r.type||'feedback')}</span></div><span class="status ${r.status==='resolved'?'g':'a'}">${esc(r.status||'new')}</span></div><p>${esc(r.body||'')}</p><div class="sub1" style="margin-top:6px">${fmtDT(r.created_at)}${r.public_consent?' · ★ public use approved':''}</div>${canStaff()?`<div class="btnrow">${r.status!=='resolved'?`<button class="btn ghost sm" onclick="rvResolve('${r.id}')">Mark resolved</button>`:""}<button class="btn ghost sm" onclick="rvConsent('${r.id}',${!r.public_consent})">${r.public_consent?'Revoke public use':'Allow public use'}</button></div>`:""}</div>`;}).join("")||`<div class="card pad empty"><div class="ei">${IC.reviews}</div><div>No feedback yet.</div></div>`}</div>`;
+}
+async function rvResolve(id){ await sb.from("cr_reviews").update({status:"resolved",resolved_at:new Date().toISOString()}).eq("id",id); const r=RVW.find(x=>x.id===id);if(r)r.status="resolved"; toast("Resolved"); rvRender(); }
+async function rvConsent(id,val){ await sb.from("cr_reviews").update({public_consent:val}).eq("id",id); const r=RVW.find(x=>x.id===id);if(r)r.public_consent=val; toast(val?"Public use approved":"Consent revoked"); rvRender(); }
+
+/* ============ SUPPORT / TICKETS ============ */
+const TK_STC={Open:["Open","a"],"In Progress":["In progress","b"],Resolved:["Resolved","g"],Closed:["Closed","n"]};
+let TKTS=[], TK_SEL=null;
+async function viewSupport(c){
+  c.innerHTML=`<div class="ph"><div class="ph-ic">${IC.support}</div><div><h1>Support</h1><div class="psub">Client tickets and conversations.</div></div><div class="ph-r"><button class="btn" onclick="tkForm()"><span>${IC.plus}</span> Raise ticket</button></div></div><div id="tk-body"><div class="psub">Loading…</div></div>`;
+  if(!CLIENTS.length){const {data}=await sb.from("cr_profiles").select("id,company,full_name").eq("role","client");CLIENTS=data||[];}
+  const {data}=await sb.from("cr_tickets").select("*").order("updated_at",{ascending:false}); TKTS=data||[]; if(!TK_SEL&&TKTS.length)TK_SEL=TKTS[0].id; tkRender();
+}
+function tkRender(){ const b=$("#tk-body"); if(!b)return;
+  const open=TKTS.filter(t=>t.status!=="Closed"&&t.status!=="Resolved").length;
+  b.innerHTML=`<div class="stat-row">${psStat(IC.support,"#15803d","All tickets",String(TKTS.length).padStart(2,"0"),"")}${psStat(IC.support,"#b4740f","Open",String(open).padStart(2,"0"),"")}${psStat(IC.approvals,"#15803d","Resolved",String(TKTS.filter(t=>t.status==="Resolved").length).padStart(2,"0"),"")}${psStat(IC.support,"#6b7280","Closed",String(TKTS.filter(t=>t.status==="Closed").length).padStart(2,"0"),"")}</div>
+   <div class="lp"><div class="card pad"><div class="card-h"><h3 class="sec-title" style="font-size:16px">Tickets</h3></div><table class="tbl"><thead><tr><th>#</th><th>Subject</th><th>Client</th><th>Status</th></tr></thead><tbody>${TKTS.map(t=>{const st=TK_STC[t.status]||["Open","a"];return `<tr class="rowlink ${TK_SEL===t.id?'sel':''}" onclick="TK_SEL='${t.id}';tkRender()"><td>#${t.ticket_no||''}</td><td><b>${esc(t.subject)}</b><div class="sub1">${esc(t.category||'')}</div></td><td>${esc(clientName(t.client_id))}</td><td><span class="status ${st[1]}">${st[0]}</span></td></tr>`;}).join("")||'<tr><td colspan="4" class="sub1" style="text-align:center;padding:16px">No tickets.</td></tr>'}</tbody></table></div><div class="card pad" id="tk-det"></div></div>`;
+  tkDetail();
+}
+async function tkDetail(){ const el=$("#tk-det"); if(!el)return; const t=TKTS.find(x=>x.id===TK_SEL);
+  if(!t){el.innerHTML=`<div class="empty"><div class="ei">${IC.support}</div><div>Select a ticket</div></div>`;return;}
+  const {data:msgs}=await sb.from("cr_ticket_messages").select("*").eq("ticket_id",t.id).order("created_at");
+  el.innerHTML=`<div class="card-h"><div><h3 class="sec-title" style="font-size:17px">${esc(t.subject)}</h3><div class="sub1">#${t.ticket_no||''} · ${esc(clientName(t.client_id))}</div></div>${canStaff()?`<select class="selectbox" onchange="tkStatus('${t.id}',this.value)">${["Open","In Progress","Resolved","Closed"].map(x=>`<option ${t.status===x?'selected':''}>${x}</option>`).join("")}</select>`:`<span class="status ${(TK_STC[t.status]||['','a'])[1]}">${esc(t.status)}</span>`}</div>
+   <div style="max-height:320px;overflow:auto;margin:10px 0">${(msgs||[]).map(m=>`<div class="cmt ${m.author_role==='admin'||m.author_role==='super_admin'?'':'int'}"><div class="ca" style="background:linear-gradient(135deg,${avatarColor(m.author_name)})">${esc(initials(m.author_name)).toUpperCase()}</div><div class="cb"><div class="ch"><b>${esc(m.author_name||'')}</b><span class="sub1">${fmtDT(m.created_at)}</span></div>${esc(m.body||'').replace(/\n/g,'<br>')}</div></div>`).join("")||'<div class="sub1">No messages.</div>'}</div>
+   ${t.status!=="Closed"?`<div style="display:flex;gap:8px"><input id="tk-reply" class="inp" placeholder="Type a reply…" onkeydown="if(event.key==='Enter')tkReply('${t.id}')"/><button class="btn" onclick="tkReply('${t.id}')">Send</button></div>`:'<div class="sub1">This ticket is closed.</div>'}`;
+}
+async function tkReply(id){ const inp=document.getElementById("tk-reply"); const body=(inp&&inp.value||"").trim(); if(!body)return; await sb.from("cr_ticket_messages").insert({ticket_id:id,author_id:SESSION.user.id,author_name:ME.full_name||ME.company||ME.email,author_role:ME.role,body}); const patch={updated_at:new Date().toISOString()}; if(canStaff())patch.status="In Progress"; await sb.from("cr_tickets").update(patch).eq("id",id); viewSupport($("#content")); }
+async function tkStatus(id,st){ await sb.from("cr_tickets").update({status:st,updated_at:new Date().toISOString()}).eq("id",id); const t=TKTS.find(x=>x.id===id);if(t)t.status=st; toast("Ticket "+st.toLowerCase()); tkRender(); }
+function tkForm(){ sheet("Raise ticket",`<div class="fld2"><label>Client</label><select id="nt-client" class="inp">${CLIENTS.map(c=>`<option value="${c.id}">${esc(c.company||c.full_name)}</option>`).join("")}</select></div><div class="fld2"><label>Subject</label><input id="nt-subj" class="inp"/></div><div class="g2"><div class="fld2"><label>Category</label><select id="nt-cat" class="inp">${["Question","Bug / Issue","Billing","Feature request","Other"].map(x=>`<option>${x}</option>`).join("")}</select></div><div class="fld2"><label>Priority</label><select id="nt-pri" class="inp">${["Low","Medium","High","Urgent"].map(x=>`<option ${x==="Medium"?"selected":""}>${x}</option>`).join("")}</select></div></div><div class="fld2"><label>Description</label><textarea id="nt-desc" class="inp" rows="3"></textarea></div><button class="btn block" onclick="tkSave()">Create ticket</button>`); }
+async function tkSave(){ const subj=v("nt-subj"),desc=v("nt-desc"); if(!subj||!desc){toast("Subject and description required",true);return;} const {data,error}=await sb.from("cr_tickets").insert({client_id:v("nt-client"),created_by:SESSION.user.id,created_by_name:ME.full_name||ME.email,subject:subj,category:v("nt-cat"),priority:v("nt-pri"),status:"Open"}).select().single(); if(error){toast(error.message,true);return;} await sb.from("cr_ticket_messages").insert({ticket_id:data.id,author_id:SESSION.user.id,author_name:ME.full_name||ME.email,author_role:ME.role,body:desc}); closeModal();toast("Ticket created");viewSupport($("#content")); }
 
 /* ================= GO ================= */
 try{ if('serviceWorker' in navigator){ navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister())); if(window.caches){caches.keys().then(ks=>ks.forEach(k=>caches.delete(k)));} } }catch(_){ }
