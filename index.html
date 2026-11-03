@@ -227,6 +227,27 @@ button{font-family:inherit;cursor:pointer}
 .q-item:hover{transform:translateX(2px)}
 .top-av,.side-user .av{transition:transform .16s ease}
 .top-av:hover{transform:scale(1.06)}
+/* ---------- rich editor + e-signature ---------- */
+.rte-tb{display:flex;flex-wrap:wrap;gap:4px;padding:8px;background:var(--panel2);border:1px solid var(--line);border-bottom:0;border-radius:12px 12px 0 0;position:sticky;top:0;z-index:2}
+.rte-tb button{background:#fff;border:1px solid var(--line);border-radius:8px;min-width:34px;height:32px;font-size:13px;font-weight:700;color:var(--ink2);cursor:pointer;padding:0 9px;transition:.14s}
+.rte-tb button:hover{background:var(--tint);color:var(--green);border-color:var(--green2)}
+.rte-tb .sep{width:1px;background:var(--line);margin:4px 3px}
+.rte{min-height:220px;max-height:44vh;overflow:auto;background:#fff;border:1px solid var(--line);border-radius:0 0 12px 12px;padding:16px 18px;font-size:13.5px;line-height:1.65;color:var(--ink)}
+.rte:focus{outline:none;border-color:var(--green2);box-shadow:inset 0 0 0 1px var(--green2)}
+.rte h1{font-size:19px;margin:6px 0 8px}.rte h2{font-size:15.5px;margin:16px 0 6px}.rte h3{font-size:13.5px;margin:12px 0 4px}
+.rte table{border-collapse:collapse;width:100%;margin:8px 0}.rte td,.rte th{border:1px solid var(--line);padding:6px 10px;text-align:left;vertical-align:top}.rte th{background:var(--panel2)}
+.rte ul,.rte ol{padding-left:22px;margin:6px 0}.rte p{margin:6px 0}.rte hr{border:0;border-top:2px solid var(--green);margin:14px 0;opacity:.6}
+.seg-tabs{display:flex;gap:6px;margin-bottom:12px}
+.seg-tabs button{flex:1;padding:9px;border:1px solid var(--line);background:#fff;border-radius:10px;font-weight:700;font-size:13px;color:var(--muted);cursor:pointer;font-family:var(--font-head);transition:.16s}
+.seg-tabs button.on{background:var(--grad);color:#fff;border-color:transparent}
+.sigpad-wrap{border:1px dashed var(--line2);border-radius:12px;background:#fff;position:relative;overflow:hidden}
+.sigpad{display:block;width:100%;height:180px;border-radius:12px;touch-action:none;cursor:crosshair}
+.sigpad-ph{position:absolute;inset:0;display:grid;place-items:center;color:var(--faint);font-size:13px;pointer-events:none}
+.sig-type{font-family:"Brush Script MT","Segoe Script",cursive;font-size:34px;color:var(--ink);padding:18px;border:1px solid var(--line);border-radius:12px;background:#fff;min-height:70px}
+.file-drop{border:1px dashed var(--line2);border-radius:12px;padding:16px;text-align:center;color:var(--muted);font-size:13px;cursor:pointer;background:var(--panel2);transition:.16s}
+.file-drop:hover{border-color:var(--green2);color:var(--green);background:var(--tint)}
+.con-file{display:flex;align-items:center;gap:10px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13px;margin-top:8px}
+.sig-img{max-height:54px;background:#fff;border:1px solid var(--line);border-radius:8px;padding:4px}
 @media(max-width:860px){.app{grid-template-columns:1fr}.side{position:fixed;left:0;top:0;bottom:0;width:252px;z-index:120;transform:translateX(-100%);transition:.25s}.side.open{transform:none}.search{display:none}.auth{grid-template-columns:1fr}.auth-art{display:none}.auth-form{padding:36px 22px}.ph h1{font-size:26px}}
 
 /* list + preview layout */
@@ -387,6 +408,7 @@ button{font-family:inherit;cursor:pointer}
 .sheet .inp:focus{background:#fff}
 .fld2 label{color:var(--ink2);font-weight:700;font-size:12.5px}
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
 .fld2{margin-bottom:12px}.fld2 label{display:block;font-weight:700;font-size:12.5px;margin-bottom:6px}
 .money-pos{color:var(--green-600);font-weight:700}.money-neg{color:var(--red);font-weight:700}
 .bal{font-weight:800}
@@ -468,6 +490,7 @@ button{font-family:inherit;cursor:pointer}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>
 /* ================= CONFIG ================= */
 const SB_URL="https://lcmfrvhugifotbmjwjcv.supabase.co";
@@ -1046,10 +1069,12 @@ async function conPreview(){
    <div class="card-h" style="margin:16px 0 4px"><h3 class="sec-title" style="font-size:15px">Signature workflow</h3><a class="linkg" onclick="toast('Audit trail — full view next')">View audit trail</a></div>
    <div class="sigwf"><div class="sigrow"><span class="si ${agencySig?'ok':'pend'}">${agencySig?'✓':'…'}</span><div><b>Agency representative</b><span>${agencySig?esc(agencySig.signer_name):"Not signed"}</span></div><span class="when">${agencySig?fmtDT(agencySig.signed_at):""}</span></div>
    <div class="sigrow"><span class="si ${clientSig?'ok':'pend'}">${clientSig?'✓':'…'}</span><div><b>Client representative</b><span>${clientSig?esc(clientSig.signer_name):(c.status==='sent'?"Awaiting signature":"Not sent")}</span></div><span class="when">${clientSig?fmtDT(clientSig.signed_at):""}</span></div></div>
+   ${(sigs||[]).some(x=>x.evidence&&x.evidence.signature)?`<div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:10px">${(sigs||[]).filter(x=>x.evidence&&x.evidence.signature).map(x=>`<div><img class="sig-img" src="${x.evidence.signature}"><div class="sub1">${esc(x.signer_name)} · ${esc(x.signer_role)}</div></div>`).join("")}</div>`:""}
+   ${c.file_path?`<div class="con-file" style="margin-top:10px">📎 <a class="linkg" onclick="conDownload('${esc(c.file_path)}')">Download attached PDF</a></div>`:""}
    <div class="sigbar"><i style="width:${prog}%"></i></div><div class="sub1" style="text-align:right">${done} of 2 signatures complete</div>
-   <div class="btnrow">${canStaff()&&!["signed","countersigned"].includes(c.status)?`<button class="btn ghost sm" onclick="conForm('${c.id}')">Edit</button>`:""}<button class="btn ghost sm" onclick="conPDF('${c.id}')">Preview PDF</button>${c.status==='sent'?`<button class="btn ghost sm" onclick="toast('Reminder noted')">Send reminder</button>`:""}${ME.role==='client'&&!clientSig?`<button class="btn sm" onclick="conSign('${c.id}')">Review &amp; sign</button>`:`<button class="btn sm" onclick="toast('Signing link copied')">View signing link</button>`}</div>`;
+   <div class="btnrow">${canStaff()&&!["signed","countersigned"].includes(c.status)?`<button class="btn ghost sm" onclick="conForm('${c.id}')">Edit</button>`:""}<button class="btn ghost sm" onclick="conPDF('${c.id}')">Preview PDF</button>${c.status==='sent'?`<button class="btn ghost sm" onclick="toast('Reminder noted')">Send reminder</button>`:""}${ME.role==='client'?(!clientSig?`<button class="btn sm" onclick="conSign('${c.id}')">Review &amp; sign</button>`:`<button class="btn ghost sm" disabled>You have signed</button>`):(!agencySig?`<button class="btn sm" onclick="conSign('${c.id}')">&#9998; Sign as agency</button>`:`<button class="btn ghost sm" disabled>Agency signed</button>`)}</div>`;
 }
-async function conPDF(id){ const c=CONS.find(x=>x.id===id); const {data:sigs}=await sb.from("cr_signatures").select("*").eq("contract_id",id); const {jsPDF}=window.jspdf; const doc=new jsPDF(); doc.setFillColor(21,128,61);doc.rect(0,0,210,24,"F");doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(15);doc.text("Stepstones Solutions",14,12);doc.setFontSize(10);doc.text("CONTRACT",14,19);let y=36;doc.setTextColor(20,20,30);doc.setFontSize(15);doc.text(doc.splitTextToSize(c.title||"Agreement",180),14,y);y+=9;doc.setFontSize(11);doc.setFont("helvetica","normal");doc.text("Client: "+clientName(c.client_id),14,y);y+=8;[["Scope",c.scope],["Payment",c.payment_schedule],["Renewal",c.renewal],["Termination",c.termination],["Contract",c.body]].forEach(([h,t])=>{if(!t)return;doc.setFont("helvetica","bold");doc.text(h,14,y);y+=5;doc.setFont("helvetica","normal");const ls=doc.splitTextToSize(t,182);if(y+ls.length*5>275){doc.addPage();y=20;}doc.text(ls,14,y);y+=ls.length*5+5;});doc.setFont("helvetica","bold");doc.text("Signatures",14,y);y+=6;doc.setFont("helvetica","normal");doc.setFontSize(9);(sigs||[]).forEach(sgn=>{doc.text(`${sgn.signer_role.toUpperCase()}: ${sgn.signer_name} — ${sgn.method} — ${fmtDT(sgn.signed_at)}`,14,y);y+=5;});doc.save("contract-"+(c.title||"").replace(/[^\w]+/g,"_").slice(0,24)+".pdf"); }
+async function conPDF(id){ const c=CONS.find(x=>x.id===id); const {data:sigs}=await sb.from("cr_signatures").select("*").eq("contract_id",id); const {jsPDF}=window.jspdf; const doc=new jsPDF(); doc.setFillColor(21,128,61);doc.rect(0,0,210,24,"F");doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(15);doc.text("Stepstones Solutions",14,12);doc.setFontSize(10);doc.text("CONTRACT",14,19);let y=36;doc.setTextColor(20,20,30);doc.setFontSize(15);doc.text(doc.splitTextToSize(c.title||"Agreement",180),14,y);y+=9;doc.setFontSize(11);doc.setFont("helvetica","normal");doc.text("Client: "+clientName(c.client_id),14,y);y+=8;const _tmp=document.createElement("div");_tmp.innerHTML=c.body||"";const bodyText=(_tmp.innerText||"").replace(/\n{3,}/g,"\n\n").trim();[["Scope",c.scope],["Payment",c.payment_schedule],["Agreement",bodyText]].forEach(([h,t])=>{if(!t)return;doc.setFont("helvetica","bold");if(y>270){doc.addPage();y=20;}doc.text(h,14,y);y+=5;doc.setFont("helvetica","normal");doc.setFontSize(10);const ls=doc.splitTextToSize(t,182);for(let k=0;k<ls.length;k++){if(y>282){doc.addPage();y=20;}doc.text(ls[k],14,y);y+=5;}doc.setFontSize(11);y+=4;});if(y>255){doc.addPage();y=20;}doc.setFont("helvetica","bold");doc.text("Signatures",14,y);y+=6;doc.setFont("helvetica","normal");doc.setFontSize(9);(sigs||[]).forEach(sgn=>{if(y>270){doc.addPage();y=20;}doc.text(`${sgn.signer_role.toUpperCase()}: ${sgn.signer_name} — ${sgn.method} — ${fmtDT(sgn.signed_at)}`,14,y);y+=5;if(sgn.evidence&&sgn.evidence.signature){try{doc.addImage(sgn.evidence.signature,"PNG",14,y,50,18);y+=22;}catch(e){}}});doc.save("contract-"+(c.title||"").replace(/[^\w]+/g,"_").slice(0,24)+".pdf"); }
 
 
 
@@ -1465,39 +1490,228 @@ let STAFF_READY=false;
 async function ensureStaff(){ if(STAFF_READY)return; try{ const r=await callFn("admin-staff",{action:"list"}); STAFF=r.staff||[]; STAFF_READY=true; }catch(_){ STAFF=[]; } }
 
 /* ============ CREATE / SIGN CONTRACT (new portal) ============ */
+let CON_FILE=null;
+function money0(n){ return "Rs. "+Number(n||0).toLocaleString("en-IN"); }
+function DM_TEMPLATE(x){
+ x=x||{};
+ const V=k=>x[k]&&String(x[k]).trim()?esc(x[k]):'<span style="color:#b4740f">[ '+k+' ]</span>';
+ const fee1=Number(x.fee1)||0, fee2=Number(x.fee2)||fee1, g=Number(x.gst)||18;
+ const gst1=Math.round(fee1*g/100), gst2=Math.round(fee2*g/100), t1=fee1+gst1, t2=fee2+gst2;
+ return `<h1>Digital Marketing Services Agreement</h1>
+<p><b>Three-Month Service Engagement</b> &middot; Effective ${V('effDate')}</p>
+<table><tr><th>Service Provider</th><td>Stepstones Solutions</td></tr>
+<tr><th>GSTIN</th><td>29CWKPM3355G1Z6</td></tr>
+<tr><th>Address</th><td>Second Floor, No. 2339, Sir M. Vishweshwaraiah Layout, 4th Block, Nagadevanahalli, Bengaluru, Karnataka - 560056</td></tr>
+<tr><th>Contact</th><td>8296038055 | Contact@Stepstones.in | Stepstones.in</td></tr></table>
+<h2>1. Parties and Effective Date</h2>
+<p>This Digital Marketing Services Agreement (the &ldquo;Agreement&rdquo;) is entered into on and becomes effective from ${V('effDate')}, between Stepstones Solutions (the &ldquo;Service Provider&rdquo;) and the following client (the &ldquo;Client&rdquo;):</p>
+<table><tr><th>Client / Company Name</th><td>${V('company')}</td></tr>
+<tr><th>Contact Person</th><td>${V('contact')}</td></tr>
+<tr><th>Business / Registered Address</th><td>${V('address')}</td></tr>
+<tr><th>Phone</th><td>${V('phone')}</td></tr>
+<tr><th>Email</th><td>${V('email')}</td></tr>
+<tr><th>GSTIN (if applicable)</th><td>${V('gstin')}</td></tr></table>
+<p>The Service Provider and the Client are individually a &ldquo;Party&rdquo; and collectively the &ldquo;Parties&rdquo;.</p>
+<h2>2. Purpose of Engagement</h2>
+<p>The Client appoints Stepstones Solutions to plan, manage and optimise agreed digital marketing activities for the Client, to support online visibility, lead generation, advertising performance, content planning and social-media presence in accordance with this Agreement. The Parties acknowledge that digital marketing outcomes depend on multiple factors outside the Service Provider&rsquo;s control, including market demand, competition, advertising budget, platform algorithms, audience behaviour, pricing, offers, website performance, creative quality, the Client&rsquo;s response time and the Client&rsquo;s sales process.</p>
+<h2>3. Agreement Term</h2>
+<p>This Agreement shall remain valid for three (3) months from the Effective Date.</p>
+<ul><li>Start Date: ${V('startDate')}</li><li>End Date: ${V('endDate')}</li>
+<li>Any continuation after the initial three-month period shall be subject to mutual agreement.</li>
+<li>Any revised scope or revised commercial terms for a renewal should be confirmed in writing.</li></ul>
+<h2>4. Scope of Services</h2>
+<p>Subject to the Client providing required information, approvals, account access and advertising budget, Stepstones Solutions may provide: digital marketing strategy and campaign planning; lead-generation campaign planning and management; Meta/Facebook and Instagram advertising management, where applicable; Google Ads management, where applicable and mutually agreed; audience research, targeting, retargeting and optimisation; campaign budget recommendations and allocation planning; content planning and marketing-calendar recommendations; social-media account handling within the limits described here; advertising copy and call-to-action planning as reasonably required; and performance monitoring, reporting and optimisation based on available platform data.</p>
+<h2>5. Paid Advertising and Lead Generation</h2>
+<p>Stepstones Solutions may create, configure, manage and optimise paid campaigns across agreed channels such as Meta, Facebook, Instagram, Google Search, Google Display, remarketing, website conversion campaigns, lead forms, WhatsApp-oriented campaigns and call campaigns. The Service Provider shall use commercially reasonable efforts to improve campaign relevance and lead quality; however, a generated enquiry or lead is not the same as a confirmed customer or sale. Lead conversion, sales follow-up and closing remain the Client&rsquo;s responsibility unless a separate written service is agreed.</p>
+<h2>6. Social Media Management &ndash; Included Scope</h2>
+<p>Social-media management may include content planning, scheduling/posting approved content, caption planning, promotional planning, campaign coordination, hashtag/category recommendations and general marketing-level account management.</p>
+<p><b>Important exclusion:</b> The monthly service does not include customer conversation management or sales handling. Stepstones Solutions is not responsible for replying to direct messages, WhatsApp enquiries, individual comments, customer questions, sales negotiations, appointment booking, customer-support requests, complaint handling, calling leads, following up leads or converting leads into customers.</p>
+<h2>7. Content Planning</h2>
+<p>Strategic content planning may form part of the monthly service, including recommendations for content themes, Reels concepts, carousel concepts, educational posts, offers, campaign ideas, seasonal communication, advertising messages and calls-to-action. Content planning is distinct from professional content production; production work requiring dedicated design, photography, videography, advanced editing, animation, models or studio work is separately chargeable.</p>
+<h2>8. Content Creation and Media Production</h2>
+<p>Unless specifically included in a separate written quotation, professional content creation and media production are not included in the agreed monthly service fee, including: professional/product photography; videography and commercial shoots; Reels/video production and advanced editing; motion graphics, animation and advanced graphic design; voice-over, models, influencers, studio rentals or production crew; and specialised campaign creatives requiring additional production resources. Charges depend on quantity, format and complexity. The Client&rsquo;s approval shall be obtained before separately chargeable production work is undertaken.</p>
+<h2>9. Landing Page Development</h2>
+<p>Landing-page development is not included in the standard monthly fee. Standard Landing Page Fee: &#8377;4,500 + applicable GST per landing page, intended for one campaign landing page based on mutually agreed requirements. Advanced functionality, CRM/API integrations, payment gateways, booking systems, complex forms, calculators, premium plugins, paid third-party services, domain costs, hosting or substantial custom development may be quoted separately.</p>
+<h2>10. Website Design and Development</h2>
+<p>Full website design, redesign, ecommerce development and substantial website development are outside the monthly fee and shall be treated as separate one-time projects, quoted based on pages, design complexity, ecommerce functionality, catalogue, integrations, payment gateway, forms, APIs, booking features, content, hosting and other custom requirements. Website work begins after the Client approves the relevant scope and commercial quotation.</p>
+<h2>11. Monthly Service Fee and GST</h2>
+<p><b>Table 1 &mdash; First Month</b></p>
+<table><tr><th>Monthly Digital Marketing Service Fee</th><td>${money0(fee1)}</td></tr><tr><th>GST @ ${g}%</th><td>${money0(gst1)}</td></tr><tr><th>Total Monthly Invoice</th><td>${money0(t1)}</td></tr></table>
+<p><b>Table 2 &mdash; Recurring Monthly</b></p>
+<table><tr><th>Monthly Digital Marketing Service Fee</th><td>${money0(fee2)}</td></tr><tr><th>GST @ ${g}%</th><td>${money0(gst2)}</td></tr><tr><th>Total Monthly Invoice</th><td>${money0(t2)}</td></tr></table>
+<p>Advertising / media spend is separate and payable by the Client. All fees are payable monthly in advance; billing starts ${V('startDate')}.</p>
+<h2>12. Payment and Billing Terms</h2>
+<p>The monthly service fee is payable in advance; the first month&rsquo;s payment must be made on or before commencement of services. The first invoice/payment due date becomes the recurring billing date for following months. Additional approved services, third-party expenses and separately quoted work shall be invoiced per the applicable quotation or approval.</p>
+<h2>13. Advertising Budget</h2>
+<p>Advertising/media spend is separate from the agreed monthly service fee and shall be borne by the Client, including amounts paid to Meta, Facebook, Instagram, Google, YouTube or other networks. The Client may fund the advertising account directly or via another mutually agreed arrangement. Platform taxes/fees are separate from the service fee.</p>
+<h2>14. No Guarantee of Leads, Sales or ROAS</h2>
+<p>The Client understands advertising and marketing performance cannot be guaranteed. Stepstones Solutions does not guarantee a fixed number of leads, cost per lead, traffic, conversion rate, calls, enquiries, sales, revenue, profitability or ROAS. Any estimates, projections or targets are planning assumptions, not contractual guarantees.</p>
+<h2>15. Campaign Optimisation</h2>
+<p>Stepstones Solutions may make reasonable optimisation changes to campaign structure, targeting, placements, audiences, creatives, messages, calls-to-action, keywords, bidding strategies, retargeting and approved budget allocation based on available data and professional judgement.</p>
+<h2>16. Client Responsibilities</h2>
+<p>The Client shall provide accurate information, timely approvals and required access, including: Meta Business Manager, Facebook Page and Instagram access; Google Ads, Analytics, website, Google Business Profile or other platform access; correct product/service details, prices and offers; brand assets (logos, approved images, videos, guidelines); timely approval/feedback on ads, content and offers; sufficient advertising budget and timely payment; and compliance of products, services, claims and offers with applicable laws and platform policies.</p>
+<h2>17. Approvals and Client-Caused Delays</h2>
+<p>Where approval is required, the Client should respond within a reasonable period. Delays in access, content, information, approvals, offers or payments may delay campaign commencement or affect performance. Client-caused delays do not automatically extend the term or reduce the fee unless agreed in writing.</p>
+<h2>18. Lead Follow-up and Sales Responsibility</h2>
+<p>Once an enquiry or lead is generated and delivered through an agreed channel, the Client is responsible for responding, qualifying, following up and converting it. Stepstones Solutions is not responsible for lost opportunities caused by delayed responses, unanswered calls/messages, insufficient follow-up, pricing communication, stock/service availability, customer-service issues or the performance of the Client&rsquo;s sales team.</p>
+<h2>19. Intellectual Property</h2>
+<p>The Client retains ownership of its pre-existing trademarks, logos, photographs, videos and product information. Subject to full payment, final deliverables specifically created and paid for by the Client may be used by the Client for its business, subject to third-party licence restrictions. Third-party software, fonts, stock media, plugins and platforms remain subject to their respective licences.</p>
+<h2>20. Confidentiality</h2>
+<p>Each Party shall use reasonable care to protect non-public business information received from the other, which may include advertising data, strategy, customer/lead data, pricing, sales information, credentials, internal documents and performance. Confidential information may be disclosed where authorised, reasonably required for delivery, or required by law.</p>
+<h2>21. Third-Party Platforms</h2>
+<p>Services depend on independently-operated third-party platforms. The Service Provider is not responsible for platform outages, algorithm changes, advertising-policy changes, account reviews, ad rejection, account restrictions, tracking interruptions, API changes, bugs, suspensions or ad-cost changes outside its reasonable control, though it may assist where reasonably possible.</p>
+<h2>22. Payment Default and Service Suspension</h2>
+<p>If an invoice remains unpaid after its due date, Stepstones Solutions may pause or suspend campaign management, optimisation, scheduling, reporting, landing-page or website work until cleared, and is not responsible for performance impact caused by such suspension.</p>
+<h2>23. Early Termination</h2>
+<p>This Agreement is intended as an initial three-month engagement. A Party seeking early termination should provide written notice. All services performed, approved additional work, advertising expenditure, third-party expenses and outstanding invoices up to the effective termination date remain payable. Any early-termination charge or notice period must be expressly agreed in writing.</p>
+<h2>24. Limitation of Liability</h2>
+<p>Stepstones Solutions shall perform the agreed services with reasonable professional care. To the extent permitted by law, it shall not be liable for indirect or consequential business losses arising from market conditions, customer behaviour, Client sales processes, third-party platform actions, Client-provided information or other matters outside its reasonable control. Nothing excludes liability that cannot legally be excluded.</p>
+<h2>25. Changes to Scope</h2>
+<p>Work outside the agreed monthly scope is additional work and may require a separate quotation or written approval, including landing pages, website development, advanced integrations, photography, videography, specialised media production, CRM/automation development and other custom requirements.</p>
+<h2>26. Communication and Record of Approvals</h2>
+<p>The Parties may use email, WhatsApp, agreed project-management tools or other written channels for approvals, scope changes, payment communication and material instructions, and should keep reasonable records of important approvals and changes.</p>
+<h2>27. Independent Service Provider</h2>
+<p>Stepstones Solutions acts as an independent service provider. Nothing here creates an employment relationship, partnership, joint venture, franchise or general agency between the Parties.</p>
+<h2>28. Force Majeure</h2>
+<p>Neither Party is responsible for delay or failure caused by circumstances reasonably beyond its control, including natural disasters, major network failures, government restrictions, war, civil disturbances or widespread platform outages. The affected Party shall make reasonable efforts to resume performance when circumstances permit.</p>
+<h2>29. Governing Law and Jurisdiction</h2>
+<p>This Agreement is governed by the laws of India. Subject to applicable law, disputes shall be subject to the jurisdiction of competent courts at Bengaluru, Karnataka. The Parties should first attempt to resolve disputes through good-faith discussion.</p>
+<h2>30. Entire Agreement and Amendments</h2>
+<p>This Agreement, together with any approved quotation, scope document, proposal or written addendum expressly incorporated into it, constitutes the understanding between the Parties concerning the covered services. Material modifications to scope, pricing or commercial terms should be mutually agreed in writing.</p>
+<h2>31. Commercial Summary</h2>
+<table><tr><th>Agreement Period</th><td>3 Months</td></tr>
+<tr><th>Total Monthly Invoice</th><td>${money0(t1)} (first) / ${money0(t2)} (recurring)</td></tr>
+<tr><th>Payment</th><td>Monthly in Advance</td></tr>
+<tr><th>Advertising Spend</th><td>Separate &ndash; Client responsibility</td></tr>
+<tr><th>Content Planning</th><td>Included within agreed marketing scope</td></tr>
+<tr><th>DM / Comment / WhatsApp Replies</th><td>Not Included</td></tr>
+<tr><th>Lead Follow-up &amp; Conversion</th><td>Not Included</td></tr>
+<tr><th>Landing Page</th><td>&#8377;4,500 + applicable GST per landing page</td></tr>
+<tr><th>Website Development</th><td>Separate one-time quotation</td></tr></table>
+<h2>32. Acceptance and Signatures</h2>
+<p>By signing below, the Parties confirm that they have read, understood and accepted the terms of this Digital Marketing Services Agreement.</p>`;
+}
+function rteCmd(cmd,val){ document.execCommand(cmd,false,val||null); const e=document.getElementById("co-body-rte"); if(e)e.focus(); }
+function richEditorHTML(id,html){
+ return `<div class="rte-tb">
+  <button type="button" onmousedown="event.preventDefault()" onclick="rteCmd('bold')" title="Bold"><b>B</b></button>
+  <button type="button" onmousedown="event.preventDefault()" onclick="rteCmd('italic')" title="Italic"><i>I</i></button>
+  <button type="button" onmousedown="event.preventDefault()" onclick="rteCmd('underline')" title="Underline"><u>U</u></button>
+  <span class="sep"></span>
+  <button type="button" onmousedown="event.preventDefault()" onclick="rteCmd('formatBlock','H2')">H2</button>
+  <button type="button" onmousedown="event.preventDefault()" onclick="rteCmd('formatBlock','H3')">H3</button>
+  <button type="button" onmousedown="event.preventDefault()" onclick="rteCmd('formatBlock','P')">P</button>
+  <span class="sep"></span>
+  <button type="button" onmousedown="event.preventDefault()" onclick="rteCmd('insertUnorderedList')" title="Bullets">&bull;</button>
+  <button type="button" onmousedown="event.preventDefault()" onclick="rteCmd('insertOrderedList')" title="Numbered">1.</button>
+  <button type="button" onmousedown="event.preventDefault()" onclick="rteCmd('formatBlock','BLOCKQUOTE')">&ldquo;</button>
+  <button type="button" onmousedown="event.preventDefault()" onclick="rteInsertTable()" title="Table">&#8862;</button>
+  <span class="sep"></span>
+  <button type="button" onmousedown="event.preventDefault()" onclick="rteCmd('removeFormat')" title="Clear">&#10006;</button>
+ </div>
+ <div class="rte" id="${id}" contenteditable="true">${html||'<p></p>'}</div>`;
+}
+function rteInsertTable(){ rteCmd('insertHTML','<table><tr><th>Item</th><th>Amount</th></tr><tr><td>&nbsp;</td><td>&nbsp;</td></tr></table><p></p>'); }
+
 function conForm(id){
   const existing=id?CONS.find(c=>c.id===id):null;
-  if(!CLIENTS.length){ sb.from("cr_profiles").select("id,company,full_name,username").eq("role","client").then(({data})=>{CLIENTS=data||[];if(CLIENTS.length)conForm(id);else toast("Add a client first to create a contract.",true);}); return; }
-  const d=existing||{};
-  sheet(`${id?'Edit':'New'} contract`,`
-   <div class="fld2"><label>Client</label><select id="co-client" class="inp">${CLIENTS.map(c=>`<option value="${c.id}" ${d.client_id===c.id?'selected':''}>${esc(c.company||c.full_name)}</option>`).join("")}</select></div>
-   <div class="fld2"><label>Title</label><input id="co-title" class="inp" value="${esc(d.title||'Service agreement')}"/></div>
-   <div class="g2"><div class="fld2"><label>Service start</label><input id="co-start" type="date" class="inp" value="${d.service_start||''}"/></div><div class="fld2"><label>Service end</label><input id="co-end" type="date" class="inp" value="${d.service_end||''}"/></div></div>
-   <div class="fld2"><label>Scope &amp; deliverables</label><textarea id="co-scope" class="inp" rows="3">${esc(d.scope||'')}</textarea></div>
-   <div class="fld2"><label>Payment schedule</label><textarea id="co-pay" class="inp" rows="2">${esc(d.payment_schedule||'')}</textarea></div>
-   <div class="g2"><div class="fld2"><label>Renewal</label><input id="co-renew" class="inp" value="${esc(d.renewal||'')}"/></div><div class="fld2"><label>Termination</label><input id="co-term" class="inp" value="${esc(d.termination||'')}"/></div></div>
-   <div class="fld2"><label>Full contract text <span class="sub1">(this is what gets signed)</span></label><textarea id="co-body" class="inp" rows="4">${esc(d.body||'')}</textarea></div>
-   <div class="btnrow"><button class="btn ghost" onclick="conSave('${id||''}','draft')">Save draft</button><button class="btn" onclick="conSave('${id||''}','sent')">Save &amp; send to client</button></div>`);
+  if(!CLIENTS.length){ sb.from("cr_profiles").select("id,company,full_name,username,phone,whatsapp,billing_address,address,gst_no,notify_email").eq("role","client").then(({data})=>{CLIENTS=data||[];if(CLIENTS.length)conForm(id);else toast("Add a client first to create a contract.",true);}); return; }
+  const d=existing||{}; CON_FILE=null;
+  const today=new Date().toISOString().slice(0,10);
+  const body=`
+   <div class="g2"><div class="fld2"><label>Client</label><select id="co-client" class="inp">${CLIENTS.map(c=>`<option value="${c.id}" ${d.client_id===c.id?'selected':''}>${esc(c.company||c.full_name)}</option>`).join("")}</select></div>
+   <div class="fld2"><label>Title</label><input id="co-title" class="inp" value="${esc(d.title||'Digital Marketing Services Agreement')}"/></div></div>
+   <div class="sheet-sec">Auto-fill from template</div>
+   <div class="g2"><div class="fld2"><label>Template</label><select id="co-tpl" class="inp"><option value="dm">Digital Marketing Services Agreement</option><option value="blank">Blank</option></select></div>
+   <div class="fld2"><label>Effective date</label><input id="co-eff" type="date" class="inp" value="${d.service_start||today}"/></div></div>
+   <div class="g2"><div class="fld2"><label>Service start</label><input id="co-start" type="date" class="inp" value="${d.service_start||today}" onchange="conAutoEnd()"/></div><div class="fld2"><label>Service end</label><input id="co-end" type="date" class="inp" value="${d.service_end||''}"/></div></div>
+   <div class="g3"><div class="fld2"><label>1st-month fee (Rs.)</label><input id="co-fee1" type="number" class="inp" value="40000"/></div><div class="fld2"><label>Recurring fee (Rs.)</label><input id="co-fee2" type="number" class="inp" value="70000"/></div><div class="fld2"><label>GST %</label><input id="co-gst" type="number" class="inp" value="18"/></div></div>
+   <button class="btn ghost sm" style="margin:2px 0 14px" onclick="conAutofill()"><span>&#10022;</span> Auto-fill agreement from client + template</button>
+   <div class="sheet-sec">Agreement body <span class="sub1">(this is what gets signed)</span></div>
+   ${richEditorHTML('co-body-rte', d.body||'')}
+   <div class="sheet-sec">Attach a PDF <span class="sub1">(optional — e.g. a reference or signed copy)</span></div>
+   <label class="file-drop" id="co-drop"><input type="file" accept="application/pdf" style="display:none" onchange="conUploadStage(this)"> &#128206; Click to choose a PDF &mdash; we can also pull its text into the editor</label>
+   ${d.file_path?`<div class="con-file">&#128196; <a class="linkg" onclick="conDownload('${esc(d.file_path)}')">Current attachment</a></div>`:''}
+   <div id="co-filebox"></div>`;
+  const foot=`<button class="btn ghost" onclick="conSave('${id||''}','draft')">Save draft</button><button class="btn" onclick="conSave('${id||''}','sent')">Save &amp; send</button>`;
+  sheet(`${id?'Edit':'New'} contract`, body, {icon:IC.contracts, subtitle:"Draft, auto-fill, attach and prepare for e-signature.", foot});
 }
+function conAutoEnd(){ const st=v("co-start"); if(!st)return; const d=new Date(st); d.setMonth(d.getMonth()+3); const e=document.getElementById("co-end"); if(e&&!e.value)e.value=d.toISOString().slice(0,10); }
+function conAutofill(){
+  if(v("co-tpl")==="blank"){ const e=document.getElementById("co-body-rte"); if(e)e.innerHTML="<p></p>"; toast("Blank editor ready"); return; }
+  const c=CLIENTS.find(x=>x.id===v("co-client"))||{};
+  conAutoEnd();
+  const fmtd=s=>s?new Date(s).toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"}):"";
+  const html=DM_TEMPLATE({company:c.company||c.full_name,contact:c.full_name,address:c.billing_address||c.address,phone:c.phone||c.whatsapp,email:c.notify_email,gstin:c.gst_no,effDate:fmtd(v("co-eff")),startDate:fmtd(v("co-start")),endDate:fmtd(v("co-end")),fee1:v("co-fee1"),fee2:v("co-fee2"),gst:v("co-gst")});
+  const e=document.getElementById("co-body-rte"); if(e)e.innerHTML=html;
+  toast("Agreement auto-filled from "+(c.company||c.full_name||"client"));
+}
+function conUploadStage(inp){
+  const f=inp.files&&inp.files[0]; if(!f)return; CON_FILE=f;
+  document.getElementById("co-filebox").innerHTML=`<div class="con-file">&#128196; ${esc(f.name)} <span class="sub1">(${Math.round(f.size/1024)} KB)</span> <button class="btn ghost sm" style="margin-left:auto" onclick="conExtractPDF()">Pull text into editor</button></div>`;
+}
+async function conExtractPDF(){
+  if(!CON_FILE){toast("Choose a PDF first",true);return;}
+  if(!window.pdfjsLib){toast("PDF reader still loading, try again",true);return;}
+  toast("Reading PDF…");
+  try{
+    pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+    const buf=await CON_FILE.arrayBuffer(); const pdf=await pdfjsLib.getDocument({data:buf}).promise;
+    let out="";
+    for(let p=1;p<=pdf.numPages;p++){ const page=await pdf.getPage(p); const tc=await page.getTextContent(); let last=0; tc.items.forEach(it=>{ const y=it.transform[5]; if(last&&Math.abs(y-last)>4){out+="\n";} out+=it.str+" "; last=y; }); out+="\n\n"; }
+    const paras=out.split(/\n{2,}/).map(t=>t.trim()).filter(Boolean).map(t=>`<p>${esc(t)}</p>`).join("");
+    const e=document.getElementById("co-body-rte"); if(e)e.innerHTML=paras||"<p></p>";
+    toast("Pulled "+pdf.numPages+" page(s) of text");
+  }catch(err){ toast("Could not read PDF: "+(err.message||err),true); }
+}
+function conDownload(path){ try{ sb.storage.from("cr-logos").getPublicUrl(path).data.publicUrl && window.open(sb.storage.from("cr-logos").getPublicUrl(path).data.publicUrl,"_blank"); }catch(_){ toast("Unable to open",true);} }
 async function conSave(id,status){
-  const patch={client_id:v("co-client"),title:v("co-title"),service_start:v("co-start")||null,service_end:v("co-end")||null,scope:v("co-scope")||null,payment_schedule:v("co-pay")||null,renewal:v("co-renew")||null,termination:v("co-term")||null,body:v("co-body")||null,status,updated_at:new Date().toISOString()};
-  let err;
+  const bodyHtml=(document.getElementById("co-body-rte")||{}).innerHTML||"";
+  const patch={client_id:v("co-client"),title:v("co-title"),service_start:v("co-start")||null,service_end:v("co-end")||null,body:bodyHtml,status,updated_at:new Date().toISOString()};
+  let err,rowId=id;
   if(id){ const ex=CONS.find(c=>c.id===id); if(ex&&["signed","countersigned"].includes(ex.status)){toast("Signed contracts are immutable — create a new version",true);return;} ({error:err}=await sb.from("cr_contracts").update(patch).eq("id",id)); }
-  else { patch.version=1; patch.created_by=SESSION.user.id; patch.created_by_name=ME.full_name||ME.email; ({error:err}=await sb.from("cr_contracts").insert(patch)); }
-  if(err){toast(err.message,true);return;} closeModal();toast("Contract saved");viewContracts($("#content"));
+  else { patch.version=1; patch.created_by=SESSION.user.id; patch.created_by_name=ME.full_name||ME.email; const {data,error}=await sb.from("cr_contracts").insert(patch).select("id").single(); err=error; rowId=data&&data.id; }
+  if(err){toast(err.message,true);return;}
+  if(CON_FILE&&rowId){ try{ const path=`contracts/${rowId}/${Date.now()}_${CON_FILE.name.replace(/[^\w.\-]/g,'_')}`; await sb.storage.from("cr-logos").upload(path,CON_FILE,{upsert:true}); await sb.from("cr_contracts").update({file_path:path}).eq("id",rowId); }catch(_){ } CON_FILE=null; }
+  closeModal();toast("Contract saved");viewContracts($("#content"));
 }
+
+/* ---- e-signature (draw or type) ---- */
+let SIG_PAD={drawing:false,empty:true,ctx:null,mode:"draw"};
 function conSign(id){
   const c=CONS.find(x=>x.id===id)||{};
-  sheet("Sign contract",`<div class="sub1" style="margin-bottom:10px">${esc(c.title||'Agreement')}</div>
-   <div class="fld2"><label>Type your full legal name</label><input id="sg-name" class="inp" value="${esc(ME.full_name||'')}"/></div>
-   <label class="chk" style="align-items:flex-start;margin-bottom:12px"><input type="checkbox" id="sg-consent" style="margin-top:3px"> <span>I have read and agree to this contract, and consent to signing it electronically. I understand my name, the time, and the contract version are recorded.</span></label>
-   <button class="btn block" onclick="conSignSubmit('${id}','${ME.role==='client'?'client':'agency'}')">Sign now</button>
-   <div class="sub1" style="margin-top:8px">Basic electronic acceptance (typed name + consent). Certified provider signing can be enabled later.</div>`);
+  sheet("Sign contract",`<div class="sub1" style="margin-bottom:10px">${esc(c.title||'Agreement')} &middot; v${c.version||1}</div>
+   <div class="fld2"><label>Full legal name</label><input id="sg-name" class="inp" value="${esc(ME.full_name||'')}" oninput="sigTypePreview()"/></div>
+   <div class="seg-tabs"><button id="sg-tab-draw" class="on" onclick="sigMode('draw')">&#9998; Draw signature</button><button id="sg-tab-type" onclick="sigMode('type')">&#8520; Type signature</button></div>
+   <div id="sg-draw"><div class="sigpad-wrap"><canvas id="sg-pad" class="sigpad"></canvas><div class="sigpad-ph" id="sg-ph">Sign here with mouse or finger</div></div>
+   <div style="text-align:right;margin-top:6px"><button class="btn ghost sm" onclick="sigClear()">Clear</button></div></div>
+   <div id="sg-typebox" class="hide"><div class="sig-type" id="sg-typeprev"></div></div>
+   <label class="chk" style="align-items:flex-start;margin:12px 0"><input type="checkbox" id="sg-consent" style="margin-top:3px"> <span>I have read and agree to this contract, and consent to signing it electronically. My name, signature, the time, and the contract version are recorded.</span></label>
+   <button class="btn block" onclick="conSignSubmit('${id}','${ME.role==='client'?'client':'agency'}')">&#128274; Sign now</button>
+   <div class="sub1" style="margin-top:8px">Electronic signature with audit record (name, time, version, signature image).</div>`);
+  setTimeout(sigInit,60);
 }
+function sigInit(){
+  const cv=document.getElementById("sg-pad"); if(!cv)return;
+  const r=cv.getBoundingClientRect(); cv.width=r.width; cv.height=r.height;
+  const ctx=cv.getContext("2d"); ctx.lineWidth=2.4; ctx.lineCap="round"; ctx.lineJoin="round"; ctx.strokeStyle="#0f1a2a";
+  SIG_PAD={drawing:false,empty:true,ctx,mode:"draw",cv};
+  const pos=e=>{const b=cv.getBoundingClientRect();const t=e.touches?e.touches[0]:e;return[t.clientX-b.left,t.clientY-b.top];};
+  const down=e=>{e.preventDefault();SIG_PAD.drawing=true;const[x,y]=pos(e);ctx.beginPath();ctx.moveTo(x,y);};
+  const move=e=>{if(!SIG_PAD.drawing)return;e.preventDefault();const[x,y]=pos(e);ctx.lineTo(x,y);ctx.stroke();SIG_PAD.empty=false;const ph=document.getElementById("sg-ph");if(ph)ph.style.display="none";};
+  const up=()=>{SIG_PAD.drawing=false;};
+  cv.onmousedown=down;cv.onmousemove=move;window.addEventListener("mouseup",up);
+  cv.ontouchstart=down;cv.ontouchmove=move;cv.ontouchend=up;
+}
+function sigClear(){ if(SIG_PAD.ctx&&SIG_PAD.cv){SIG_PAD.ctx.clearRect(0,0,SIG_PAD.cv.width,SIG_PAD.cv.height);SIG_PAD.empty=true;const ph=document.getElementById("sg-ph");if(ph)ph.style.display="";} }
+function sigMode(m){ SIG_PAD.mode=m; document.getElementById("sg-tab-draw").classList.toggle("on",m==="draw"); document.getElementById("sg-tab-type").classList.toggle("on",m==="type"); document.getElementById("sg-draw").classList.toggle("hide",m!=="draw"); document.getElementById("sg-typebox").classList.toggle("hide",m!=="type"); if(m==="draw")setTimeout(sigInit,30); else sigTypePreview(); }
+function sigTypePreview(){ const p=document.getElementById("sg-typeprev"); if(p)p.textContent=v("sg-name")||""; }
 async function conSignSubmit(id,role){
   const nm=v("sg-name"); if(!nm.trim()){toast("Type your name",true);return;} if(!document.getElementById("sg-consent").checked){toast("Tick the consent box",true);return;}
+  let sigImg=null, method="typed";
+  if(SIG_PAD.mode==="draw"){ if(SIG_PAD.empty){toast("Draw your signature or switch to Type",true);return;} sigImg=SIG_PAD.cv.toDataURL("image/png"); method="drawn"; }
   const c=CONS.find(x=>x.id===id)||{};
-  const {error}=await sb.from("cr_signatures").insert({contract_id:id,signer_id:SESSION.user.id,signer_name:nm,signer_role:role,method:"typed",consent:true,typed_name:nm,user_agent:navigator.userAgent,version:c.version||1,evidence:{at:new Date().toISOString(),ua:navigator.userAgent}});
+  const {error}=await sb.from("cr_signatures").insert({contract_id:id,signer_id:SESSION.user.id,signer_name:nm,signer_role:role,method,consent:true,typed_name:nm,user_agent:navigator.userAgent,version:c.version||1,evidence:{at:new Date().toISOString(),ua:navigator.userAgent,signature:sigImg}});
   if(error){toast(error.message,true);return;}
   await sb.from("cr_contracts").update({status:role==="agency"?"countersigned":"signed",updated_at:new Date().toISOString()}).eq("id",id);
   closeModal();toast("Signed — an immutable record was created");viewContracts($("#content"));
