@@ -174,6 +174,53 @@ button{font-family:inherit;cursor:pointer}
 
 @media(max-width:1100px){.stat-row{grid-template-columns:repeat(2,1fr)}.two{grid-template-columns:1fr}}
 @media(max-width:860px){.app{grid-template-columns:1fr}.side{position:fixed;left:0;top:0;bottom:0;width:252px;z-index:120;transform:translateX(-100%);transition:.25s}.side.open{transform:none}.search{display:none}.auth{grid-template-columns:1fr}.auth-art{display:none}.auth-form{padding:36px 22px}.ph h1{font-size:26px}}
+
+/* list + preview layout */
+.utabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin:18px 0 18px}
+.utabs button{border:0;background:transparent;padding:11px 4px;margin-right:20px;font-weight:700;color:var(--muted);border-bottom:2px solid transparent;font-size:14px}
+.utabs button.on{color:var(--green);border-bottom-color:var(--green)}
+.lp{display:grid;grid-template-columns:1.35fr 1fr;gap:16px;align-items:start}
+.lp .rowlink.sel td{background:var(--tint)!important}
+.lp .rowlink.sel td:first-child{box-shadow:inset 3px 0 0 var(--green)}
+.filterbar{display:flex;gap:10px;align-items:center;margin-bottom:12px}
+.filterbar .search2{position:relative;flex:1;max-width:260px}
+.filterbar .search2 input{width:100%;height:40px;border:1px solid var(--line);border-radius:11px;padding:0 12px 0 38px;background:#fff;outline:none}
+.filterbar .search2 svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--faint)}
+/* branded doc preview */
+.doc{border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.doc-top{position:relative;padding:20px 20px 16px;background:linear-gradient(120deg,#fff, #f1f8f3);overflow:hidden}
+.doc-top::after{content:"";position:absolute;right:-30px;top:-40px;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,#d8efe0,transparent 70%)}
+.doc-brand{display:flex;align-items:center;gap:9px;font-weight:800;color:var(--ink);font-size:12px;letter-spacing:.3px;position:relative;z-index:2}
+.doc-brand .mk{display:grid;grid-template-columns:repeat(2,9px);grid-template-rows:repeat(2,9px);gap:3px}
+.doc-brand .mk i{border-radius:3px;background:#15803d}.doc-brand .mk i:nth-child(1){background:#34d399}.doc-brand .mk i:nth-child(4){opacity:.5}
+.doc-title{font-size:22px;font-weight:800;letter-spacing:-.5px;margin:12px 0 2px;position:relative;z-index:2}
+.doc-prep{color:var(--muted);font-size:13px;position:relative;z-index:2}
+.doc-body{padding:16px 20px 18px}
+.doc-sec{font-weight:800;font-size:13.5px;margin:12px 0 7px}
+.doc-li{display:flex;gap:8px;align-items:flex-start;font-size:13.5px;margin-bottom:5px;color:var(--ink2)}
+.doc-li::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--green);margin-top:6px;flex:0 0 auto}
+.inv-tbl{border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-top:8px}
+.inv-tbl div{display:flex;justify-content:space-between;padding:9px 12px;font-size:13.5px;border-bottom:1px solid var(--line2)}
+.inv-tbl div:last-child{border-bottom:0}.inv-tbl .k{background:#f6f8f4;font-weight:600}
+.timeline{display:flex;justify-content:space-between;margin:16px 0 4px;gap:4px}
+.tl{flex:1;text-align:center;position:relative}
+.tl .d{width:26px;height:26px;border-radius:50%;background:var(--tint);color:var(--green);display:grid;place-items:center;margin:0 auto 6px;font-weight:800;border:2px solid #fff;box-shadow:0 0 0 2px var(--tint2);position:relative;z-index:2}
+.tl.off .d{background:#eef1ea;color:var(--faint);box-shadow:0 0 0 2px #eef1ea}
+.tl::before{content:"";position:absolute;left:-50%;top:13px;width:100%;height:2px;background:var(--tint2)}
+.tl:first-child::before{display:none}
+.tl b{font-size:12.5px;display:block}.tl span{font-size:11px;color:var(--faint)}
+.sigwf{margin-top:6px}
+.sigrow{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--line2)}
+.sigrow:last-child{border-bottom:0}
+.sigrow .si{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;flex:0 0 auto}
+.sigrow .si.ok{background:var(--tint);color:var(--green)}.sigrow .si.pend{background:var(--amber-tint);color:var(--amber)}
+.sigrow b{font-size:13.5px}.sigrow span{color:var(--muted);font-size:12px;display:block}
+.sigrow .when{margin-left:auto;color:var(--faint);font-size:12px}
+.sigbar{height:7px;border-radius:5px;background:#eef1ea;overflow:hidden;margin:8px 0 4px}.sigbar i{display:block;height:100%;background:var(--green)}
+.tplrow{display:flex;gap:12px;flex-wrap:wrap;margin-top:12px}
+.tpl{flex:1;min-width:200px;display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:14px;padding:14px;background:#fff;cursor:pointer}
+.tpl:hover{border-color:var(--green2)}.tpl .ti{width:38px;height:38px;border-radius:10px;background:var(--tint);color:var(--green);display:grid;place-items:center}
+.btnrow{display:flex;gap:10px;margin-top:14px}
 </style>
 </head>
 <body>
@@ -335,7 +382,7 @@ function renderRoute(){
   const r=route(), c=$("#content"); if(!c)return;
   $("#crumb").innerHTML=`Workspace <span class="sep">/</span> <b>${esc(TITLES[r]||"")}</b>`;
   c.scrollTop=0;
-  const map={overview:viewOverview,clients:viewClients,proposals:soon,contracts:soon,calendar:soon,approvals:soon,projects:soon,reports:soon,finance:soon,assets:soon,changes:soon,settings:soon};
+  const map={overview:viewOverview,clients:viewClients,proposals:viewProposals,contracts:viewContracts,calendar:soon,approvals:soon,projects:soon,reports:soon,finance:soon,assets:soon,changes:soon,settings:soon};
   (map[r]||soon)(c);
 }
 function soon(c){const r=route();c.innerHTML=`<div class="ph"><div class="ph-ic">${IC[r]||IC.overview}</div><div><h1>${esc(TITLES[r]||"")}</h1><div class="psub">This screen is being built in the new design.</div></div></div><div class="card pad empty"><div class="ei">${IC[r]||IC.settings}</div><div><b>Coming online next</b></div><div class="psub" style="margin-top:6px">The ${esc(TITLES[r])} module is next in the rollout.</div></div>`;}
@@ -462,6 +509,116 @@ async function viewClientWorkspace(c,id){
   c.innerHTML=`<div class="ph"><div class="av2" style="width:52px;height:52px;border-radius:14px;font-size:18px;background:linear-gradient(135deg,${avatarColor(cli.company||cli.full_name)})">${esc(initials(cli.company||cli.full_name)).toUpperCase()}</div><div><h1 style="font-size:30px">${esc(cli.company||cli.full_name)}</h1><div class="psub">${esc(cli.industry||"")}${cli.website?` · ${esc(cli.website)}`:""}</div></div><div class="ph-r"><a class="linkg" onclick="location.hash='#/clients'">← All clients</a></div></div>
    <div class="card pad empty"><div class="ei">${IC.clients}</div><div><b>Client workspace — full tabbed view coming next</b></div><div class="psub" style="margin-top:6px">Overview, Proposals, Contracts, Calendar, Approvals, Assets, Reports, Billing for ${esc(cli.company||cli.full_name)}.</div></div>`;
 }
+
+
+/* ============ shared stat row ============ */
+let SPK=0;
+function psStat(ic,color,label,val,d){ const sid="spk"+(SPK++); setTimeout(()=>spark(sid,[4,6,5,8,7,10,9,12,11,14],color),0); return `<div class="stat"><div class="st-top"><div class="st-ic" style="background:${color}1a;color:${color}">${ic}</div><div class="spark"><canvas id="${sid}"></canvas></div></div><div class="lbl">${label}</div><div class="val">${val}</div>${d||""}</div>`; }
+function clientName(id){ const c=CLIENTS.find(x=>x.id===id); return c?(c.company||c.full_name||c.username||"Client"):"Client"; }
+
+/* ============ PROPOSALS ============ */
+const PROP_ST={draft:["Draft","n"],sent:["Sent","b"],viewed:["Viewed","b"],accepted:["Accepted","g"],rejected:["Rejected","r"],expired:["Expired","a"],superseded:["Superseded","n"]};
+let PROPS=[], PROP_SEL=null, PROP_TAB="all", PROP_Q="";
+async function viewProposals(c){
+  c.innerHTML=`<div class="ph"><div class="ph-ic">${IC.proposals}</div><div><h1>Proposals</h1><div class="psub">Turn your strategy into the next client partnership.</div></div><div class="ph-r"><button class="btn ghost">${IC.proposals} Templates</button>${canStaff()?`<button class="btn" onclick="propNew()"><span>${IC.plus}</span> New proposal</button>`:""}</div></div><div id="prop-body"><div class="psub">Loading…</div></div>`;
+  if(!CLIENTS.length){ const {data}=await sb.from("cr_profiles").select("id,company,full_name,username").eq("role","client"); CLIENTS=data||[]; }
+  const {data}=await sb.from("cr_proposals").select("*").order("created_at",{ascending:false});
+  PROPS=data||[]; if(!PROP_SEL&&PROPS.length)PROP_SEL=PROPS[0].id;
+  propRender();
+}
+function propRender(){
+  const b=$("#prop-body"); if(!b)return;
+  const tot=PROPS.length, await_=PROPS.filter(p=>["sent","viewed"].includes(p.status)).length, acc=PROPS.filter(p=>p.status==="accepted").length;
+  const decided=PROPS.filter(p=>["accepted","rejected"].includes(p.status)).length; const rate=decided?Math.round(acc/decided*100):0;
+  const tabs=[["all","All proposals"],["draft","Drafts"],["sent","Sent"],["viewed","Viewed"],["accepted","Accepted"]];
+  let rows=PROPS.filter(p=>PROP_TAB==="all"||p.status===PROP_TAB);
+  if(PROP_Q)rows=rows.filter(p=>((p.title||"")+clientName(p.client_id)).toLowerCase().includes(PROP_Q.toLowerCase()));
+  b.innerHTML=`<div class="stat-row">${psStat(IC.proposals,"#15803d","Total proposals",tot,delta(9))}${psStat('<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 11v2a1 1 0 0 0 1 1h3l4 3V7L7 10H4a1 1 0 0 0-1 1z"/></svg>',"#15803d","Awaiting response",String(await_).padStart(2,"0"),delta(0))}${psStat(IC.approvals,"#15803d","Accepted",String(acc).padStart(2,"0"),delta(12))}${psStat(IC.reports,"#15803d","Acceptance rate",rate+"%",delta(5))}</div>
+   <div class="utabs">${tabs.map(([k,l])=>`<button class="${PROP_TAB===k?'on':''}" onclick="PROP_TAB='${k}';propRender()">${l}</button>`).join("")}</div>
+   <div class="lp"><div class="card pad"><div class="card-h"><h3 class="sec-title">Proposals (${rows.length})</h3><div class="filterbar" style="margin:0"><div class="search2"><span>${IC.search}</span><input placeholder="Search proposals…" value="${esc(PROP_Q)}" oninput="PROP_Q=this.value;propRender()"/></div></div></div>
+     <table class="tbl"><thead><tr><th>Proposal</th><th>Client</th><th>Value</th><th>Status</th></tr></thead><tbody>${rows.map(p=>{const st=PROP_ST[p.status]||["Draft","n"];const val=p.total_recurring>0?money(p.total_recurring)+" / mo":(p.total_onetime>0?money(p.total_onetime)+" one-time":"—");return `<tr class="rowlink ${PROP_SEL===p.id?'sel':''}" onclick="PROP_SEL='${p.id}';propRender()"><td><div class="cell-lead"><span class="av2" style="width:30px;height:30px;border-radius:9px;background:var(--tint);color:var(--green)">${IC.proposals}</span><b>${esc(p.title||"Proposal")}</b></div></td><td>${esc(clientName(p.client_id))}</td><td>${val}</td><td><span class="status ${st[1]}">${st[0]}</span></td></tr>`;}).join("")||`<tr><td colspan="4" class="psub" style="text-align:center;padding:24px">No proposals.</td></tr>`}</tbody></table>
+     <div class="card-h" style="margin:22px 0 0"><h3 class="sec-title" style="font-size:16px">Reusable templates</h3><span class="sub1">Create proposals faster with branded templates.</span></div>
+     <div class="tplrow">${[["Digital Marketing",IC.reports],["Website Development",IC.projects],["Social Media",IC.assets]].map(t=>`<div class="tpl" onclick="propNew()"><span class="ti">${t[1]}</span><b>${t[0]}</b><span style="margin-left:auto;color:var(--faint)">›</span></div>`).join("")}</div>
+     </div>
+     <div class="card pad" id="prop-prev"></div></div>`;
+  propPreview();
+}
+async function propPreview(){
+  const el=$("#prop-prev"); if(!el)return; const p=PROPS.find(x=>x.id===PROP_SEL);
+  if(!p){el.innerHTML=`<div class="empty"><div class="ei">${IC.proposals}</div><div>Select a proposal</div></div>`;return;}
+  const {data:items}=await sb.from("cr_proposal_items").select("*").eq("proposal_id",p.id).order("sort");
+  const deliv=(items||[]).filter(i=>i.section!=="exclusion").slice(0,6);
+  const tl=[["Created",p.created_at],["Sent",p.sent_at],["Viewed",p.viewed_at]];
+  el.innerHTML=`<div class="card-h"><h3 class="sec-title" style="font-size:17px">Proposal preview</h3><span class="sub1">PR-${(p.id||"").slice(0,8)} · v${p.version||1}</span></div>
+  <div class="doc"><div class="doc-top"><div class="doc-brand"><span class="mk"><i></i><i></i><i></i><i></i></span>STEPSTONES SOLUTIONS</div><div class="doc-title">${esc(p.title||"Proposal")}</div><div class="doc-prep">Prepared for ${esc(clientName(p.client_id))}</div></div>
+   <div class="doc-body"><div class="doc-sec">Scope of work</div>${deliv.map(i=>`<div class="doc-li">${esc(i.name)}</div>`).join("")||'<div class="sub1">—</div>'}
+    <div class="doc-sec">Investment summary</div><div class="inv-tbl"><div><span class="k">Agency fee</span><span>${p.total_recurring>0?money(p.total_recurring,p.currency)+" / month":money(p.total_onetime,p.currency)}</span></div><div><span class="k">Ad budget</span><span>${money(p.ad_budget,p.currency)} / month (separate)</span></div></div>
+    <div class="sub1" style="margin-top:8px;font-style:italic">Taxes extra, if applicable</div>
+    <div class="timeline">${tl.map(([l,d])=>`<div class="tl ${d?'':'off'}"><div class="d">${d?'✓':'·'}</div><b>${l}</b><span>${d?fmtD(d):'—'}</span></div>`).join("")}</div>
+    <div class="btnrow"><button class="btn ghost" onclick="propPDF('${p.id}')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 21h14"/></svg> Download PDF</button><button class="btn" onclick="propOpen('${p.id}')">Open proposal ↗</button></div>
+   </div></div>`;
+}
+function propOpen(id){ const p=PROPS.find(x=>x.id===id); propDetailModal(p); }
+function propNew(){ toast("Proposal builder opens here — full editor next pass."); }
+async function propPDF(id){
+  const p=PROPS.find(x=>x.id===id); const {data:items}=await sb.from("cr_proposal_items").select("*").eq("proposal_id",id).order("sort");
+  const {jsPDF}=window.jspdf; const doc=new jsPDF(); doc.setFillColor(21,128,61);doc.rect(0,0,210,24,"F");doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(15);doc.text("Stepstones Solutions",14,12);doc.setFontSize(10);doc.text("PROPOSAL",14,19);
+  let y=36;doc.setTextColor(20,20,30);doc.setFontSize(16);doc.text(doc.splitTextToSize(p.title||"Proposal",180),14,y);y+=9;doc.setFontSize(11);doc.setFont("helvetica","normal");doc.text("Prepared for "+clientName(p.client_id),14,y);y+=8;
+  doc.autoTable({startY:y,head:[["Section","Item","Fee"]],body:(items||[]).map(i=>[i.section,i.name,i.section==="exclusion"?"—":money2(i.fee,p.currency)+(i.recurring?"/mo":"")]),headStyles:{fillColor:[21,128,61]},styles:{fontSize:9}});
+  let ty=doc.lastAutoTable.finalY+8;doc.setFont("helvetica","bold");doc.text("One-time: "+money2(p.total_onetime,p.currency),14,ty);doc.text("Recurring: "+money2(p.total_recurring,p.currency)+"/mo",14,ty+6);doc.text("Ad budget (separate): "+money2(p.ad_budget,p.currency),14,ty+12);
+  doc.save("proposal-"+(p.title||"").replace(/[^\w]+/g,"_").slice(0,24)+".pdf");
+}
+function propDetailModal(p){ propPreview(); toast("Opened "+(p.title||"proposal")); }
+
+/* ============ CONTRACTS ============ */
+const CON_ST={draft:["Draft","n"],sent:["Awaiting signature","b"],signed:["Signed","g"],countersigned:["Active","g"],terminated:["Terminated","r"]};
+let CONS=[], CON_SEL=null, CON_TAB="all", CON_Q="";
+async function viewContracts(c){
+  c.innerHTML=`<div class="ph"><div class="ph-ic">${IC.contracts}</div><div><h1>Contracts</h1><div class="psub">Keep every agreement, signature and renewal in one place.</div></div><div class="ph-r"><button class="btn ghost">${IC.contracts} Templates</button>${canStaff()?`<button class="btn" onclick="toast('Contract editor — next pass')"><span>${IC.plus}</span> Create contract</button>`:""}</div></div><div id="con-body"><div class="psub">Loading…</div></div>`;
+  if(!CLIENTS.length){ const {data}=await sb.from("cr_profiles").select("id,company,full_name,username,renewal_date").eq("role","client"); CLIENTS=data||[]; }
+  const {data}=await sb.from("cr_contracts").select("*").order("created_at",{ascending:false});
+  CONS=data||[]; if(!CON_SEL&&CONS.length)CON_SEL=CONS[0].id;
+  conRender();
+}
+function conRender(){
+  const b=$("#con-body"); if(!b)return;
+  const activeN=CONS.filter(c=>["signed","countersigned"].includes(c.status)).length;
+  const awaitN=CONS.filter(c=>c.status==="sent").length;
+  const nextMonth=new Date();nextMonth.setMonth(nextMonth.getMonth()+1);
+  const renewN=CONS.filter(c=>c.service_end&&new Date(c.service_end)<=nextMonth&&new Date(c.service_end)>=new Date()).length;
+  const draftN=CONS.filter(c=>c.status==="draft").length;
+  const tabs=[["all","All contracts"],["sent","Awaiting signature"],["active","Active"],["expiring","Expiring soon"],["draft","Drafts"]];
+  let rows=CONS.filter(c=>{if(CON_TAB==="all")return true;if(CON_TAB==="active")return["signed","countersigned"].includes(c.status);if(CON_TAB==="expiring")return c.service_end&&new Date(c.service_end)<=nextMonth&&new Date(c.service_end)>=new Date();if(CON_TAB==="sent")return c.status==="sent";return c.status===CON_TAB;});
+  if(CON_Q)rows=rows.filter(c=>((c.title||"")+clientName(c.client_id)).toLowerCase().includes(CON_Q.toLowerCase()));
+  const upcoming=CONS.filter(c=>c.service_end&&new Date(c.service_end)<=nextMonth&&new Date(c.service_end)>=new Date()).slice(0,3);
+  b.innerHTML=`<div class="stat-row">${psStat(IC.contracts,"#15803d","Active agreements",String(activeN).padStart(2,"0"),delta(4))}${psStat('<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 11v2a1 1 0 0 0 1 1h3l4 3V7L7 10H4a1 1 0 0 0-1 1z"/></svg>',"#15803d","Awaiting signature",String(awaitN).padStart(2,"0"),delta(0))}${psStat(IC.calendar,"#15803d","Renewing this month",String(renewN).padStart(2,"0"),delta(0))}${psStat(IC.proposals,"#15803d","Drafts",String(draftN).padStart(2,"0"),delta(0))}</div>
+   <div class="utabs">${tabs.map(([k,l])=>`<button class="${CON_TAB===k?'on':''}" onclick="CON_TAB='${k}';conRender()">${l}</button>`).join("")}</div>
+   <div class="lp"><div><div class="card pad"><div class="card-h"><h3 class="sec-title">Contracts (${rows.length})</h3><div class="search2"><span>${IC.search}</span><input placeholder="Search contracts…" value="${esc(CON_Q)}" oninput="CON_Q=this.value;conRender()"/></div></div>
+     <table class="tbl"><thead><tr><th>Agreement</th><th>Client</th><th>Renewal</th><th>Status</th></tr></thead><tbody>${rows.map(c=>{const st=CON_ST[c.status]||["Draft","n"];return `<tr class="rowlink ${CON_SEL===c.id?'sel':''}" onclick="CON_SEL='${c.id}';conRender()"><td><div class="cell-lead"><span class="av2" style="width:30px;height:30px;border-radius:9px;background:var(--tint);color:var(--green)">${IC.contracts}</span><b>${esc(c.title||"Agreement")}</b></div></td><td>${esc(clientName(c.client_id))}</td><td>${c.service_end?fmtD(c.service_end):"One-time"}</td><td><span class="status ${st[1]}">${st[0]}</span></td></tr>`;}).join("")||`<tr><td colspan="4" class="psub" style="text-align:center;padding:24px">No contracts.</td></tr>`}</tbody></table></div>
+     ${upcoming.length?`<div class="card pad" style="margin-top:16px"><div class="card-h"><h3 class="sec-title" style="font-size:16px">Upcoming renewals (${upcoming.length})</h3><span class="sub1">Due in the next 30 days.</span></div>${upcoming.map(c=>{const d=new Date(c.service_end);return `<div class="upc"><div class="dt"><b>${d.getDate()}</b><span>${d.toLocaleDateString("en-IN",{month:"short"})}</span></div><div class="ti" style="flex:1"><b>${esc(clientName(c.client_id))}</b><span>${esc(c.title||"Agreement")}</span></div><button class="btn ghost sm" onclick="CON_SEL='${c.id}';conRender()">Review renewal</button></div>`;}).join("")}</div>`:""}
+     </div>
+     <div class="card pad" id="con-prev"></div></div>`;
+  conPreview();
+}
+async function conPreview(){
+  const el=$("#con-prev"); if(!el)return; const c=CONS.find(x=>x.id===CON_SEL);
+  if(!c){el.innerHTML=`<div class="empty"><div class="ei">${IC.contracts}</div><div>Select a contract</div></div>`;return;}
+  const {data:sigs}=await sb.from("cr_signatures").select("*").eq("contract_id",c.id).order("signed_at");
+  const clientSig=(sigs||[]).find(s=>s.signer_role==="client"); const agencySig=(sigs||[]).find(s=>s.signer_role==="agency");
+  const done=(sigs||[]).length; const prog=Math.min(100,Math.round(done/2*100));
+  el.innerHTML=`<div class="card-h"><h3 class="sec-title" style="font-size:17px">Agreement details</h3><span class="sub1">CT-${(c.id||"").slice(0,8)} · v${c.version||1}</span></div>
+  <div class="doc"><div class="doc-top"><div class="doc-brand"><span class="mk"><i></i><i></i><i></i><i></i></span>STEPSTONES SOLUTIONS</div><div class="doc-title">${esc(c.title||"Service Agreement")}</div><div class="doc-prep">Prepared for ${esc(clientName(c.client_id))}</div></div>
+   <div class="doc-body">${c.scope?`<div class="doc-sec">Scope of services</div>${c.scope.split("\n").slice(0,4).map(l=>`<div class="doc-li">${esc(l)}</div>`).join("")}`:""}
+    <div class="inv-tbl" style="margin-top:10px"><div><span class="k">Service period</span><span>${c.service_start?fmtD(c.service_start):"—"} – ${c.service_end?fmtD(c.service_end):"—"}</span></div><div><span class="k">Agency fee</span><span>${esc(c.payment_schedule||"As agreed")}</span></div></div>
+   </div></div>
+   <div class="card-h" style="margin:16px 0 4px"><h3 class="sec-title" style="font-size:15px">Signature workflow</h3><a class="linkg" onclick="toast('Audit trail — full view next')">View audit trail</a></div>
+   <div class="sigwf"><div class="sigrow"><span class="si ${agencySig?'ok':'pend'}">${agencySig?'✓':'…'}</span><div><b>Agency representative</b><span>${agencySig?esc(agencySig.signer_name):"Not signed"}</span></div><span class="when">${agencySig?fmtDT(agencySig.signed_at):""}</span></div>
+   <div class="sigrow"><span class="si ${clientSig?'ok':'pend'}">${clientSig?'✓':'…'}</span><div><b>Client representative</b><span>${clientSig?esc(clientSig.signer_name):(c.status==='sent'?"Awaiting signature":"Not sent")}</span></div><span class="when">${clientSig?fmtDT(clientSig.signed_at):""}</span></div></div>
+   <div class="sigbar"><i style="width:${prog}%"></i></div><div class="sub1" style="text-align:right">${done} of 2 signatures complete</div>
+   <div class="btnrow"><button class="btn ghost sm" onclick="conPDF('${c.id}')">Preview PDF</button>${c.status==='sent'?`<button class="btn ghost sm" onclick="toast('Reminder noted')">Send reminder</button>`:""}${ME.role==='client'&&!clientSig?`<button class="btn sm" onclick="conSign('${c.id}')">Review &amp; sign</button>`:`<button class="btn sm" onclick="toast('Signing link copied')">View signing link</button>`}</div>`;
+}
+async function conPDF(id){ const c=CONS.find(x=>x.id===id); const {data:sigs}=await sb.from("cr_signatures").select("*").eq("contract_id",id); const {jsPDF}=window.jspdf; const doc=new jsPDF(); doc.setFillColor(21,128,61);doc.rect(0,0,210,24,"F");doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(15);doc.text("Stepstones Solutions",14,12);doc.setFontSize(10);doc.text("CONTRACT",14,19);let y=36;doc.setTextColor(20,20,30);doc.setFontSize(15);doc.text(doc.splitTextToSize(c.title||"Agreement",180),14,y);y+=9;doc.setFontSize(11);doc.setFont("helvetica","normal");doc.text("Client: "+clientName(c.client_id),14,y);y+=8;[["Scope",c.scope],["Payment",c.payment_schedule],["Renewal",c.renewal],["Termination",c.termination],["Contract",c.body]].forEach(([h,t])=>{if(!t)return;doc.setFont("helvetica","bold");doc.text(h,14,y);y+=5;doc.setFont("helvetica","normal");const ls=doc.splitTextToSize(t,182);if(y+ls.length*5>275){doc.addPage();y=20;}doc.text(ls,14,y);y+=ls.length*5+5;});doc.setFont("helvetica","bold");doc.text("Signatures",14,y);y+=6;doc.setFont("helvetica","normal");doc.setFontSize(9);(sigs||[]).forEach(sgn=>{doc.text(`${sgn.signer_role.toUpperCase()}: ${sgn.signer_name} — ${sgn.method} — ${fmtDT(sgn.signed_at)}`,14,y);y+=5;});doc.save("contract-"+(c.title||"").replace(/[^\w]+/g,"_").slice(0,24)+".pdf"); }
+function conSign(id){ toast("Signing flow opens here — porting the consent+sign modal next."); }
 
 /* ================= GO ================= */
 try{ if('serviceWorker' in navigator){ navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister())); if(window.caches){caches.keys().then(ks=>ks.forEach(k=>caches.delete(k)));} } }catch(_){ }
