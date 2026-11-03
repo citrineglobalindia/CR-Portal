@@ -761,13 +761,16 @@ function clientName(id){ const c=CLIENTS.find(x=>x.id===id); return c?(c.company
 
 /* ============ PROPOSALS ============ */
 const PROP_ST={draft:["Draft","n"],sent:["Sent","b"],viewed:["Viewed","b"],accepted:["Accepted","g"],rejected:["Rejected","r"],expired:["Expired","a"],superseded:["Superseded","n"]};
-let PROPS=[], SP_PROPS=[], PROP_SEL=null, PROP_TAB="all", PROP_Q="";
+let PROPS=[], SP_PROPS=[], SP_EVENTS=[], PROP_SEL=null, PROP_TAB="all", PROP_Q="";
 async function viewProposals(c){
   c.innerHTML=`<div class="ph"><div class="ph-ic">${IC.proposals}</div><div><h1>Proposals</h1><div class="psub">Turn your strategy into the next client partnership.</div></div><div class="ph-r"><button class="btn ghost" onclick="window.open('studio/','_blank')">✦ Proposal Studio</button>${canStaff()?`<button class="btn" onclick="propNew()"><span>${IC.plus}</span> New proposal</button>`:""}</div></div><div id="prop-body"><div class="psub">Loading…</div></div>`;
   if(!CLIENTS.length){ const {data}=await sb.from("cr_profiles").select("id,company,full_name,username").eq("role","client"); CLIENTS=data||[]; }
   const {data}=await sb.from("cr_proposals").select("*").order("created_at",{ascending:false});
   PROPS=data||[];
-  try{ const sp=await sb.from("sp_proposals").select("*").order("updated_at",{ascending:false}); SP_PROPS=sp.data||[]; }catch(_){ SP_PROPS=[]; } if(!PROP_SEL&&PROPS.length)PROP_SEL=PROPS[0].id;
+  try{ const sp=await sb.from("sp_proposals").select("*").order("updated_at",{ascending:false}); SP_PROPS=sp.data||[];
+    const ids=SP_PROPS.map(p=>p.id); SP_EVENTS=[]; if(ids.length){ const ev=await sb.from("sp_proposal_events").select("*").in("proposal_id",ids); SP_EVENTS=ev.data||[]; }
+    for(const p of SP_PROPS){ if(spIsAccepted(p.id)&&p.status!=="accepted"){ try{ await sb.from("sp_proposals").update({status:"accepted"}).eq("id",p.id); p.status="accepted"; }catch(_){ } } }
+   }catch(_){ SP_PROPS=[]; SP_EVENTS=[]; } if(!PROP_SEL&&PROPS.length)PROP_SEL=PROPS[0].id;
   propRender();
 }
 function propRender(){
@@ -783,7 +786,7 @@ function propRender(){
      <table class="tbl"><thead><tr><th>Proposal</th><th>Client</th><th>Value</th><th>Status</th></tr></thead><tbody>${rows.map(p=>{const st=PROP_ST[p.status]||["Draft","n"];const val=p.total_recurring>0?money(p.total_recurring)+" / mo":(p.total_onetime>0?money(p.total_onetime)+" one-time":"—");return `<tr class="rowlink ${PROP_SEL===p.id?'sel':''}" onclick="PROP_SEL='${p.id}';propRender()"><td><div class="cell-lead"><span class="av2" style="width:30px;height:30px;border-radius:9px;background:var(--tint);color:var(--green)">${IC.proposals}</span><b>${esc(p.title||"Proposal")}</b></div></td><td>${esc(clientName(p.client_id))}</td><td>${val}</td><td><span class="status ${st[1]}">${st[0]}</span></td></tr>`;}).join("")||`<tr><td colspan="4" class="psub" style="text-align:center;padding:24px">No proposals.</td></tr>`}</tbody></table>
      <div class="card-h" style="margin:22px 0 0"><h3 class="sec-title" style="font-size:16px">Reusable templates</h3><span class="sub1">Create proposals faster with branded templates.</span></div>
      <div class="tplrow">${[["Digital Marketing",IC.reports],["Website Development",IC.projects],["Social Media",IC.assets]].map(t=>`<div class="tpl" onclick="propNew()"><span class="ti">${t[1]}</span><b>${t[0]}</b><span style="margin-left:auto;color:var(--faint)">›</span></div>`).join("")}</div>
-     ${SP_PROPS&&SP_PROPS.length?`<div class="card-h" style="margin:22px 0 0"><h3 class="sec-title" style="font-size:16px">✦ Proposal Studio microsites</h3><a class="linkg" onclick="window.open('studio/','_blank')">Open studio ↗</a></div><table class="tbl"><thead><tr><th>Proposal</th><th>Client</th><th>Value</th><th>Status</th><th></th></tr></thead><tbody>${SP_PROPS.map(p=>`<tr class="rowlink"><td><div class="cell-lead"><span class="av2" style="width:28px;height:28px;border-radius:8px;background:#fdf3d0;color:#b4740f">✦</span><b>${esc(p.title||p.pno||"Proposal")}</b></div></td><td>${esc(p.client_company||"—")}</td><td>${p.total?money(p.total,p.currency):"—"}</td><td><span class="status ${p.status==='accepted'?'g':(p.status==='sent'?'b':'n')}">${esc(p.status||'draft')}</span></td><td style="text-align:right"><a class="linkg" onclick="studioOpen('${p.id}')">Edit</a>${p.share_token?` · <a class="linkg" onclick="studioMicrosite('${p.share_token}')">Microsite</a>`:""}</td></tr>`).join("")}</tbody></table>`:""}
+     ${SP_PROPS&&SP_PROPS.length?`<div class="card-h" style="margin:22px 0 0"><h3 class="sec-title" style="font-size:16px">✦ Proposal Studio — sent &amp; accepted</h3><a class="linkg" onclick="window.open('studio/','_blank')">Open studio ↗</a></div><table class="tbl"><thead><tr><th>Proposal</th><th>Client</th><th>Value</th><th>Status</th><th>Accepted</th><th></th></tr></thead><tbody>${SP_PROPS.map(p=>{const st=spStatus(p);const acc=spAcceptEv(p.id);return `<tr class="rowlink" onclick="spDetail('${p.id}')"><td><div class="cell-lead"><span class="av2" style="width:28px;height:28px;border-radius:8px;background:#fdf3d0;color:#b4740f">✦</span><b>${esc(p.title||p.pno||"Proposal")}</b></div></td><td>${esc(p.client_company||"—")}</td><td>${p.total?money(p.total,p.currency):"—"}</td><td><span class="status ${st[1]}">${st[0]}</span></td><td>${acc?esc(acc.signer_name||'Client')+' · '+fmtD(acc.created_at):'—'}</td><td style="text-align:right"><a class="linkg" onclick="event.stopPropagation();spDetail('${p.id}')">Details</a></td></tr>`;}).join("")}</tbody></table><div class="sub1" style="margin-top:8px">Click a proposal to see its timeline, download the accepted PDF, and raise an invoice.</div>`:""}
      </div>
      <div class="card pad" id="prop-prev"></div></div>`;
   propPreview();
@@ -802,6 +805,56 @@ async function propPreview(){
     <div class="timeline">${tl.map(([l,d])=>`<div class="tl ${d?'':'off'}"><div class="d">${d?'✓':'·'}</div><b>${l}</b><span>${d?fmtD(d):'—'}</span></div>`).join("")}</div>
     <div class="btnrow"><button class="btn ghost" onclick="propPDF('${p.id}')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 21h14"/></svg> Download PDF</button><button class="btn" onclick="propOpen('${p.id}')">Open proposal ↗</button></div>
    </div></div>`;
+}
+function spEv(id){ return SP_EVENTS.filter(e=>e.proposal_id===id); }
+function spIsViewed(id){ return spEv(id).some(e=>e.event_type==='view'); }
+function spIsAccepted(id){ return spEv(id).some(e=>e.event_type==='accept'); }
+function spAcceptEv(id){ return spEv(id).filter(e=>e.event_type==='accept').sort((a,b)=>new Date(b.created_at)-new Date(a.created_at))[0]; }
+function spStatus(p){ if(spIsAccepted(p.id))return["Accepted","g"]; if(spIsViewed(p.id))return["Viewed","b"]; if(p.status==='sent'||p.share_token)return["Sent","b"]; return["Draft","n"]; }
+async function spDetail(id){
+  const p=SP_PROPS.find(x=>x.id===id); if(!p)return; const ev=spEv(id).sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
+  const acc=spAcceptEv(id); const st=spStatus(p); const views=ev.filter(e=>e.event_type==='view').length;
+  const inv=await sb.from("cr_invoices").select("id,invoice_no,total,paid,status").or("notes.ilike.%"+id+"%,id.eq.00000000-0000-0000-0000-000000000000");
+  sheet(`${esc(p.title||p.pno||'Proposal')}`,`
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px"><span class="status ${st[1]}">${st[0]}</span><span class="sub1">${esc(p.client_company||'')}</span><b style="margin-left:auto">${p.total?money(p.total,p.currency):'—'}</b></div>
+    <div class="timeline" style="margin:0 0 14px">
+      <div class="tl ${p.sent_at||p.share_token?'':'off'}"><div class="d">${p.sent_at||p.share_token?'✓':'1'}</div><b>Sent</b><span>${p.sent_at?fmtD(p.sent_at):'—'}</span></div>
+      <div class="tl ${views?'':'off'}"><div class="d">${views?'✓':'2'}</div><b>Viewed</b><span>${views?views+'×':'—'}</span></div>
+      <div class="tl ${acc?'':'off'}"><div class="d">${acc?'✓':'3'}</div><b>Accepted</b><span>${acc?fmtD(acc.created_at):'—'}</span></div>
+    </div>
+    ${acc?`<div class="card pad" style="background:var(--panel2);margin-bottom:12px"><div class="sub1">Accepted by</div><b>${esc(acc.signer_name||'Client')}</b>${acc.signer_email?` <span class="sub1">· ${esc(acc.signer_email)}</span>`:''}<div class="sub1" style="margin-top:4px">${fmtDT(acc.created_at)}</div>${acc.signature_data&&acc.signature_data.startsWith('data:image')?`<img src="${esc(acc.signature_data)}" style="max-height:70px;margin-top:8px;background:#fff;border:1px solid var(--line);border-radius:8px;padding:4px">`:(acc.signature_data?`<div style="font-family:cursive;font-size:22px;margin-top:6px">${esc(acc.signature_data.slice(0,40))}</div>`:'')}</div>`:''}
+    <div class="btnrow"><button class="btn ghost" onclick="spPDF('${id}')">⬇ ${acc?'Accepted ':''}proposal PDF</button>${p.share_token?`<button class="btn ghost" onclick="studioMicrosite('${p.share_token}')">Open microsite</button>`:''}</div>
+    <div class="card-h" style="margin:18px 0 8px"><h3 class="sec-title" style="font-size:15px">Payment</h3></div>
+    ${(inv.data||[]).length?(inv.data||[]).map(i=>`<div class="kv2"><span class="k">${esc(i.invoice_no||'Invoice')}</span><b>${money(i.total)} · ${esc(i.status)}</b></div>`).join(""):'<div class="sub1" style="margin-bottom:8px">No invoice raised for this proposal yet.</div>'}
+    <button class="btn block" onclick="spInvoiceForm('${id}')">${(inv.data||[]).length?'Raise another invoice':'Create invoice &amp; collect payment'}</button>
+  `);
+}
+async function spPDF(id){
+  const p=SP_PROPS.find(x=>x.id===id); const d=p.payload||{}; const acc=spAcceptEv(id);
+  const {jsPDF}=window.jspdf; const doc=new jsPDF(); doc.setFillColor(21,128,61);doc.rect(0,0,210,24,"F");doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(15);doc.text("Stepstones Solutions",14,12);doc.setFontSize(10);doc.text("PROPOSAL"+(acc?" · ACCEPTED":""),14,19);
+  let y=36;doc.setTextColor(20,20,30);doc.setFontSize(16);doc.text(doc.splitTextToSize(d.title||p.title||"Proposal",180),14,y);y+=8;doc.setFontSize(11);doc.setFont("helvetica","normal");
+  doc.text("Prepared for "+(d.company||p.client_company||""),14,y);y+=6; if(d.contact||d.email)doc.text([d.contact,d.email,d.phone].filter(Boolean).join(" · "),14,y),y+=6;
+  const prices=(d.prices||[]).map(x=>[x.d||"Item",money2(x.a,d.currency||p.currency)]);
+  if(prices.length){ doc.autoTable({startY:y+2,head:[["Description","Amount"]],body:prices,headStyles:{fillColor:[21,128,61]},styles:{fontSize:10}}); y=doc.lastAutoTable.finalY+6; }
+  const t=computeSpTotals(d); doc.setFont("helvetica","bold");
+  doc.text("Subtotal: "+money2(t.subtotal,d.currency),130,y);y+=6; if(t.discAmt)doc.text("Discount: -"+money2(t.discAmt,d.currency),130,y),y+=6; if(t.taxAmt)doc.text("Tax: "+money2(t.taxAmt,d.currency),130,y),y+=6; doc.setFontSize(13);doc.text("Total: "+money2(t.grand,d.currency),130,y);y+=10;
+  if(acc){ doc.setFontSize(10);doc.setFont("helvetica","normal");doc.setTextColor(90,90,100);doc.text("Accepted by "+(acc.signer_name||"client")+(acc.signer_email?" ("+acc.signer_email+")":"")+" on "+fmtDT(acc.created_at),14,y);y+=6; if(acc.signature_data&&acc.signature_data.startsWith("data:image")){ try{ doc.addImage(acc.signature_data,"PNG",14,y,50,20); }catch(_){ } } }
+  doc.save("proposal-"+(d.company||"stepstones").replace(/[^\w]+/g,"_").slice(0,24)+(acc?"-accepted":"")+".pdf");
+}
+function computeSpTotals(d){ const subtotal=(d.prices||[]).reduce((a,x)=>a+(Number(x.a)||0),0); const discAmt=subtotal*((Number(d.discount)||0)/100); const taxable=subtotal-discAmt; const taxAmt=taxable*((Number(d.tax)||0)/100); return {subtotal,discAmt,taxAmt,grand:taxable+taxAmt}; }
+function spInvoiceForm(id){
+  const p=SP_PROPS.find(x=>x.id===id); const match=CLIENTS.find(c=>(c.company||"").toLowerCase()===(p.client_company||"").toLowerCase());
+  sheet("Create invoice",`<div class="fld2"><label>Client</label><select id="si-client" class="inp">${CLIENTS.map(c=>`<option value="${c.id}" ${match&&match.id===c.id?'selected':''}>${esc(c.company||c.full_name)}</option>`).join("")}</select>${!match?'<div class="sub1" style="margin-top:4px">No exact match for "'+esc(p.client_company||'')+'" — pick the client.</div>':''}</div>
+   <div class="g2"><div class="fld2"><label>Amount</label><input id="si-amt" type="number" class="inp" value="${p.total||computeSpTotals(p.payload||{}).grand||''}"/></div><div class="fld2"><label>Due date</label><input id="si-due" type="date" class="inp" value="${new Date(Date.now()+7*864e5).toISOString().slice(0,10)}"/></div></div>
+   <div class="fld2"><label>Type</label><select id="si-kind" class="inp"><option value="one-time">One-time</option><option value="retainer">Retainer</option></select></div>
+   <button class="btn block" onclick="spInvoiceSave('${id}')">Issue invoice</button><div class="sub1" style="margin-top:8px">Creates an issued invoice in Finance → Billing with a permanent number. Record payment or share it from there.</div>`);
+}
+async function spInvoiceSave(id){
+  const p=SP_PROPS.find(x=>x.id===id); const cid=v("si-client"), amt=Number(v("si-amt"))||0; if(!cid||amt<=0){toast("Pick a client and amount",true);return;}
+  const {data,error}=await sb.from("cr_invoices").insert({client_id:cid,kind:v("si-kind"),total:amt,subtotal:amt,status:"Issued",due_date:v("si-due")||null,notes:"Proposal: "+id+(p.pno?" ("+p.pno+")":""),created_by:SESSION.user.id,created_by_name:ME.full_name||ME.email}).select().single();
+  if(error){toast(error.message,true);return;}
+  await sb.from("cr_invoice_items").insert({invoice_id:data.id,name:p.title||"Proposal",qty:1,rate:amt,amount:amt,sort:0});
+  closeModal();toast("Invoice "+(data.invoice_no||"")+" issued");
 }
 function propOpen(id){ const p=PROPS.find(x=>x.id===id); propDetailModal(p); }
 function propNew(){ window.open("studio/?new","_blank"); }
