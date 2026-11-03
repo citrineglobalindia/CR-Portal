@@ -221,6 +221,49 @@ button{font-family:inherit;cursor:pointer}
 .tpl{flex:1;min-width:200px;display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:14px;padding:14px;background:#fff;cursor:pointer}
 .tpl:hover{border-color:var(--green2)}.tpl .ti{width:38px;height:38px;border-radius:10px;background:var(--tint);color:var(--green);display:grid;place-items:center}
 .btnrow{display:flex;gap:10px;margin-top:14px}
+
+/* calendar */
+.cal-controls{display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+.cal-controls .selectbox{cursor:pointer}
+.calwrap{display:grid;grid-template-columns:1.9fr 1fr;gap:16px;align-items:start}
+.cal{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.cal-h{display:flex;align-items:center;justify-content:space-between;padding:14px 18px}
+.cal-h h3{margin:0;font-size:20px;font-weight:800}
+.cal-nav{display:flex;gap:6px;align-items:center}
+.cal-nav button{width:34px;height:34px;border-radius:9px;border:1px solid var(--line);background:#fff;color:var(--ink2)}
+.cal-dow{display:grid;grid-template-columns:repeat(7,1fr);background:#f6f8f4;border-top:1px solid var(--line)}
+.cal-dow div{padding:9px;text-align:center;font-size:11.5px;font-weight:700;color:var(--faint)}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr)}
+.cal-c{min-height:104px;border-top:1px solid var(--line2);border-left:1px solid var(--line2);padding:6px}
+.cal-c:nth-child(7n+1){border-left:0}
+.cal-c.oth{background:#fafbf9;color:var(--faint)}
+.cal-c.today .cd{background:var(--green);color:#fff;border-radius:7px}
+.cd{font-size:12.5px;font-weight:700;color:var(--ink2);width:22px;height:22px;display:grid;place-items:center;margin-bottom:4px}
+.ev{font-size:11px;font-weight:600;border-radius:6px;padding:4px 6px;margin-bottom:3px;cursor:pointer;display:flex;gap:4px;align-items:center;overflow:hidden}
+.ev.sel{outline:2px solid var(--green)}
+.ev b{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ev small{color:inherit;opacity:.8;white-space:nowrap}
+.cal-legend{display:flex;gap:16px;padding:12px 18px;flex-wrap:wrap;border-top:1px solid var(--line2);font-size:12px;color:var(--muted)}
+.cal-legend i{width:9px;height:9px;border-radius:3px;display:inline-block;margin-right:6px;vertical-align:middle}
+.cdet .pv{width:100%;border-radius:12px;display:block;border:1px solid var(--line)}
+.cdet .pvph{height:200px;border-radius:12px;background:linear-gradient(135deg,#e9f5ee,#d8efe0);display:grid;place-items:center;color:var(--green);border:1px solid var(--line)}
+.meta-row{display:flex;gap:12px;align-items:center;margin-top:12px;font-size:12.5px;color:var(--muted)}
+/* approvals */
+.appr{display:grid;grid-template-columns:320px 1fr 340px;gap:16px;align-items:start}
+.q-item{display:flex;gap:11px;padding:11px;border:1px solid var(--line);border-radius:13px;margin-bottom:9px;cursor:pointer;background:#fff}
+.q-item.sel{border-color:var(--green);background:var(--tint)}
+.q-item .th{width:48px;height:48px;border-radius:9px;object-fit:cover;flex:0 0 auto;background:#e9f5ee}
+.q-item b{font-size:13.5px;display:block}.q-item .m{font-size:11.5px;color:var(--muted)}
+.steps3{display:flex;gap:8px;margin-bottom:14px}
+.step3{flex:1;text-align:center;font-size:11px}
+.step3 .s3i{width:24px;height:24px;border-radius:50%;margin:0 auto 5px;display:grid;place-items:center;font-weight:800}
+.step3.ok .s3i{background:var(--tint);color:var(--green)}.step3.pend .s3i{background:var(--amber-tint);color:var(--amber)}.step3.off .s3i{background:#eef1ea;color:var(--faint)}
+.step3 b{display:block;font-weight:700}.step3 span{color:var(--faint)}
+.cmt{display:flex;gap:10px;margin-bottom:12px}
+.cmt .ca{width:30px;height:30px;border-radius:50%;flex:0 0 auto;display:grid;place-items:center;color:#fff;font-weight:800;font-size:11px}
+.cmt .cb{background:#f6f8f4;border:1px solid var(--line2);border-radius:10px;padding:9px 11px;flex:1}
+.cmt .cb .ch{display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px}.cmt .cb .ch b{font-weight:700}
+.cmt.int .cb{background:#f1eefb;border-color:#e3dbf7}
 </style>
 </head>
 <body>
@@ -382,7 +425,7 @@ function renderRoute(){
   const r=route(), c=$("#content"); if(!c)return;
   $("#crumb").innerHTML=`Workspace <span class="sep">/</span> <b>${esc(TITLES[r]||"")}</b>`;
   c.scrollTop=0;
-  const map={overview:viewOverview,clients:viewClients,proposals:viewProposals,contracts:viewContracts,calendar:soon,approvals:soon,projects:soon,reports:soon,finance:soon,assets:soon,changes:soon,settings:soon};
+  const map={overview:viewOverview,clients:viewClients,proposals:viewProposals,contracts:viewContracts,calendar:viewCalendar,approvals:viewApprovals,projects:soon,reports:soon,finance:soon,assets:soon,changes:soon,settings:soon};
   (map[r]||soon)(c);
 }
 function soon(c){const r=route();c.innerHTML=`<div class="ph"><div class="ph-ic">${IC[r]||IC.overview}</div><div><h1>${esc(TITLES[r]||"")}</h1><div class="psub">This screen is being built in the new design.</div></div></div><div class="card pad empty"><div class="ei">${IC[r]||IC.settings}</div><div><b>Coming online next</b></div><div class="psub" style="margin-top:6px">The ${esc(TITLES[r])} module is next in the rollout.</div></div>`;}
@@ -619,6 +662,107 @@ async function conPreview(){
 }
 async function conPDF(id){ const c=CONS.find(x=>x.id===id); const {data:sigs}=await sb.from("cr_signatures").select("*").eq("contract_id",id); const {jsPDF}=window.jspdf; const doc=new jsPDF(); doc.setFillColor(21,128,61);doc.rect(0,0,210,24,"F");doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(15);doc.text("Stepstones Solutions",14,12);doc.setFontSize(10);doc.text("CONTRACT",14,19);let y=36;doc.setTextColor(20,20,30);doc.setFontSize(15);doc.text(doc.splitTextToSize(c.title||"Agreement",180),14,y);y+=9;doc.setFontSize(11);doc.setFont("helvetica","normal");doc.text("Client: "+clientName(c.client_id),14,y);y+=8;[["Scope",c.scope],["Payment",c.payment_schedule],["Renewal",c.renewal],["Termination",c.termination],["Contract",c.body]].forEach(([h,t])=>{if(!t)return;doc.setFont("helvetica","bold");doc.text(h,14,y);y+=5;doc.setFont("helvetica","normal");const ls=doc.splitTextToSize(t,182);if(y+ls.length*5>275){doc.addPage();y=20;}doc.text(ls,14,y);y+=ls.length*5+5;});doc.setFont("helvetica","bold");doc.text("Signatures",14,y);y+=6;doc.setFont("helvetica","normal");doc.setFontSize(9);(sigs||[]).forEach(sgn=>{doc.text(`${sgn.signer_role.toUpperCase()}: ${sgn.signer_name} — ${sgn.method} — ${fmtDT(sgn.signed_at)}`,14,y);y+=5;});doc.save("contract-"+(c.title||"").replace(/[^\w]+/g,"_").slice(0,24)+".pdf"); }
 function conSign(id){ toast("Signing flow opens here — porting the consent+sign modal next."); }
+
+
+/* ============ CONTENT CALENDAR ============ */
+const CC_STC={Planned:["#7c3aed","#efe9fd"],"In Production":["#2563eb","#e6effd"],"Internal Review":["#2563eb","#e6effd"],"Client Approval":["#b4740f","#fbf1df"],Approved:["#15803d","#e9f5ee"],Scheduled:["#0891b2","#e0f7fb"],Published:["#15803d","#e9f5ee"],"Changes Requested":["#c23b3b","#fbe9e9"],Cancelled:["#6b7280","#eef1ea"]};
+let CC=[], CC_REF=new Date(), CC_SEL=null, CC_CLIENT="", CC_PLAT="";
+async function viewCalendar(c){
+  c.innerHTML=`<div class="ph"><div class="ph-ic">${IC.calendar}</div><div><h1>Content Calendar</h1><div class="psub">Plan, review and schedule every client's content.</div></div><div class="ph-r"><button class="btn ghost">⬇ Export</button>${canStaff()?`<button class="btn" onclick="ccNew()"><span>${IC.plus}</span> Create content</button>`:""}</div></div><div id="cc-body"><div class="psub">Loading…</div></div>`;
+  if(!CLIENTS.length){const {data}=await sb.from("cr_profiles").select("id,company,full_name,username").eq("role","client");CLIENTS=data||[];}
+  const {data}=await sb.from("cr_content_items").select("*").order("planned_at");
+  CC=data||[]; if(!CC_SEL&&CC.length)CC_SEL=CC[0].id;
+  ccRender();
+}
+function ccStat(label){return CC.filter(x=>x.status===label).length;}
+function ccRender(){
+  const b=$("#cc-body"); if(!b)return;
+  const plats=[...new Set(CC.map(x=>x.platform).filter(Boolean))];
+  b.innerHTML=`<div class="stat-row">${psStat(IC.calendar,"#15803d","Planned",String(ccStat("Planned")).padStart(2,"0"),"")}${psStat(IC.projects,"#15803d","In production",String(ccStat("In Production")).padStart(2,"0"),"")}${psStat(IC.approvals,"#b4740f","Awaiting approval",String(ccStat("Client Approval")).padStart(2,"0"),"")}${psStat(IC.contracts,"#0891b2","Scheduled",String(ccStat("Scheduled")).padStart(2,"0"),"")}</div>
+  <div class="cal-controls"><select class="selectbox" onchange="CC_CLIENT=this.value;ccRender()"><option value="">All clients</option>${CLIENTS.map(c=>`<option value="${c.id}" ${CC_CLIENT===c.id?'selected':''}>${esc(c.company||c.full_name)}</option>`).join("")}</select><select class="selectbox" onchange="CC_PLAT=this.value;ccRender()"><option value="">All platforms</option>${plats.map(p=>`<option ${CC_PLAT===p?'selected':''}>${esc(p)}</option>`).join("")}</select></div>
+  <div class="calwrap"><div class="cal"><div class="cal-h"><h3>${CC_REF.toLocaleDateString("en-IN",{month:"long",year:"numeric"})}</h3><div class="cal-nav"><button onclick="ccNav(-1)">‹</button><button onclick="ccNav(1)">›</button><button class="btn ghost sm" style="width:auto" onclick="CC_REF=new Date();ccRender()">Today</button></div></div>
+  <div class="cal-dow">${["SUN","MON","TUE","WED","THU","FRI","SAT"].map(d=>`<div>${d}</div>`).join("")}</div><div class="cal-grid">${ccGrid()}</div>
+  <div class="cal-legend">${[["Planned","#7c3aed"],["In production","#2563eb"],["Awaiting approval","#b4740f"],["Scheduled","#0891b2"],["Approved","#15803d"]].map(([l,c])=>`<span><i style="background:${c}"></i>${l}</span>`).join("")}<span style="margin-left:auto">Timezone: Asia/Kolkata</span></div></div>
+  <div class="card pad cdet" id="cc-det"></div></div>`;
+  ccDetail();
+}
+function ccFiltered(){ return CC.filter(x=>(!CC_CLIENT||x.client_id===CC_CLIENT)&&(!CC_PLAT||x.platform===CC_PLAT)); }
+function ccNav(n){CC_REF=new Date(CC_REF.getFullYear(),CC_REF.getMonth()+n,1);ccRender();}
+function ccGrid(){
+  const rows=ccFiltered(); const byDay={}; rows.forEach(r=>{if(r.planned_at){const k=new Date(r.planned_at).toDateString();(byDay[k]=byDay[k]||[]).push(r);}});
+  const first=new Date(CC_REF.getFullYear(),CC_REF.getMonth(),1); const start=new Date(first); start.setDate(1-first.getDay());
+  const today=new Date().toDateString(); let out="";
+  for(let i=0;i<42;i++){const d=new Date(start);d.setDate(start.getDate()+i);const oth=d.getMonth()!==CC_REF.getMonth();const items=byDay[d.toDateString()]||[];
+    out+=`<div class="cal-c ${oth?'oth':''} ${d.toDateString()===today?'today':''}"><div class="cd">${d.getDate()}</div>${items.slice(0,3).map(r=>{const col=CC_STC[r.status]||["#6b7280","#eef1ea"];const t=r.planned_at?new Date(r.planned_at).toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"}):"";return `<div class="ev ${CC_SEL===r.id?'sel':''}" style="background:${col[1]};color:${col[0]}" onclick="CC_SEL='${r.id}';ccRender()"><b>${esc(clientName(r.client_id))}</b></div><div class="ev" style="background:transparent;color:${col[0]};padding:0 6px;margin-top:-2px"><small>${esc(r.content_type||r.platform||"")} ${t}</small></div>`;}).join("")}${items.length>3?`<div class="sub1" style="font-size:10px">+${items.length-3} more</div>`:""}</div>`;}
+  return out;
+}
+async function ccDetail(){
+  const el=$("#cc-det"); if(!el)return; const r=CC.find(x=>x.id===CC_SEL);
+  if(!r){el.innerHTML=`<div class="empty"><div class="ei">${IC.calendar}</div><div>Select a content item</div></div>`;return;}
+  const {data:assets}=await sb.from("cr_content_assets").select("*").eq("content_item_id",r.id);
+  const col=CC_STC[r.status]||["#6b7280","#eef1ea"]; const img=(assets||[]).find(a=>(a.mime_type||"").startsWith("image"));
+  el.innerHTML=`<div class="card-h"><h3 class="sec-title" style="font-size:17px">Content details</h3><span class="status" style="background:${col[1]};color:${col[0]}">${esc(r.status)}</span></div>
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><span class="status g" style="padding:4px 10px">${esc(clientName(r.client_id))}</span></div>
+  <div style="font-size:18px;font-weight:800;margin-bottom:10px">${esc(r.content_type||"Content")} · ${esc(r.platform||"")}</div>
+  ${img?`<img class="pv" src="${esc(supaImg(img.file_path))}">`:`<div class="pvph">${IC.assets}</div>`}
+  <div class="meta-row"><span>📱 ${esc(r.platform||"—")}</span><span>${r.planned_at?fmtDT(r.planned_at):"Unscheduled"}</span></div>
+  ${r.caption?`<p style="margin:12px 0;font-size:14px">${esc(r.caption)}</p>`:""}
+  <div class="meta-row"><span>Owner <b style="color:var(--ink)">${esc(r.creator_name||"—")}</b></span><span>Version ${r.version||1}</span></div>
+  <div class="btnrow">${ME.role==='client'&&r.status==='Client Approval'?`<button class="btn block" onclick="ccDecide('${r.id}','Approved')">✓ Approve content</button>`:`<button class="btn block" onclick="location.hash='#/approvals'">Review content</button>`}</div>
+  ${ME.role==='client'&&r.status==='Client Approval'?`<button class="btn ghost block" style="margin-top:8px" onclick="ccChanges('${r.id}')">Request changes</button>`:""}
+  <div class="sub1" style="margin-top:10px;text-align:center">Publishing requires approval.</div>`;
+}
+function supaImg(path){ return path?sb.storage.from("cr-logos").getPublicUrl(path).data.publicUrl:""; }
+async function ccDecide(id,st){ await sb.from("cr_content_items").update({status:st,updated_at:new Date().toISOString()}).eq("id",id); const r=CC.find(x=>x.id===id); if(r)r.status=st; toast("Marked "+st); ccRender(); }
+async function ccChanges(id){ const n=prompt("What changes are needed?"); if(n===null)return; await sb.from("cr_content_items").update({status:"Changes Requested",approval_comment:n}).eq("id",id); const r=CC.find(x=>x.id===id);if(r){r.status="Changes Requested";r.approval_comment=n;} toast("Changes requested"); ccRender(); }
+function ccNew(){ toast("Content composer — next pass"); }
+
+/* ============ APPROVALS ============ */
+let AP=[], AP_SEL=null, AP_TAB="await";
+async function viewApprovals(c){
+  c.innerHTML=`<div class="ph"><div class="ph-ic">${IC.approvals}</div><div><h1>Approvals</h1><div class="psub">Clear feedback. Faster approvals. Better work.</div></div><div class="ph-r"><button class="btn ghost">🔗 Share review link</button></div></div><div id="ap-body"><div class="psub">Loading…</div></div>`;
+  if(!CLIENTS.length){const {data}=await sb.from("cr_profiles").select("id,company,full_name,username").eq("role","client");CLIENTS=data||[];}
+  const {data}=await sb.from("cr_content_items").select("*").order("planned_at");
+  AP=data||[]; apRender();
+}
+function apQueue(){ return AP.filter(x=>{ if(AP_TAB==="await")return["Client Approval","Internal Review"].includes(x.status); if(AP_TAB==="changes")return x.status==="Changes Requested"; if(AP_TAB==="approved")return["Approved","Scheduled","Published"].includes(x.status); return true; }); }
+function apRender(){
+  const b=$("#ap-body"); if(!b)return;
+  const awaitN=AP.filter(x=>["Client Approval","Internal Review"].includes(x.status)).length;
+  const chg=AP.filter(x=>x.status==="Changes Requested").length;
+  const mKey=new Date().toISOString().slice(0,7);
+  const appr=AP.filter(x=>["Approved","Scheduled","Published"].includes(x.status)&&String(x.updated_at||x.planned_at||"").slice(0,7)===mKey).length;
+  const overdue=AP.filter(x=>x.status==="Client Approval"&&x.planned_at&&new Date(x.planned_at)<new Date()).length;
+  const q=apQueue(); if(!AP_SEL&&q.length)AP_SEL=q[0].id;
+  b.innerHTML=`<div class="stat-row">${psStat(IC.approvals,"#15803d","Awaiting review",String(awaitN).padStart(2,"0"),"")}${psStat('<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',"#b4740f","Changes requested",String(chg).padStart(2,"0"),"")}${psStat(IC.approvals,"#15803d","Approved this month",String(appr).padStart(2,"0"),"")}${psStat('<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l2 2"/></svg>',"#c23b3b","Overdue",String(overdue).padStart(2,"0"),"")}</div>
+  <div class="utabs">${[["await","Awaiting review"],["changes","Changes requested"],["approved","Approved"]].map(([k,l])=>`<button class="${AP_TAB===k?'on':''}" onclick="AP_TAB='${k}';AP_SEL=null;apRender()">${l}</button>`).join("")}</div>
+  <div class="appr"><div class="card pad"><div class="card-h"><h3 class="sec-title" style="font-size:16px">Review queue (${q.length})</h3></div>${q.map(r=>{const col=CC_STC[r.status]||["#6b7280","#eef1ea"];return `<div class="q-item ${AP_SEL===r.id?'sel':''}" onclick="AP_SEL='${r.id}';apRender()"><div class="th" style="display:grid;place-items:center;color:var(--green)">${IC.assets}</div><div style="flex:1;min-width:0"><b>${esc(clientName(r.client_id))}</b><div class="m">${esc(r.content_type||r.platform||"Content")} · v${r.version||1}</div><span class="status" style="background:${col[1]};color:${col[0]};font-size:11px;padding:3px 8px;margin-top:4px;display:inline-block">${esc(r.status)}</span></div></div>`;}).join("")||`<div class="psub" style="padding:20px;text-align:center">Nothing here.</div>`}</div>
+  <div class="card pad" id="ap-center"></div>
+  <div class="card pad" id="ap-fb"></div></div>`;
+  apCenter();
+}
+async function apCenter(){
+  const el=$("#ap-center"), fb=$("#ap-fb"); if(!el)return; const r=AP.find(x=>x.id===AP_SEL);
+  if(!r){el.innerHTML=`<div class="empty"><div class="ei">${IC.approvals}</div><div>Select an item to review</div></div>`;if(fb)fb.innerHTML="";return;}
+  const {data:assets}=await sb.from("cr_content_assets").select("*").eq("content_item_id",r.id);
+  const img=(assets||[]).find(a=>(a.mime_type||"").startsWith("image"));
+  el.innerHTML=`<div class="card-h"><h3 class="sec-title" style="font-size:17px">${esc(r.content_type||"Content")}</h3><span class="sub1">v${r.version||1}</span></div>
+  <div style="margin-bottom:10px"><span class="status g" style="padding:4px 10px">${esc(clientName(r.client_id))}</span></div>
+  ${img?`<img class="pv" src="${esc(supaImg(img.file_path))}">`:`<div class="pvph" style="height:320px">${IC.assets}</div>`}
+  ${r.caption?`<p style="margin-top:12px;font-size:14px">${esc(r.caption)}</p>`:""}
+  <div class="meta-row"><span>Uploaded by ${esc(r.creator_name||"—")}</span><span>${r.planned_at?fmtD(r.planned_at):""}</span></div>`;
+  const col=CC_STC[r.status]||["#6b7280","#eef1ea"];
+  const steps=[["Internal review",["Approved","Scheduled","Published","Client Approval"].includes(r.status)?"ok":(r.status==="Internal Review"?"pend":"off")],["Client approval",["Approved","Scheduled","Published"].includes(r.status)?"ok":(r.status==="Client Approval"?"pend":"off")],["Scheduled",["Scheduled","Published"].includes(r.status)?"ok":"off"]];
+  const {data:vers}=await sb.from("cr_content_versions").select("*").eq("content_item_id",r.id).order("created_at",{ascending:false});
+  fb.innerHTML=`<div class="card-h"><h3 class="sec-title" style="font-size:16px">Feedback &amp; approval</h3><span class="status" style="background:${col[1]};color:${col[0]}">${esc(r.status)}</span></div>
+  <div class="steps3">${steps.map(([l,s])=>`<div class="step3 ${s}"><div class="s3i">${s==='ok'?'✓':(s==='pend'?'…':'·')}</div><b>${l}</b><span>${s==='ok'?'Complete':(s==='pend'?'Pending':'Not started')}</span></div>`).join("")}</div>
+  <div style="margin-bottom:10px">${r.approval_comment?`<div class="cmt"><div class="ca" style="background:linear-gradient(135deg,${avatarColor(clientName(r.client_id))})">${esc(initials(clientName(r.client_id))).toUpperCase()}</div><div class="cb"><div class="ch"><b>${esc(clientName(r.client_id))}</b></div>${esc(r.approval_comment)}</div></div>`:`<div class="sub1" style="padding:8px 0">No comments yet.</div>`}</div>
+  ${canStaff()?`<textarea class="inp" id="ap-cmt" rows="2" placeholder="Add your feedback…"></textarea>
+  <div class="btnrow" style="margin-top:8px">${r.status==="Internal Review"?`<button class="btn block" onclick="ccDecide('${r.id}','Client Approval');apRender()">Send to client</button>`:`<button class="btn block" onclick="apApprove('${r.id}')">✓ Approve v${r.version||1}</button>`}</div>
+  <button class="btn ghost block" style="margin-top:8px;color:var(--amber)" onclick="ccChanges('${r.id}');apRender()">Request changes</button>`:(r.status==='Client Approval'?`<div class="btnrow"><button class="btn block" onclick="apApprove('${r.id}')">✓ Approve</button></div><button class="btn ghost block" style="margin-top:8px;color:var(--amber)" onclick="ccChanges('${r.id}');apRender()">Request changes</button>`:"")}
+  <div class="sub1" style="margin-top:10px;text-align:center">Approval applies to this version only.</div>`;
+}
+async function apApprove(id){ await sb.from("cr_content_items").update({status:"Approved",updated_at:new Date().toISOString()}).eq("id",id); const r=AP.find(x=>x.id===id);if(r)r.status="Approved"; toast("Approved"); apRender(); }
 
 /* ================= GO ================= */
 try{ if('serviceWorker' in navigator){ navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister())); if(window.caches){caches.keys().then(ks=>ks.forEach(k=>caches.delete(k)));} } }catch(_){ }
