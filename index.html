@@ -312,11 +312,26 @@ button{font-family:inherit;cursor:pointer}
 .fin-s .fl{font-size:13px;color:var(--muted)}.fin-s.hl .fl{color:#cdebd6}
 .fin-s .fv{font-size:27px;font-weight:800;letter-spacing:-.6px;margin:4px 0}
 .fin-s .fx{font-size:12px;color:var(--faint)}.fin-s.hl .fx{color:#bfe6cc}
-.modal-bg{position:fixed;inset:0;background:rgba(15,26,42,.42);display:flex;align-items:center;justify-content:center;z-index:150;padding:20px}
-.sheet{background:#fff;border-radius:16px;width:min(560px,96vw);max-height:92vh;overflow:auto;box-shadow:0 30px 80px rgba(0,0,0,.3)}
-.sheet-h{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid var(--line)}
-.sheet-h h3{margin:0;font-size:19px;font-weight:800}.sheet-h .x{width:32px;height:32px;border-radius:9px;border:1px solid var(--line);background:#fff;font-size:18px}
-.sheet-b{padding:18px 22px}
+.modal-bg{position:fixed;inset:0;background:rgba(10,18,32,.5);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;z-index:150;padding:20px;animation:fadein .18s ease}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+.sheet{background:#fff;border-radius:20px;width:min(620px,96vw);max-height:92vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 40px 90px rgba(10,18,32,.4);animation:pop .22s cubic-bezier(.2,.9,.3,1.1)}
+@keyframes pop{from{opacity:0;transform:translateY(14px) scale(.98)}to{opacity:1;transform:none}}
+.sheet-h{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid var(--line);background:linear-gradient(120deg,var(--tint),#fff 70%)}
+.sh-l{display:flex;align-items:center;gap:13px;min-width:0}
+.sh-ic{width:44px;height:44px;border-radius:13px;background:var(--green);color:#fff;display:grid;place-items:center;flex:0 0 auto;box-shadow:0 10px 20px -8px var(--green)}
+.sh-ic svg{width:21px;height:21px}
+.sheet-h h3{margin:0;font-size:19px;font-weight:800;letter-spacing:-.3px}
+.sh-sub{color:var(--muted);font-size:13px;margin-top:1px}
+.sheet-h .x{width:34px;height:34px;border-radius:10px;border:1px solid var(--line);background:#fff;font-size:18px;color:var(--muted);flex:0 0 auto}
+.sheet-h .x:hover{background:var(--panel2)}
+.sheet-b{padding:20px 22px;overflow:auto;flex:1}
+.sheet-foot{padding:14px 22px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:10px;background:#fcfdfb;flex:0 0 auto}
+.sheet-sec{font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--faint);font-weight:800;margin:20px 0 12px;display:flex;align-items:center;gap:10px}
+.sheet-sec:first-child{margin-top:2px}
+.sheet-sec::after{content:"";flex:1;height:1px;background:var(--line)}
+.sheet .inp{border-radius:11px;padding:12px 13px;background:#fbfcfa}
+.sheet .inp:focus{background:#fff}
+.fld2 label{color:var(--ink2);font-weight:700;font-size:12.5px}
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .fld2{margin-bottom:12px}.fld2 label{display:block;font-weight:700;font-size:12.5px;margin-bottom:6px}
 .money-pos{color:var(--green-600);font-weight:700}.money-neg{color:var(--red);font-weight:700}
@@ -387,6 +402,8 @@ button{font-family:inherit;cursor:pointer}
 .dleg-i i{width:9px;height:9px;border-radius:3px;flex:0 0 auto}
 .dleg-i b{margin-left:auto}
 @media(max-width:1100px){.dash-charts{grid-template-columns:1fr}}
+.svc-pick{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:11px;padding:11px 14px;font-weight:600;cursor:pointer;flex:1;background:#fbfcfa}
+.svc-pick:has(input:checked){border-color:var(--green);background:var(--tint);color:var(--green-ink)}
 </style>
 </head>
 <body>
@@ -1138,7 +1155,7 @@ async function repShare(id){ await sb.from("cr_reports").update({status:"shared"
 
 
 /* ============ MODAL HELPER ============ */
-function sheet(title,bodyHtml){ document.getElementById("modal").innerHTML=`<div class="modal-bg" onclick="if(event.target===this)closeModal()"><div class="sheet"><div class="sheet-h"><h3>${title}</h3><button class="x" onclick="closeModal()">×</button></div><div class="sheet-b">${bodyHtml}</div></div></div>`; }
+function sheet(title,bodyHtml,opts){ opts=opts||{}; const ic=opts.icon||'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>'; document.getElementById("modal").innerHTML=`<div class="modal-bg" onclick="if(event.target===this)closeModal()"><div class="sheet"><div class="sheet-h"><div class="sh-l"><span class="sh-ic">${ic}</span><div style="min-width:0"><h3>${title}</h3>${opts.subtitle?`<div class="sh-sub">${opts.subtitle}</div>`:''}</div></div><button class="x" onclick="closeModal()">×</button></div><div class="sheet-b">${bodyHtml}</div>${opts.foot?`<div class="sheet-foot">${opts.foot}</div>`:''}</div></div>`; }
 function v(id){const e=document.getElementById(id);return e?e.value:"";}
 
 /* ============ FINANCE ============ */
@@ -1352,18 +1369,23 @@ async function crqApprove(id){ await sb.from("cr_requests").update({estimate_app
 /* ============ ADD CLIENT (new portal) ============ */
 async function clAddForm(){
   await ensureStaff();
-  sheet("Create client",`
-   <div class="g2"><div class="fld2"><label>Contact full name *</label><input id="nc-name" class="inp"/></div><div class="fld2"><label>Company *</label><input id="nc-company" class="inp" oninput="ncCode()"/></div>
-   <div class="fld2"><label>Client code *</label><input id="nc-code" class="inp" placeholder="BHO"/></div><div class="fld2"><label>CR prefix</label><input id="nc-prefix" class="inp" placeholder="CR-BHO"/></div>
-   <div class="fld2"><label>Username *</label><input id="nc-user" class="inp"/></div><div class="fld2"><label>Password * <span class="sub1">(min 6)</span></label><input id="nc-pass" class="inp" type="text"/></div>
-   <div class="fld2"><label>Notification email(s) *</label><input id="nc-email" class="inp" placeholder="a@x.com, b@y.com"/></div><div class="fld2"><label>Phone / WhatsApp</label><input id="nc-phone" class="inp"/></div>
-   <div class="fld2"><label>Industry</label><input id="nc-industry" class="inp"/></div><div class="fld2"><label>Website</label><input id="nc-web" class="inp"/></div>
-   <div class="fld2"><label>GST / Tax</label><input id="nc-gst" class="inp"/></div><div class="fld2"><label>Account manager</label><select id="nc-am" class="inp"><option value="">—</option>${STAFF.filter(x=>["admin","super_admin","account_manager","manager"].includes(x.role)).map(a=>`<option value="${a.id}">${esc(a.full_name||a.email)}</option>`).join("")}</select></div>
-   <div class="fld2"><label>Service start</label><input id="nc-start" type="date" class="inp"/></div><div class="fld2"><label>Renewal date</label><input id="nc-renew" type="date" class="inp"/></div></div>
-   <div class="fld2"><label>Services</label><div style="display:flex;gap:14px"><label class="chk"><input type="checkbox" id="nc-sw"> 💻 Software</label><label class="chk"><input type="checkbox" id="nc-dm" checked> 📈 Digital marketing</label></div></div>
-   <div class="fld2"><label>Billing address</label><textarea id="nc-addr" class="inp" rows="2"></textarea></div>
-   <div class="fld2"><label>Internal notes <span class="sub1">🔒 not shown to client</span></label><textarea id="nc-notes" class="inp" rows="2"></textarea></div>
-   <button class="btn block" id="nc-btn" onclick="clAddSave()">Create client</button>`);
+  const amOpts=STAFF.filter(x=>["admin","super_admin","account_manager","manager"].includes(x.role)).map(a=>`<option value="${a.id}">${esc(a.full_name||a.email)}</option>`).join("");
+  const body=`
+   <div class="sheet-sec">Primary contact &amp; login</div>
+   <div class="g2"><div class="fld2"><label>Contact full name *</label><input id="nc-name" class="inp" placeholder="e.g. Priya Sharma"/></div><div class="fld2"><label>Company *</label><input id="nc-company" class="inp" placeholder="Business name" oninput="ncCode()"/></div>
+   <div class="fld2"><label>Username *</label><input id="nc-user" class="inp" placeholder="login username"/></div><div class="fld2"><label>Password * <span class="sub1">min 6</span></label><input id="nc-pass" class="inp" type="text" placeholder="set a password"/></div>
+   <div class="fld2"><label>Notification email(s) *</label><input id="nc-email" class="inp" placeholder="a@x.com, b@y.com"/></div><div class="fld2"><label>Phone / WhatsApp</label><input id="nc-phone" class="inp" placeholder="+91…"/></div></div>
+   <div class="sheet-sec">Company details</div>
+   <div class="g2"><div class="fld2"><label>Client code *</label><input id="nc-code" class="inp" placeholder="BHO"/></div><div class="fld2"><label>CR prefix</label><input id="nc-prefix" class="inp" placeholder="CR-BHO"/></div>
+   <div class="fld2"><label>Industry</label><input id="nc-industry" class="inp" placeholder="e.g. Real estate"/></div><div class="fld2"><label>Website</label><input id="nc-web" class="inp" placeholder="https://…"/></div>
+   <div class="fld2"><label>GST / Tax</label><input id="nc-gst" class="inp"/></div><div class="fld2"><label>Account manager</label><select id="nc-am" class="inp"><option value="">— unassigned —</option>${amOpts}</select></div></div>
+   <div class="fld2" style="margin-top:12px"><label>Billing address</label><textarea id="nc-addr" class="inp" rows="2"></textarea></div>
+   <div class="sheet-sec">Engagement</div>
+   <div class="g2"><div class="fld2"><label>Service start</label><input id="nc-start" type="date" class="inp"/></div><div class="fld2"><label>Renewal date</label><input id="nc-renew" type="date" class="inp"/></div></div>
+   <div class="fld2"><label>Services</label><div style="display:flex;gap:10px"><label class="svc-pick"><input type="checkbox" id="nc-sw"> <span>💻 Software</span></label><label class="svc-pick"><input type="checkbox" id="nc-dm" checked> <span>📈 Digital marketing</span></label></div></div>
+   <div class="fld2"><label>Internal notes <span class="sub1">🔒 not shown to client</span></label><textarea id="nc-notes" class="inp" rows="2" placeholder="Private notes for your team"></textarea></div>`;
+  const foot=`<button class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn" id="nc-btn" onclick="clAddSave()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg> Create client</button>`;
+  sheet("Create client",body,{icon:IC.clients,subtitle:"Set up the client, their login and engagement.",foot});
 }
 function ncCode(){ const c=document.getElementById("nc-code"); if(c&&!c.dataset.t){ c.value=(v("nc-company")||"").replace(/[^A-Za-z]/g,"").slice(0,3).toUpperCase(); const p=document.getElementById("nc-prefix"); if(p&&!p.dataset.t)p.value="CR-"+c.value; } }
 async function clAddSave(){
