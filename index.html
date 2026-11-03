@@ -321,6 +321,32 @@ button{font-family:inherit;cursor:pointer}
 .fld2{margin-bottom:12px}.fld2 label{display:block;font-weight:700;font-size:12.5px;margin-bottom:6px}
 .money-pos{color:var(--green-600);font-weight:700}.money-neg{color:var(--red);font-weight:700}
 .bal{font-weight:800}
+
+/* assets */
+.asset-top{display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+.asset-top .search2{max-width:none;flex:1}
+.aw{display:grid;grid-template-columns:230px 1fr 320px;gap:16px;align-items:start}
+.fold{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;font-weight:600;font-size:13.5px;color:var(--ink2)}
+.fold:hover{background:var(--panel2)}.fold.on{background:var(--tint);color:var(--green-ink)}
+.fold .fc{margin-left:auto;color:var(--faint);font-weight:700}
+.agrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.acard{border:1px solid var(--line);border-radius:12px;overflow:hidden;cursor:pointer;background:#fff}
+.acard.sel{outline:2px solid var(--green)}
+.acard .ath{height:120px;background:#e9f5ee;display:grid;place-items:center;color:var(--green);overflow:hidden}
+.acard .ath img{width:100%;height:100%;object-fit:cover}
+.acard .ab{padding:10px}.acard .ab b{font-size:12.5px;display:block}.acard .ab .as{color:var(--faint);font-size:11px}
+.usebar{height:7px;border-radius:5px;background:#eef1ea;overflow:hidden;margin-top:6px}.usebar i{display:block;height:100%;background:var(--green)}
+/* change requests */
+.crq{display:grid;grid-template-columns:1.3fr 1fr;gap:16px;align-items:start}
+.crq-item{padding:14px;border:1px solid var(--line);border-bottom:0;cursor:pointer}
+.crq-item:last-child{border-bottom:1px solid var(--line)}
+.crq-item:first-child{border-radius:12px 12px 0 0}.crq-item:last-child{border-radius:0 0 12px 12px}
+.crq-item.sel{background:var(--tint)}
+.crq-item .cid{font-size:11.5px;color:var(--faint);font-weight:700}
+.crq-item b{font-size:14.5px;display:block;margin:2px 0}
+.est-tbl div{display:flex;justify-content:space-between;padding:9px 12px;font-size:13.5px;border-bottom:1px solid var(--line2)}
+.est-tbl div:last-child{border-bottom:0;font-weight:800;background:#f6f8f4}
+.crq-tl{display:flex;justify-content:space-between;margin-top:14px}
 </style>
 </head>
 <body>
@@ -482,7 +508,7 @@ function renderRoute(){
   const r=route(), c=$("#content"); if(!c)return;
   $("#crumb").innerHTML=`Workspace <span class="sep">/</span> <b>${esc(TITLES[r]||"")}</b>`;
   c.scrollTop=0;
-  const map={overview:viewOverview,clients:viewClients,proposals:viewProposals,contracts:viewContracts,calendar:viewCalendar,approvals:viewApprovals,projects:viewProjects,reports:viewReports,finance:viewFinance,assets:soon,changes:soon,settings:soon};
+  const map={overview:viewOverview,clients:viewClients,proposals:viewProposals,contracts:viewContracts,calendar:viewCalendar,approvals:viewApprovals,projects:viewProjects,reports:viewReports,finance:viewFinance,assets:viewAssets,changes:viewChanges,settings:soon};
   (map[r]||soon)(c);
 }
 function soon(c){const r=route();c.innerHTML=`<div class="ph"><div class="ph-ic">${IC[r]||IC.overview}</div><div><h1>${esc(TITLES[r]||"")}</h1><div class="psub">This screen is being built in the new design.</div></div></div><div class="card pad empty"><div class="ei">${IC[r]||IC.settings}</div><div><b>Coming online next</b></div><div class="psub" style="margin-top:6px">The ${esc(TITLES[r])} module is next in the rollout.</div></div>`;}
@@ -1007,6 +1033,94 @@ async function finExpensePay(id){ await sb.from("cr_fin_expenses").update({payme
 function finPayrollForm(){ sheet("Payroll entry",`<div class="g2"><div class="fld2"><label>Employee</label><input id="fp-name" class="inp"/></div><div class="fld2"><label>Department</label><input id="fp-dept" class="inp"/></div><div class="fld2"><label>Designation</label><input id="fp-desig" class="inp"/></div><div class="fld2"><label>Month</label><input id="fp-month" type="date" class="inp" value="${new Date().toISOString().slice(0,8)}01"/></div><div class="fld2"><label>Gross</label><input id="fp-gross" type="number" class="inp"/></div><div class="fld2"><label>Deductions</label><input id="fp-ded" type="number" class="inp" value="0"/></div></div><button class="btn block" onclick="finPayrollSave()">Add to payroll</button>`); }
 async function finPayrollSave(){ const g=Number(v("fp-gross"))||0,d=Number(v("fp-ded"))||0; if(g<=0){toast("Enter gross",true);return;} const {error}=await sb.from("cr_fin_payroll").insert({employee_name:v("fp-name")||"Employee",department:v("fp-dept")||null,designation:v("fp-desig")||null,period_month:v("fp-month"),gross:g,deductions:d,net:g-d,status:"pending",created_by:SESSION.user.id}); if(error){toast(error.message,true);return;} closeModal();toast("Added to payroll");viewFinance($("#content")); }
 async function finPayrollPay(id){ await sb.from("cr_fin_payroll").update({status:"paid",pay_date:new Date().toISOString().slice(0,10)}).eq("id",id); toast("Payment recorded");viewFinance($("#content")); }
+
+
+/* ============ ASSETS ============ */
+let AS=[], AS_CLIENT="", AS_FOLDER="", AS_SEL=null, AS_TAB="all";
+const AS_FOLDERS=["Brand assets","Product photos","Social creatives","Videos","Reports & documents","Archived"];
+async function viewAssets(c){
+  c.innerHTML=`<div class="ph"><div><h1>Asset library</h1><div class="psub">Every brand file and deliverable, organized by client.</div></div><div class="ph-r"><button class="btn ghost" onclick="toast('Folders are set when you upload')">+ New folder</button>${canStaff()?`<label class="btn" style="cursor:pointer">⬆ Upload files<input type="file" multiple hidden onchange="asUpload(this)"></label>`:""}</div></div><div id="as-body"><div class="psub">Loading…</div></div>`;
+  if(!CLIENTS.length){const {data}=await sb.from("cr_profiles").select("id,company,full_name,username").eq("role","client");CLIENTS=data||[];}
+  if(!AS_CLIENT&&CLIENTS.length)AS_CLIENT=CLIENTS[0].id;
+  await asLoad();
+}
+async function asLoad(){ const {data}=await sb.from("cr_assets").select("*").eq("client_id",AS_CLIENT).order("created_at",{ascending:false}); AS=data||[]; if(!AS_FOLDER){const f=[...new Set(AS.map(a=>a.folder).filter(Boolean))]; AS_FOLDER=f[0]||AS_FOLDERS[2];} asRender(); }
+function asRender(){
+  const b=$("#as-body"); if(!b)return;
+  const folders=[...new Set(AS_FOLDERS.concat(AS.map(a=>a.folder).filter(Boolean)))];
+  let files=AS.filter(a=>(a.folder||AS_FOLDERS[2])===AS_FOLDER);
+  if(AS_TAB==="approved")files=files.filter(a=>a.is_deliverable);
+  if(AS_TAB==="working")files=files.filter(a=>!a.is_deliverable);
+  if(!AS_SEL&&files.length)AS_SEL=files[0].id;
+  b.innerHTML=`<div class="asset-top"><select class="selectbox" onchange="AS_CLIENT=this.value;AS_SEL=null;asLoad()">${CLIENTS.map(c=>`<option value="${c.id}" ${AS_CLIENT===c.id?'selected':''}>${esc(c.company||c.full_name)}</option>`).join("")}</select><div class="search2"><span>${IC.search}</span><input placeholder="Search assets…"/></div></div>
+  <div class="aw"><div class="card pad"><h3 class="sec-title" style="font-size:15px;margin-bottom:10px">${esc(clientName(AS_CLIENT))}</h3>${folders.map(f=>{const n=AS.filter(a=>(a.folder||AS_FOLDERS[2])===f).length;return `<div class="fold ${AS_FOLDER===f?'on':''}" onclick="AS_FOLDER='${f.replace(/'/g,'')}';AS_SEL=null;asRender()">📁 ${esc(f)} <span class="fc">${n}</span></div>`;}).join("")}<div style="margin-top:12px"><div class="sub1">${(AS.length)} files</div><div class="usebar"><i style="width:${Math.min(100,AS.length*4)}%"></i></div></div></div>
+  <div class="card pad"><div class="card-h"><h3 class="sec-title" style="font-size:17px">${esc(AS_FOLDER)}</h3><div class="utabs" style="margin:0;border:0">${[["all","All files"],["approved","Approved"],["working","Working files"]].map(([k,l])=>`<button class="${AS_TAB===k?'on':''}" style="padding:7px 2px;margin-right:16px" onclick="AS_TAB='${k}';asRender()">${l}</button>`).join("")}<span class="sub1">${files.length} files</span></div></div>
+   <div class="agrid">${files.map(a=>{const u=a.file_path?supaImg(a.file_path):"";const img=(a.mime_type||"").startsWith("image");return `<div class="acard ${AS_SEL===a.id?'sel':''}" onclick="AS_SEL='${a.id}';asRender()"><div class="ath">${img&&u?`<img src="${esc(u)}">`:'📄'}</div><div class="ab"><b>${esc(a.name||'File')}</b><div class="as">${esc((a.mime_type||'file').split('/')[1]||'').toUpperCase()}</div><span class="status ${a.is_deliverable?'g':'n'}" style="margin-top:6px;display:inline-block;font-size:11px;padding:3px 8px">${a.is_deliverable?'Approved':'Working'}</span></div></div>`;}).join("")||`<div class="sub1" style="grid-column:1/-1;text-align:center;padding:30px">No files in this folder.</div>`}</div></div>
+  <div class="card pad" id="as-det"></div></div>`;
+  asDetail();
+}
+function asDetail(){ const el=$("#as-det"); if(!el)return; const a=AS.find(x=>x.id===AS_SEL);
+  if(!a){el.innerHTML=`<div class="empty"><div class="ei">${IC.assets}</div><div>Select a file</div></div>`;return;}
+  const u=a.file_path?supaImg(a.file_path):""; const img=(a.mime_type||"").startsWith("image");
+  el.innerHTML=`<h3 class="sec-title" style="font-size:16px;margin-bottom:12px">File details</h3>${img&&u?`<img class="pv" src="${esc(u)}" style="margin-bottom:12px">`:`<div class="pvph" style="height:150px;margin-bottom:12px">📄</div>`}
+   <div style="display:flex;align-items:center;gap:8px"><b style="flex:1">${esc(a.name||'File')}</b><span class="status ${a.is_deliverable?'g':'a'}">${a.is_deliverable?'Approved':'Working'}</span></div>
+   <div class="sub1" style="margin:4px 0 12px">${esc((a.mime_type||'').toUpperCase())}</div>
+   <div class="meta-row" style="margin:0 0 6px"><span>Owner</span><b style="margin-left:auto;color:var(--ink)">${esc(a.created_by_name||'—')}</b></div>
+   <div class="meta-row" style="margin:0 0 6px"><span>Uploaded</span><b style="margin-left:auto;color:var(--ink)">${fmtD(a.created_at)}</b></div>
+   <div class="meta-row" style="margin:0 0 12px"><span>Version</span><b style="margin-left:auto;color:var(--ink)">${a.version||1}</b></div>
+   <h3 class="sec-title" style="font-size:14px;margin-bottom:8px">Sharing &amp; access</h3><div class="selectbox" style="width:100%;justify-content:space-between">${a.is_deliverable?'🌐 Shared with client':'🔒 Internal team'}<span></span></div>
+   ${!a.is_deliverable?`<div class="sub1" style="margin-top:6px">Not shared with client yet.</div>`:""}
+   <div class="btnrow">${canStaff()?`<button class="btn block" onclick="asToggle('${a.id}',${!a.is_deliverable})">${a.is_deliverable?'Make working file':'Mark as deliverable'}</button>`:""}</div>
+   ${u?`<a class="btn ghost block" style="margin-top:8px" href="${esc(u)}" target="_blank">⬇ Download</a>`:""}
+   ${canStaff()?`<button class="btn ghost block" style="margin-top:8px;color:var(--red)" onclick="asDel('${a.id}')">Delete</button>`:""}`;
+}
+async function asUpload(inp){ const files=[...(inp.files||[])]; if(!files.length)return; toast("Uploading…"); for(const f of files){ try{ const path=`assets/${AS_CLIENT}/${Date.now()}_${f.name.replace(/[^\w.\-]/g,'_')}`; await sb.storage.from("cr-logos").upload(path,f,{upsert:true}); await sb.from("cr_assets").insert({client_id:AS_CLIENT,folder:AS_FOLDER,name:f.name.replace(/\.[^.]+$/,''),file_path:path,mime_type:f.type,kind:(f.type||'').split('/')[0],is_deliverable:false,created_by:SESSION.user.id,created_by_name:ME.full_name||ME.email}); }catch(_){} } toast("Uploaded"); asLoad(); }
+async function asToggle(id,val){ await sb.from("cr_assets").update({is_deliverable:val}).eq("id",id); const a=AS.find(x=>x.id===id);if(a)a.is_deliverable=val; toast(val?"Shared with client":"Set to working"); asRender(); }
+async function asDel(id){ if(!confirm("Delete this asset?"))return; await sb.from("cr_assets").delete().eq("id",id); AS_SEL=null; toast("Deleted"); asLoad(); }
+
+/* ============ CHANGE REQUESTS ============ */
+const CRQ_ST={New:["Under review","b"],"In Review":["Under review","b"],Estimated:["Awaiting approval","a"],"Clarification Needed":["Clarification","a"],Approved:["In progress","b"],"In Progress":["In progress","b"],"Client Review":["Client review","a"],Done:["Completed","g"],Completed:["Completed","g"],Rejected:["Rejected","r"]};
+let CRQ=[], CRQ_SEL=null, CRQ_TAB="all", CRQ_PRI="";
+async function viewChanges(c){
+  c.innerHTML=`<div class="ph"><div><h1>Change requests</h1><div class="psub">Keep client feedback, scope and approvals in one place.</div></div><div class="ph-r">${ME.role==='client'?`<button class="btn" onclick="toast('Raise request — opens form')"><span>${IC.plus}</span> New request</button>`:`<button class="btn" onclick="toast('New request')"><span>${IC.plus}</span> New request</button>`}</div></div><div id="crq-body"><div class="psub">Loading…</div></div>`;
+  if(!CLIENTS.length){const {data}=await sb.from("cr_profiles").select("id,company,full_name,username").eq("role","client");CLIENTS=data||[];}
+  const {data}=await sb.from("cr_requests").select("*").is("deleted_at",null).order("created_at",{ascending:false});
+  CRQ=data||[]; if(!CRQ_SEL&&CRQ.length)CRQ_SEL=CRQ[0].id;
+  crqRender();
+}
+function crqRender(){
+  const b=$("#crq-body"); if(!b)return; const m=mKey();
+  const open=CRQ.filter(r=>!["Done","Completed","Rejected"].includes(r.status)).length;
+  const est=CRQ.filter(r=>r.chargeable&&!r.estimate_approved).length;
+  const appr=CRQ.filter(r=>r.status==="Client Review").length;
+  const comp=CRQ.filter(r=>["Done","Completed"].includes(r.status)&&String(r.updated_at||"").slice(0,7)===m).length;
+  let rows=CRQ.filter(r=>{if(CRQ_TAB==="mine")return r.assigned_to===ME.id;if(CRQ_TAB==="client")return r.status==="Client Review";return true;});
+  if(CRQ_PRI)rows=rows.filter(r=>r.priority===CRQ_PRI);
+  if(!CRQ_SEL&&rows.length)CRQ_SEL=rows[0].id;
+  b.innerHTML=`<div class="stat-row">${psStat(IC.changes,"#15803d","Open requests",String(open).padStart(2,"0"),"")}${psStat(IC.contracts,"#b4740f","Awaiting estimate",String(est).padStart(2,"0"),"")}${psStat(IC.clients,"#b4740f","Awaiting approval",String(appr).padStart(2,"0"),"")}${psStat(IC.approvals,"#15803d","Completed this month",String(comp).padStart(2,"0"),"")}</div>
+  <div class="cal-controls"><select class="selectbox" onchange="CRQ_PRI=this.value;crqRender()"><option value="">All priorities</option>${["Low","Medium","High","Critical"].map(p=>`<option ${CRQ_PRI===p?'selected':''}>${p}</option>`).join("")}</select></div>
+  <div class="utabs">${[["all","All requests"],["mine","My assignments"],["client","Awaiting client"]].map(([k,l])=>`<button class="${CRQ_TAB===k?'on':''}" onclick="CRQ_TAB='${k}';CRQ_SEL=null;crqRender()">${l}</button>`).join("")}</div>
+  <div class="crq"><div class="card" style="overflow:hidden"><div class="card-h pad" style="margin:0;padding:16px"><h3 class="sec-title" style="font-size:16px">Request queue</h3></div>${rows.map(r=>{const st=CRQ_ST[r.status]||["Under review","b"];const pri=r.priority||"Medium";return `<div class="crq-item ${CRQ_SEL===r.id?'sel':''}" onclick="CRQ_SEL='${r.id}';crqRender()"><div class="cid">${esc(r.ref_no||'')}</div><b>${esc(r.title||'Request')}</b><div class="sub1" style="margin-bottom:8px">${esc((r.description||'').slice(0,90))}</div><div style="display:flex;align-items:center;gap:10px"><span class="sub1">${esc(clientName(r.client_id))}</span><span class="flag ${pri}" style="margin-left:auto">● ${pri}</span><span class="status ${st[1]}">${st[0]}</span></div></div>`;}).join("")||`<div class="sub1" style="padding:24px;text-align:center">No requests.</div>`}</div>
+  <div class="card pad" id="crq-det"></div></div>`;
+  crqDetail();
+}
+function crqDetail(){ const el=$("#crq-det"); if(!el)return; const r=CRQ.find(x=>x.id===CRQ_SEL);
+  if(!r){el.innerHTML=`<div class="empty"><div class="ei">${IC.changes}</div><div>Select a request</div></div>`;return;}
+  const st=CRQ_ST[r.status]||["Under review","b"];
+  const steps=[["Submitted",true,r.created_at],["Reviewed",r.in_scope!=null||r.estimate!=null,r.updated_at],["Approval",r.estimate_approved||r.status==="Client Review",r.estimate_approved?r.updated_at:null],["Delivery",["Done","Completed"].includes(r.status),null]];
+  el.innerHTML=`<div class="card-h"><div><h3 class="sec-title" style="font-size:18px">${esc(r.title||'Request')}</h3><div class="sub1">${esc(r.ref_no||'')}</div></div><span class="status ${st[1]}">${st[0]}</span></div>
+   <div class="grid" style="grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px"><div><div class="sub1">Client</div><b>${esc(clientName(r.client_id))}</b></div><div><div class="sub1">Submitted</div><b>${fmtD(r.created_at)}</b></div><div><div class="sub1">Owner</div><b>${esc(r.assigned_name||'Unassigned')}</b></div><div><div class="sub1">Priority</div><b class="flag ${r.priority||'Medium'}">● ${esc(r.priority||'Medium')}</b></div></div>
+   <div class="sub1">Description</div><p style="margin:4px 0 12px">${esc(r.description||'—')}</p>
+   ${r.affected_url?`<div class="sub1">Affected page</div><a class="linkg" href="${esc(r.affected_url)}" target="_blank">🔗 ${esc(r.affected_url)}</a>`:""}
+   <div style="display:flex;align-items:center;gap:8px;margin:14px 0 8px"><div class="sub1">Scope assessment</div><span class="status ${r.chargeable?'a':'g'}" style="margin-left:auto">${r.chargeable?'Additional work':(r.in_scope?'Within scope':'Not assessed')}</span></div>
+   ${r.chargeable?`<div class="sub1">Cost estimate</div><div class="est-tbl" style="border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-top:6px"><div><span>Estimate</span><span>${money(r.estimate||0)}</span></div><div><span>Estimated total</span><span>${money(r.estimate||0)}</span></div></div>`:""}
+   <div class="crq-tl">${steps.map((sp,i)=>`<div class="tl ${sp[1]?'':'off'}"><div class="d">${sp[1]?'✓':i+1}</div><b>${sp[0]}</b><span>${sp[2]?fmtD(sp[2]):(sp[1]?'Done':(i===steps.findIndex(x=>!x[1])?'Pending':'—'))}</span></div>`).join("")}</div>
+   ${canStaff()?`<div class="btnrow"><button class="btn ghost" onclick="crqScope('${r.id}')">Edit estimate</button>${r.status!=='Client Review'?`<button class="btn" onclick="crqSend('${r.id}')">Send for approval</button>`:""}</div><div class="sub1" style="margin-top:8px">Client approval required before work begins.</div>`:(r.chargeable&&!r.estimate_approved?`<div class="btnrow"><button class="btn block" onclick="crqApprove('${r.id}')">Approve estimate</button></div>`:"")}`;
+}
+function crqScope(id){ const r=CRQ.find(x=>x.id===id); sheet("Scope &amp; estimate",`<label class="chk" style="margin-bottom:8px"><input type="checkbox" id="cs-scope" ${r.in_scope?'checked':''}> Within current scope (no charge)</label><label class="chk" style="margin-bottom:12px"><input type="checkbox" id="cs-charge" ${r.chargeable?'checked':''}> Chargeable (additional work)</label><div class="fld2"><label>Estimate</label><input id="cs-est" type="number" class="inp" value="${r.estimate||''}"/></div><button class="btn block" onclick="crqScopeSave('${id}')">Save</button>`); }
+async function crqScopeSave(id){ await sb.from("cr_requests").update({in_scope:document.getElementById("cs-scope").checked,chargeable:document.getElementById("cs-charge").checked,estimate:Number(v("cs-est"))||null,status:"Estimated",updated_at:new Date().toISOString()}).eq("id",id); closeModal();toast("Saved");viewChanges($("#content")); }
+async function crqSend(id){ await sb.from("cr_requests").update({status:"Client Review",updated_at:new Date().toISOString()}).eq("id",id); toast("Sent for approval");viewChanges($("#content")); }
+async function crqApprove(id){ await sb.from("cr_requests").update({estimate_approved:true,status:"Approved",updated_at:new Date().toISOString()}).eq("id",id); toast("Estimate approved");viewChanges($("#content")); }
 
 /* ================= GO ================= */
 try{ if('serviceWorker' in navigator){ navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister())); if(window.caches){caches.keys().then(ks=>ks.forEach(k=>caches.delete(k)));} } }catch(_){ }
