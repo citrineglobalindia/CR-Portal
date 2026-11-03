@@ -702,7 +702,7 @@ async function cwTab(id,amn){
   else if(CW_TAB==="contracts"){ const {data}=await sb.from("cr_contracts").select("*").eq("client_id",id); b.innerHTML=cwList(data||[],["Agreement","Period","Status"],r=>`<td><b>${esc(r.title||'Agreement')}</b></td><td>${r.service_start?fmtD(r.service_start):'—'}</td><td>${cwStatus(r.status)}</td>`); }
   else if(CW_TAB==="assets"){ const {data}=await sb.from("cr_assets").select("*").eq("client_id",id); b.innerHTML=`<div class="agrid">${(data||[]).map(a=>{const u=a.file_path?supaImg(a.file_path):"";const img=(a.mime_type||"").startsWith("image");return `<div class="acard"><div class="ath">${img&&u?`<img src="${esc(u)}">`:'📄'}</div><div class="ab"><b>${esc(a.name)}</b><span class="status ${a.is_deliverable?'g':'n'}" style="font-size:11px;padding:3px 8px;margin-top:4px;display:inline-block">${a.is_deliverable?'Approved':'Working'}</span></div></div>`;}).join("")||'<div class="sub1">No assets.</div>'}</div>`; }
   else if(CW_TAB==="reports"){ const {data}=await sb.from("cr_reports").select("*").eq("client_id",id); b.innerHTML=cwList(data||[],["Report","Period","Status"],r=>`<td><b>${esc(r.title||'Report')}</b></td><td>${r.period_start?fmtD(r.period_start):'—'}</td><td>${cwStatus(r.status)}</td>`); }
-  else if(CW_TAB==="billing"){ const {data}=await sb.from("cr_invoices").select("*").eq("client_id",id).order("issue_date",{ascending:false}); b.innerHTML=cwList(data||[],["Invoice","Total","Balance","Status"],r=>`<td><b>${esc(r.invoice_no||'(draft)')}</b></td><td>${money(r.total)}</td><td>${money((Number(r.total)||0)-(Number(r.paid)||0))}</td><td>${cwStatus(invStatusLabel(r))}</td>`); }
+  else if(CW_TAB==="billing"){ const {data}=await sb.from("cr_invoices").select("*").eq("client_id",id).order("issue_date",{ascending:false}); b.innerHTML=(canStaff()?`<div style="margin-bottom:12px"><button class="btn" onclick="invForm('${id}')"><span>${IC.plus}</span> New invoice</button></div>`:"")+cwList(data||[],["Invoice","Total","Balance","Status"],r=>`<td><b>${esc(r.invoice_no||'(draft)')}</b></td><td>${money(r.total)}</td><td>${money((Number(r.total)||0)-(Number(r.paid)||0))}</td><td>${cwStatus(invStatusLabel(r))}</td>`); }
 }
 function cli_poc(){ return (CW_CLIENT&&(CW_CLIENT.full_name||CW_CLIENT.designation))?((CW_CLIENT.full_name||"")+(CW_CLIENT.designation?" · "+CW_CLIENT.designation:"")):"Client contact"; }
 function invStatusLabel(i){ if(i.status==="Paid"||i.status==="Draft"||i.status==="Cancelled")return i.status; const bal=(Number(i.total)||0)-(Number(i.paid)||0); if(bal<=0&&(Number(i.total)||0)>0)return "Paid"; if(i.due_date&&new Date(i.due_date)<new Date()&&bal>0)return "Overdue"; if((Number(i.paid)||0)>0&&bal>0)return "Partially Paid"; return i.status||"Issued"; }
@@ -972,7 +972,7 @@ async function ccDetail(){
 function supaImg(path){ return path?sb.storage.from("cr-logos").getPublicUrl(path).data.publicUrl:""; }
 async function ccDecide(id,st){ await sb.from("cr_content_items").update({status:st,updated_at:new Date().toISOString()}).eq("id",id); const r=CC.find(x=>x.id===id); if(r)r.status=st; toast("Marked "+st); ccRender(); }
 async function ccChanges(id){ const n=prompt("What changes are needed?"); if(n===null)return; await sb.from("cr_content_items").update({status:"Changes Requested",approval_comment:n}).eq("id",id); const r=CC.find(x=>x.id===id);if(r){r.status="Changes Requested";r.approval_comment=n;} toast("Changes requested"); ccRender(); }
-function ccNew(){ toast("Content composer — next pass"); }
+
 
 /* ============ APPROVALS ============ */
 let AP=[], AP_SEL=null, AP_TAB="await";
@@ -1026,7 +1026,7 @@ async function apApprove(id){ await sb.from("cr_content_items").update({status:"
 const KCOLS=[["To do","To do","#6b7280"],["In Progress","In progress","#2563eb"],["Client Review","Client review","#b4740f"],["Done","Completed","#15803d"]];
 let PRJ=[], PRJ_TASKS=[], PRJ_SEL=null;
 async function viewProjects(c){
-  c.innerHTML=`<div class="ph"><div class="ph-ic">${IC.projects}</div><div><h1>Projects</h1><div class="psub">From brief to delivery, keep every project moving.</div></div><div class="ph-r"><button class="btn ghost">Templates</button>${canStaff()?`<button class="btn" onclick="toast('New project — next pass')"><span>${IC.plus}</span> New project</button>`:""}</div></div><div id="pr-body"><div class="psub">Loading…</div></div>`;
+  c.innerHTML=`<div class="ph"><div class="ph-ic">${IC.projects}</div><div><h1>Projects</h1><div class="psub">From brief to delivery, keep every project moving.</div></div><div class="ph-r"><button class="btn ghost">Templates</button>${canStaff()?`<button class="btn" onclick="prNewForm()"><span>${IC.plus}</span> New project</button>`:""}</div></div><div id="pr-body"><div class="psub">Loading…</div></div>`;
   if(!CLIENTS.length){const {data}=await sb.from("cr_profiles").select("id,company,full_name,username").eq("role","client");CLIENTS=data||[];}
   const [p,t]=await Promise.all([sb.from("cr_projects").select("*").order("created_at",{ascending:false}),sb.from("cr_project_tasks").select("*")]);
   PRJ=p.data||[]; PRJ_TASKS=t.data||[]; if(!PRJ_SEL&&PRJ.length)PRJ_SEL=PRJ[0].id;
@@ -1045,7 +1045,7 @@ function prRender(){
   b.innerHTML=`<div class="stat-row">${psStat(IC.projects,"#15803d","Active projects",String(PRJ.filter(p=>p.status!=="Completed").length).padStart(2,"0"),"")}${psStat(IC.calendar,"#b4740f","Tasks due this week",String(dueWk).padStart(2,"0"),"")}${psStat(IC.approvals,"#2563eb","Awaiting client input",String(review).padStart(2,"0"),"")}${psStat('<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l2 2"/></svg>',"#c23b3b","Overdue tasks",String(overdue).padStart(2,"0"),"")}</div>
   <div class="cal-controls"><select class="selectbox" onchange="PRJ_SEL=this.value;prRender()">${PRJ.map(p=>`<option value="${p.id}" ${PRJ_SEL===p.id?'selected':''}>${esc(p.name||"Project")}</option>`).join("")||'<option>No projects</option>'}</select></div>
   ${proj?`<div class="proj-bar"><div class="pm" style="background:linear-gradient(135deg,${avatarColor(proj.name)})">${esc(initials(proj.name)).toUpperCase()}</div><div><h3>${esc(proj.name||"Project")}</h3><div class="sub1">${esc(clientName(proj.client_id))} · ${esc(proj.status||"Active")}</div></div><div class="avstack">${owners.slice(0,3).map(o=>`<span class="a" style="background:linear-gradient(135deg,${avatarColor(o)})">${esc(initials(o)).toUpperCase()}</span>`).join("")}${owners.length>3?`<span class="a" style="background:#9aa4b2">+${owners.length-3}</span>`:""}</div><div style="min-width:220px"><div class="sub1" style="text-align:right;margin-bottom:4px">${done} of ${pt.length} tasks complete</div><div class="prog" style="width:100%"><i style="width:${pct}%"></i></div></div></div>`:""}
-  <div class="kb">${KCOLS.map(([st,label,col])=>{const col_t=pt.filter(t=>(t.status||"To do")===st||(st==="In Progress"&&t.status==="Blocked"));return `<div class="kcol"><div class="kcol-h"><span style="color:${col}">●</span> ${label} <span class="ct">(${col_t.length})</span></div>${col_t.map(prCard).join("")}<button class="kadd" onclick="toast('Add task — next pass')">+ Add task</button></div>`;}).join("")}</div>
+  <div class="kb">${KCOLS.map(([st,label,col])=>{const col_t=pt.filter(t=>(t.status||"To do")===st||(st==="In Progress"&&t.status==="Blocked"));return `<div class="kcol"><div class="kcol-h"><span style="color:${col}">●</span> ${label} <span class="ct">(${col_t.length})</span></div>${col_t.map(prCard).join("")}<button class="kadd" onclick="taskForm(PRJ_SEL,'${st}')">+ Add task</button></div>`;}).join("")}</div>
   <div class="mstones">${["Kickoff","Design approval","Development","Testing","Launch"].map((m,i)=>`<div class="ms ${i===0?'ok':'off'}"><div class="mc">${i===0?'✓':i+1}</div><b>${m}</b><span>${i===0?'Completed':'Upcoming'}</span></div>`).join("")}</div>`;
 }
 function prCard(t){
@@ -1056,7 +1056,7 @@ function prCard(t){
 /* ============ REPORTS ============ */
 let REPS=[], REP_SEL=null;
 async function viewReports(c){
-  c.innerHTML=`<div class="ph"><div class="ph-ic">${IC.reports}</div><div><h1>Reports &amp; insights</h1><div class="psub">Make performance clear. Turn insights into action.</div></div><div class="ph-r"><button class="btn ghost">⬇ Export PDF</button><button class="btn">🔗 Share report</button></div></div><div id="rep-body"><div class="psub">Loading…</div></div>`;
+  c.innerHTML=`<div class="ph"><div class="ph-ic">${IC.reports}</div><div><h1>Reports &amp; insights</h1><div class="psub">Make performance clear. Turn insights into action.</div></div><div class="ph-r"><button class="btn ghost">⬇ Export PDF</button>${canStaff()?`<button class="btn" onclick="repForm()"><span>${IC.plus}</span> New report</button>`:""}</div></div><div id="rep-body"><div class="psub">Loading…</div></div>`;
   if(!CLIENTS.length){const {data}=await sb.from("cr_profiles").select("id,company,full_name,username").eq("role","client");CLIENTS=data||[];}
   const {data}=await sb.from("cr_reports").select("*").order("created_at",{ascending:false});
   REPS=data||[]; if(!REP_SEL&&REPS.length)REP_SEL=REPS[0].id;
@@ -1117,7 +1117,7 @@ function finRender(){
 }
 function finOverview(){
   const b=$("#fin-body"), act=$("#fin-actions"); if(!b)return;
-  act.innerHTML=`<span class="selectbox">${monthLabel()}</span><button class="btn" onclick="finTxForm()"><span>${IC.plus}</span> Record transaction</button>`;
+  act.innerHTML=`<span class="selectbox">${monthLabel()}</span><button class="btn ghost" onclick="invForm()"><span>${IC.plus}</span> Invoice</button><button class="btn" onclick="finTxForm()"><span>${IC.plus}</span> Transaction</button>`;
   const m=mKey();
   const revenue=FD.inv.filter(i=>["Paid","Partially Paid","Issued","Overdue"].includes(i.status)).reduce((s,i)=>s+(Number(i.total)||0),0);
   const payroll=FD.pay.filter(p=>String(p.period_month||"").slice(0,7)===m).reduce((s,p)=>s+(Number(p.gross)||0),0)||FD.pay.reduce((s,p)=>s+(Number(p.gross)||0),0);
@@ -1364,6 +1364,81 @@ async function conSignSubmit(id,role){
   if(error){toast(error.message,true);return;}
   await sb.from("cr_contracts").update({status:role==="agency"?"countersigned":"signed",updated_at:new Date().toISOString()}).eq("id",id);
   closeModal();toast("Signed — an immutable record was created");viewContracts($("#content"));
+}
+
+
+/* ============ INVOICE BUILDER ============ */
+let INV_ITEMS=[];
+function invForm(clientId){
+  INV_ITEMS=[{name:"",qty:1,rate:0}];
+  if(!CLIENTS.length){ sb.from("cr_profiles").select("id,company,full_name").eq("role","client").then(({data})=>{CLIENTS=data||[];invForm(clientId);}); return; }
+  sheet("New invoice",`
+   <div class="g2"><div class="fld2"><label>Client</label><select id="iv-client" class="inp">${CLIENTS.map(c=>`<option value="${c.id}" ${clientId===c.id?'selected':''}>${esc(c.company||c.full_name)}</option>`).join("")}</select></div><div class="fld2"><label>Type</label><select id="iv-kind" class="inp"><option value="retainer">Retainer</option><option value="one-time">One-time</option><option value="additional">Additional work</option><option value="ad-funding">Ad funding</option></select></div>
+   <div class="fld2"><label>Due date</label><input id="iv-due" type="date" class="inp" value="${new Date(Date.now()+7*864e5).toISOString().slice(0,10)}"/></div><div class="fld2"><label>Tax %</label><input id="iv-tax" type="number" class="inp" value="18" oninput="invTot()"/></div></div>
+   <div class="sub1" style="font-weight:700;margin:4px 0 8px">Line items</div><div id="iv-items"></div><button class="btn ghost sm" onclick="invAdd()">+ Add item</button>
+   <div class="g2" style="margin-top:8px"><div class="fld2"><label>Discount</label><input id="iv-disc" type="number" class="inp" value="0" oninput="invTot()"/></div><div class="fld2"><label>Payment instructions</label><input id="iv-pay" class="inp" placeholder="Bank / UPI"/></div></div>
+   <label class="chk" style="margin:4px 0 10px"><input type="checkbox" id="iv-rec"> Recurring monthly retainer</label>
+   <div class="ws-inv-tot" id="iv-tot" style="background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px"></div>
+   <div class="btnrow"><button class="btn ghost" onclick="invSave('draft')">Save draft</button><button class="btn" onclick="invSave('issue')">Issue invoice</button></div>`);
+  invItems();
+}
+function invItems(){ const b=document.getElementById("iv-items"); if(!b)return; b.innerHTML=INV_ITEMS.map((it,i)=>`<div style="display:flex;gap:6px;margin-bottom:6px"><input class="inp" style="flex:2" placeholder="Description" value="${esc(it.name)}" oninput="INV_ITEMS[${i}].name=this.value"/><input class="inp" style="width:64px" type="number" value="${it.qty}" oninput="INV_ITEMS[${i}].qty=this.value;invTot()"/><input class="inp" style="width:96px" type="number" value="${it.rate}" oninput="INV_ITEMS[${i}].rate=this.value;invTot()"/><button class="btn ghost sm" onclick="INV_ITEMS.splice(${i},1);invItems()">×</button></div>`).join(""); invTot(); }
+function invAdd(){ INV_ITEMS.push({name:"",qty:1,rate:0}); invItems(); }
+function invCalc(){ const sub=INV_ITEMS.reduce((s,it)=>s+((Number(it.qty)||0)*(Number(it.rate)||0)),0); const disc=Number(v("iv-disc"))||0,taxr=Number(v("iv-tax"))||0; const taxable=Math.max(0,sub-disc); const tax=taxable*taxr/100; return {sub,disc,taxr,tax,total:taxable+tax}; }
+function invTot(){ const t=invCalc(),el=document.getElementById("iv-tot"); if(el)el.innerHTML=`<div class="kv2" style="padding:5px 0"><span class="k">Subtotal</span><b>${money(t.sub)}</b></div><div class="kv2" style="padding:5px 0"><span class="k">Discount</span><b>-${money(t.disc)}</b></div><div class="kv2" style="padding:5px 0"><span class="k">Tax (${t.taxr}%)</span><b>${money(t.tax)}</b></div><div class="kv2" style="padding:5px 0;font-size:16px"><span class="k"><b>Total</b></span><b>${money(t.total)}</b></div>`; }
+async function invSave(mode){
+  const items=INV_ITEMS.filter(it=>it.name||Number(it.rate)); if(!items.length){toast("Add a line item",true);return;}
+  const t=invCalc();
+  const {data,error}=await sb.from("cr_invoices").insert({client_id:v("iv-client"),kind:v("iv-kind"),due_date:v("iv-due")||null,subtotal:t.sub,discount:t.disc,tax_rate:t.taxr,tax:t.tax,total:t.total,paid:0,status:mode==="issue"?"Issued":"Draft",payment_instructions:v("iv-pay")||null,recurring:document.getElementById("iv-rec").checked,recurring_interval:"monthly",recur_day:7,created_by:SESSION.user.id,created_by_name:ME.full_name||ME.email}).select().single();
+  if(error){toast(error.message,true);return;}
+  await sb.from("cr_invoice_items").insert(items.map((it,i)=>({invoice_id:data.id,name:it.name,qty:Number(it.qty)||1,rate:Number(it.rate)||0,amount:(Number(it.qty)||0)*(Number(it.rate)||0),sort:i})));
+  closeModal();toast(mode==="issue"?("Invoice "+(data.invoice_no||"")+" issued"):"Draft saved");
+  if(route()==="finance")viewFinance($("#content")); else if(CW_TAB==="billing"&&CW_CLIENT)viewClientWorkspace($("#content"),CW_CLIENT.id);
+}
+/* ============ CONTENT COMPOSER ============ */
+function ccNew(){
+  if(!CLIENTS.length){ sb.from("cr_profiles").select("id,company,full_name").eq("role","client").then(({data})=>{CLIENTS=data||[];ccNew();}); return; }
+  sheet("Create content",`
+   <div class="g2"><div class="fld2"><label>Client</label><select id="cc-client" class="inp">${CLIENTS.map(c=>`<option value="${c.id}" ${CC_CLIENT===c.id?'selected':''}>${esc(c.company||c.full_name)}</option>`).join("")}</select></div><div class="fld2"><label>Platform</label><input id="cc-plat" class="inp" placeholder="Instagram"/></div>
+   <div class="fld2"><label>Content type</label><input id="cc-type" class="inp" placeholder="Reel / Post"/></div><div class="fld2"><label>Pillar / Campaign</label><input id="cc-pillar" class="inp"/></div></div>
+   <div class="fld2"><label>Caption</label><textarea id="cc-cap" class="inp" rows="3"></textarea></div>
+   <div class="fld2"><label>Hashtags</label><input id="cc-tags" class="inp"/></div>
+   <div class="g2"><div class="fld2"><label>Planned date &amp; time</label><input id="cc-when" type="datetime-local" class="inp"/></div><div class="fld2"><label>Creator</label><input id="cc-creator" class="inp" value="${esc(ME.full_name||'')}"/></div></div>
+   <div class="fld2"><label>Creative files</label><input id="cc-files" type="file" accept="image/*,video/*" multiple class="inp"/></div>
+   <div class="btnrow"><button class="btn ghost" onclick="ccSave('Planned')">Save as planned</button><button class="btn" onclick="ccSave('Client Approval')">Send for approval</button></div>`);
+}
+async function ccSave(status){
+  const {data,error}=await sb.from("cr_content_items").insert({client_id:v("cc-client"),platform:v("cc-plat")||null,content_type:v("cc-type")||null,pillar:v("cc-pillar")||null,caption:v("cc-cap")||null,hashtags:v("cc-tags")||null,planned_at:v("cc-when")||null,creator_id:SESSION.user.id,creator_name:v("cc-creator")||null,status,created_by:SESSION.user.id,created_by_name:ME.full_name||ME.email}).select().single();
+  if(error){toast(error.message,true);return;}
+  const files=document.getElementById("cc-files"); if(files&&files.files)for(const f of files.files){try{const path=`content/${data.id}/${Date.now()}_${f.name.replace(/[^\w.\-]/g,'_')}`;await sb.storage.from("cr-logos").upload(path,f,{upsert:true});await sb.from("cr_content_assets").insert({content_item_id:data.id,file_path:path,file_name:f.name,mime_type:f.type});}catch(_){}}
+  closeModal();toast("Content created");viewCalendar($("#content"));
+}
+/* ============ NEW PROJECT + TASK ============ */
+function prNewForm(){
+  if(!CLIENTS.length){ sb.from("cr_profiles").select("id,company,full_name").eq("role","client").then(({data})=>{CLIENTS=data||[];prNewForm();}); return; }
+  sheet("New project",`<div class="fld2"><label>Project name</label><input id="np-name" class="inp"/></div><div class="g2"><div class="fld2"><label>Client</label><select id="np-client" class="inp">${CLIENTS.map(c=>`<option value="${c.id}">${esc(c.company||c.full_name)}</option>`).join("")}</select></div><div class="fld2"><label>Type</label><input id="np-type" class="inp" placeholder="Website / Branding"/></div></div><div class="fld2"><label>Description</label><textarea id="np-desc" class="inp" rows="2"></textarea></div><button class="btn block" onclick="prNewSave()">Create project</button>`);
+}
+async function prNewSave(){ const name=v("np-name"); if(!name){toast("Enter a name",true);return;} const {error}=await sb.from("cr_projects").insert({name,client_id:v("np-client"),client_name:clientName(v("np-client")),platform:v("np-type")||null,description:v("np-desc")||null,status:"Active",created_by:SESSION.user.id,created_by_name:ME.full_name||ME.email}); if(error){toast(error.message,true);return;} closeModal();toast("Project created");viewProjects($("#content")); }
+async function taskForm(projectId,status){
+  await ensureStaff();
+  sheet("New task",`<div class="fld2"><label>Title</label><input id="tk-title" class="inp"/></div><div class="g2"><div class="fld2"><label>Owner</label><select id="tk-owner" class="inp"><option value="">—</option>${STAFF.map(x=>`<option value="${x.id}">${esc(x.full_name||x.email)}</option>`).join("")}</select></div><div class="fld2"><label>Priority</label><select id="tk-pri" class="inp">${["Low","Medium","High","Urgent"].map(p=>`<option ${p==="Medium"?"selected":""}>${p}</option>`).join("")}</select></div><div class="fld2"><label>Due date</label><input id="tk-due" type="date" class="inp"/></div><div class="fld2"><label>Status</label><select id="tk-status" class="inp">${KCOLS.map(k=>`<option value="${k[0]}" ${k[0]===status?'selected':''}>${k[1]}</option>`).join("")}</select></div></div><div class="fld2"><label>Description</label><textarea id="tk-desc" class="inp" rows="2"></textarea></div><button class="btn block" onclick="taskSave('${projectId}')">Create task</button>`);
+}
+async function taskSave(projectId){ const title=v("tk-title"); if(!title){toast("Enter a title",true);return;} const owner=v("tk-owner"); const on=(STAFF.find(x=>x.id===owner)||{}).full_name||null; const proj=PRJ.find(p=>p.id===projectId)||{}; const {error}=await sb.from("cr_project_tasks").insert({project_id:projectId,client_id:proj.client_id||null,title,description:v("tk-desc")||null,owner:owner||null,owner_name:on,priority:v("tk-pri"),due_date:v("tk-due")||null,status:v("tk-status"),checklist:[],created_by:SESSION.user.id,created_by_name:ME.full_name||ME.email}); if(error){toast(error.message,true);return;} closeModal();toast("Task created");viewProjects($("#content")); }
+/* ============ CREATE REPORT ============ */
+let RP_CAMPS=[];
+function repForm(){
+  RP_CAMPS=[];
+  if(!CLIENTS.length){ sb.from("cr_profiles").select("id,company,full_name").eq("role","client").then(({data})=>{CLIENTS=data||[];repForm();}); return; }
+  sheet("New report",`<div class="g2"><div class="fld2"><label>Client</label><select id="rp-client" class="inp">${CLIENTS.map(c=>`<option value="${c.id}">${esc(c.company||c.full_name)}</option>`).join("")}</select></div><div class="fld2"><label>Platform</label><input id="rp-plat" class="inp" placeholder="Meta Ads"/></div><div class="fld2"><label>Period start</label><input id="rp-ps" type="date" class="inp"/></div><div class="fld2"><label>Period end</label><input id="rp-pe" type="date" class="inp"/></div></div>
+   <div class="fld2"><label>Title</label><input id="rp-title" class="inp" value="Monthly performance report"/></div>
+   <div class="sub1" style="font-weight:700;margin:4px 0 6px">Metrics <span style="font-weight:400">(blank = unavailable)</span></div><div class="g2">${["spend","leads","cost_per_lead","clicks","impressions","ctr","conversions","roas"].map(k=>`<div class="fld2"><label>${k.replace(/_/g," ")}</label><input id="rp-${k}" class="inp"/></div>`).join("")}</div>
+   <div class="fld2"><label>Observations</label><textarea id="rp-obs" class="inp" rows="2"></textarea></div>
+   <button class="btn block" onclick="repSave()">Save report</button>`);
+}
+async function repSave(){
+  const keys=["spend","leads","cost_per_lead","clicks","impressions","ctr","conversions","roas"]; const data={}; keys.forEach(k=>{const x=v("rp-"+k);data[k]=x===""?null:(isNaN(Number(x))?x:Number(x));});
+  const {data:d,error}=await sb.from("cr_reports").insert({client_id:v("rp-client"),title:v("rp-title"),platform:v("rp-plat")||null,period_start:v("rp-ps")||null,period_end:v("rp-pe")||null,data,observations:v("rp-obs")||null,source:"manual",status:"draft",created_by:SESSION.user.id,created_by_name:ME.full_name||ME.email});
+  if(error){toast(error.message,true);return;} closeModal();toast("Report saved");viewReports($("#content"));
 }
 
 /* ================= GO ================= */
