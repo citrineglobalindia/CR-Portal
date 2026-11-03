@@ -6,6 +6,8 @@
 <meta name="theme-color" content="#0b1220"/>
 <title>Stepstones Solutions — Agency Workspace</title>
 <link rel="icon" href="assets/stepstones-logo.svg"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{
   --bg:#f4f6f3; --panel:#ffffff; --panel2:#f8faf7; --line:#e7eae3; --line2:#eef1ea;
@@ -14,14 +16,17 @@
   --tint:#e9f5ee; --tint2:#d8efe0; --amber:#b4740f; --amber-tint:#fbf1df;
   --red:#c23b3b; --red-tint:#fbe9e9; --blue:#2563eb; --blue-tint:#e6effd; --purple:#7c3aed; --purple-tint:#efe9fd;
   --side:#0b1220; --side2:#111a2b; --side-ink:#aab6c7; --side-faint:#5b6678;
-  --r:16px; --r2:12px; --r3:10px;
-  --sh:0 1px 2px rgba(16,26,42,.04),0 8px 24px -16px rgba(16,26,42,.18);
+  --r:18px; --r2:14px; --r3:11px;
+  --sh:0 1px 2px rgba(16,26,42,.04),0 10px 30px -18px rgba(16,26,42,.22);
   --font:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+  --font-head:'Plus Jakarta Sans','Inter',sans-serif;
 }
 *{box-sizing:border-box}
 html,body{margin:0;height:100%}
-body{font-family:var(--font);background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;font-size:14px;line-height:1.5}
+body{font-family:var(--font);background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;font-size:14px;line-height:1.55;letter-spacing:-.1px}
 a{color:inherit;text-decoration:none}
+h1,h2,h3,.sec-title,.ph h1,.auth-box h2,.auth-art h1,.doc-title,.fv,.stat .val,.rep-m .rv,.fin-s .fv,.cw-head h1,.proj-bar h3,.brand b,.sheet-h h3,.donut-center b{font-family:var(--font-head);letter-spacing:-.4px}
+.nav a,.btn,.tag,.status,.sec-title{font-family:var(--font-head)}
 button{font-family:inherit;cursor:pointer}
 .hide{display:none!important}
 ::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:#d6dbd3;border-radius:8px;border:3px solid var(--bg)}
