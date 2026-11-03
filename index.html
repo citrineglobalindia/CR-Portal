@@ -376,6 +376,17 @@ button{font-family:inherit;cursor:pointer}
 .gres .gi{display:flex;gap:10px;align-items:center;padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--line2)}
 .gres .gi:hover{background:var(--panel2)}.gres .gi:last-child{border-bottom:0}
 .gres .gt{font-size:11px;text-transform:uppercase;color:var(--faint);font-weight:700;padding:8px 14px 2px}
+
+.dash-charts{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:16px}
+.donut-wrap{display:flex;align-items:center;gap:14px}
+.donut-c{width:132px;height:132px;flex:0 0 auto;position:relative}
+.donut-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none}
+.donut-center b{font-size:20px;font-weight:800}.donut-center span{font-size:11px;color:var(--muted)}
+.dleg{flex:1;min-width:0}
+.dleg-i{display:flex;align-items:center;gap:8px;font-size:12.5px;padding:3px 0}
+.dleg-i i{width:9px;height:9px;border-radius:3px;flex:0 0 auto}
+.dleg-i b{margin-left:auto}
+@media(max-width:1100px){.dash-charts{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -548,6 +559,8 @@ let CH={};
 function chart(id,cfg){ try{ if(CH[id]){CH[id].destroy();} const el=document.getElementById(id); if(!el||!window.Chart)return; CH[id]=new Chart(el,cfg); }catch(e){} }
 function areaDS(data,color,fillTop,fillBot){ return {data,borderColor:color,borderWidth:2.4,tension:.42,pointRadius:0,fill:true,backgroundColor:(ctx)=>{const c=ctx.chart.ctx,g=c.createLinearGradient(0,0,0,220);g.addColorStop(0,fillTop);g.addColorStop(1,fillBot);return g;}}; }
 function spark(id,data,color){ chart(id,{type:"line",data:{labels:data.map((_,i)=>i),datasets:[{data,borderColor:color,borderWidth:2,tension:.45,pointRadius:0,fill:true,backgroundColor:(c)=>{const x=c.chart.ctx,g=x.createLinearGradient(0,0,0,40);g.addColorStop(0,color+"33");g.addColorStop(1,color+"00");return g;}}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{enabled:false}},scales:{x:{display:false},y:{display:false}}}}); }
+function doughnut(id,labels,data,colors){ chart(id,{type:"doughnut",data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:0,hoverOffset:6}]},options:{responsive:true,maintainAspectRatio:false,cutout:"70%",plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.label+": "+c.formattedValue}}}}}); }
+function barChart(id,labels,data,color){ chart(id,{type:"bar",data:{labels,datasets:[{data,backgroundColor:(c)=>{const x=c.chart.ctx,g=x.createLinearGradient(0,0,0,200);g.addColorStop(0,color);g.addColorStop(1,color+"66");return g;},borderRadius:7,maxBarThickness:30}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>"₹"+Number(c.raw).toLocaleString("en-IN")}}},scales:{x:{grid:{display:false},ticks:{color:"#9aa4b2"}},y:{grid:{color:"#eef1ea"},ticks:{color:"#9aa4b2",callback:v=>v>=1000?(v/1000)+"K":v}}}}}); }
 function daysBack(n){const a=[];for(let i=n-1;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);a.push(d);}return a;}
 
 /* ================= OVERVIEW ================= */
@@ -559,6 +572,11 @@ async function viewOverview(c){
     <div class="two">
       <div class="card pad"><div class="card-h"><h3 class="sec-title">Agency performance</h3><div class="chip-tabs">${["7","30","90","YTD"].map(x=>`<button class="${OVF===x?'on':''}" onclick="OVF='${x}';viewOverview(document.getElementById('content'))">${x==="YTD"?"YTD":x+"D"}</button>`).join("")}</div></div><div style="height:260px"><canvas id="ov-chart"></canvas></div></div>
       <div class="card pad"><h3 class="sec-title" style="margin-bottom:14px">Needs your attention</h3><div id="ov-att"></div></div>
+    </div>
+    <div class="dash-charts">
+      <div class="card pad"><div class="card-h" style="margin-bottom:14px"><h3 class="sec-title" style="font-size:16px">Revenue by client</h3></div><div class="donut-wrap"><div class="donut-c"><canvas id="ov-donut1"></canvas><div class="donut-center" id="ov-donut1c"></div></div><div class="dleg" id="ov-donut1l"></div></div></div>
+      <div class="card pad"><div class="card-h" style="margin-bottom:14px"><h3 class="sec-title" style="font-size:16px">Content pipeline</h3></div><div class="donut-wrap"><div class="donut-c"><canvas id="ov-donut2"></canvas><div class="donut-center" id="ov-donut2c"></div></div><div class="dleg" id="ov-donut2l"></div></div></div>
+      <div class="card pad"><div class="card-h" style="margin-bottom:14px"><h3 class="sec-title" style="font-size:16px">Revenue — last 6 months</h3></div><div style="height:150px"><canvas id="ov-bar"></canvas></div></div>
     </div>
     <div class="two" style="margin-top:16px">
       <div class="card pad"><div class="card-h"><h3 class="sec-title">Client workspace</h3><div class="search" style="position:static;width:auto;margin:0"><div style="position:relative"><span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--faint)">${IC.search}</span><input class="inp" style="padding-left:38px;height:40px;width:220px" placeholder="Search clients…" oninput="ovFilter(this.value)"/></div></div></div><div class="tblwrap"><table class="tbl" id="ov-clients"></table></div></div>
@@ -599,6 +617,25 @@ async function viewOverview(c){
   const leads=days.map(d=>leadByDay[d.toDateString()]||0);
   const spendAvg=adspend/Math.max(1,days.length); const spendLine=days.map((_,i)=>Math.round(spendAvg*(0.6+0.8*(i/days.length))+ (Math.sin(i/3)*spendAvg*0.15)));
   chart("ov-chart",{type:"line",data:{labels:days.map(d=>d.toLocaleDateString("en-IN",{day:"numeric",month:"short"})),datasets:[{label:"Leads generated",...areaDS(leads,"#15803d","#15803d22","#15803d02"),yAxisID:"y"},{label:"Ad spend",...areaDS(spendLine,"#6ee7b7","#6ee7b733","#6ee7b703"),yAxisID:"y1"}]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},plugins:{legend:{display:true,align:"end",labels:{usePointStyle:true,boxWidth:7,font:{size:12}}}},scales:{x:{grid:{display:false},ticks:{maxTicksLimit:8,color:"#9aa4b2"}},y:{position:"left",grid:{color:"#eef1ea"},ticks:{color:"#9aa4b2"}},y1:{position:"right",grid:{display:false},ticks:{color:"#9aa4b2",callback:v=>"₹"+(v>=1000?(v/1000)+"K":v)}}}}});
+  // revenue by client (doughnut)
+  const COLORS=["#15803d","#2563eb","#7c3aed","#b4740f","#0891b2","#db2777","#c23b3b","#9aa4b2"];
+  const revBy={}; invoices.filter(i=>i.status!=="Draft"&&i.status!=="Cancelled").forEach(i=>{revBy[i.client_id]=(revBy[i.client_id]||0)+(Number(i.total)||0);});
+  let rb=Object.entries(revBy).map(([id,v])=>({name:clientName(id),v})).sort((a,b)=>b.v-a.v);
+  if(rb.length>6){const other=rb.slice(6).reduce((s,x)=>s+x.v,0);rb=rb.slice(0,6);rb.push({name:"Others",v:other});}
+  const rbTot=rb.reduce((s,x)=>s+x.v,0);
+  if(rb.length){ doughnut("ov-donut1",rb.map(x=>x.name),rb.map(x=>x.v),COLORS);
+    const c1=document.getElementById("ov-donut1c"); if(c1)c1.innerHTML=`<b>${money(rbTot)}</b><span>total</span>`;
+    const l1=document.getElementById("ov-donut1l"); if(l1)l1.innerHTML=rb.map((x,i)=>`<div class="dleg-i"><i style="background:${COLORS[i%COLORS.length]}"></i>${esc(x.name)}<b>${money(x.v)}</b></div>`).join(""); }
+  else { const c1=document.getElementById("ov-donut1l"); if(c1)c1.innerHTML='<div class="sub1">No revenue yet.</div>'; }
+  // content pipeline (doughnut)
+  const cS={}; items.forEach(i=>{cS[i.status]=(cS[i.status]||0)+1;});
+  const CORD=["Planned","In Production","Internal Review","Client Approval","Approved","Scheduled","Published","Changes Requested"];
+  const cLabels=CORD.filter(k=>cS[k]); const cData=cLabels.map(k=>cS[k]); const cCol=cLabels.map(k=>(CC_STC[k]||["#9aa4b2"])[0]);
+  if(cLabels.length){ doughnut("ov-donut2",cLabels,cData,cCol); const c2=document.getElementById("ov-donut2c"); if(c2)c2.innerHTML=`<b>${items.length}</b><span>items</span>`; const l2=document.getElementById("ov-donut2l"); if(l2)l2.innerHTML=cLabels.map((k,i)=>`<div class="dleg-i"><i style="background:${cCol[i]}"></i>${esc(k)}<b>${cData[i]}</b></div>`).join(""); }
+  else { const l2=document.getElementById("ov-donut2l"); if(l2)l2.innerHTML='<div class="sub1">No content yet.</div>'; }
+  // monthly revenue bar (6 months)
+  const mLab=[],mVal=[]; for(let k=5;k>=0;k--){const d=new Date();d.setMonth(d.getMonth()-k);const key=d.toISOString().slice(0,7);mLab.push(d.toLocaleDateString("en-IN",{month:"short"}));mVal.push(invoices.filter(i=>String(i.issue_date||"").slice(0,7)===key&&i.status!=="Draft"&&i.status!=="Cancelled").reduce((s,i)=>s+(Number(i.total)||0),0));}
+  barChart("ov-bar",mLab,mVal,"#15803d");
   // attention
   const contractsPend=(con.data||[]).filter(x=>x.status==="sent").length;
   const creativesPend=items.filter(i=>i.status==="Client Approval").length;
