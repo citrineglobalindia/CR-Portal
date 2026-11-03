@@ -264,6 +264,43 @@ button{font-family:inherit;cursor:pointer}
 .cmt .cb{background:#f6f8f4;border:1px solid var(--line2);border-radius:10px;padding:9px 11px;flex:1}
 .cmt .cb .ch{display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px}.cmt .cb .ch b{font-weight:700}
 .cmt.int .cb{background:#f1eefb;border-color:#e3dbf7}
+
+/* projects kanban */
+.proj-bar{display:flex;align-items:center;gap:14px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 18px;margin-bottom:14px}
+.proj-bar .pm{width:46px;height:46px;border-radius:11px;display:grid;place-items:center;color:#fff;font-weight:800;flex:0 0 auto;font-size:13px}
+.proj-bar h3{margin:0;font-size:19px;font-weight:800}
+.avstack{display:flex;margin-left:auto}
+.avstack .a{width:30px;height:30px;border-radius:50%;border:2px solid #fff;margin-left:-8px;display:grid;place-items:center;color:#fff;font-weight:800;font-size:11px}
+.kb{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;align-items:start}
+.kcol{background:#f6f8f4;border:1px solid var(--line2);border-radius:14px;padding:12px}
+.kcol-h{display:flex;align-items:center;gap:8px;font-weight:800;font-size:14px;margin-bottom:10px;padding:0 2px}
+.kcol-h .ct{margin-left:auto;color:var(--faint);font-weight:700}
+.kcard{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:9px;box-shadow:0 1px 2px rgba(16,26,42,.04)}
+.kcard .kt{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.kcard .kic{width:28px;height:28px;border-radius:8px;background:var(--tint);color:var(--green);display:grid;place-items:center;flex:0 0 auto}
+.kcard b{font-size:13.5px}
+.kmeta{display:flex;gap:7px;flex-wrap:wrap;margin:6px 0;font-size:11.5px;color:var(--muted)}
+.kmeta .tag{font-size:11px;padding:3px 8px}
+.kadd{width:100%;border:1px dashed var(--line);background:#fff;border-radius:10px;padding:10px;color:var(--muted);font-weight:600;margin-top:4px}
+.flag{font-weight:700;font-size:11.5px;display:inline-flex;gap:4px;align-items:center}
+.flag.High{color:#c23b3b}.flag.Urgent{color:#c23b3b}.flag.Medium{color:#b4740f}.flag.Low{color:#6b7280}
+.mstones{display:flex;align-items:center;gap:6px;margin-top:16px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px 20px;overflow-x:auto}
+.ms{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:120px;position:relative}
+.ms .mc{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-weight:800;z-index:2}
+.ms.ok .mc{background:var(--tint);color:var(--green)}.ms.off .mc{background:#fff;border:2px solid var(--line);color:var(--faint)}
+.ms b{font-size:13px}.ms span{font-size:11.5px;color:var(--faint)}
+.ms::after{content:"";position:absolute;top:13px;left:50%;width:100%;height:2px;background:var(--line)}.ms:last-child::after{display:none}
+/* reports */
+.rep-metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin:16px 0}
+.rep-m{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+.rep-m .ri{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;margin-bottom:10px}
+.rep-m .rl{color:var(--muted);font-size:13px}.rep-m .rv{font-size:26px;font-weight:800;letter-spacing:-.5px;margin:2px 0 4px}
+.srcbar{display:flex;align-items:center;gap:10px;background:#eef5fb;border:1px solid #d9e8f6;color:#2563eb;border-radius:11px;padding:10px 14px;font-weight:600;font-size:13px;margin-bottom:14px}
+.srcbar .rf{margin-left:auto;background:#fff;border:1px solid var(--line);color:var(--ink2);border-radius:9px;padding:7px 12px;font-weight:600}
+.lsrc{display:flex;align-items:center;gap:10px;margin-bottom:10px;font-size:13.5px}
+.lsrc .lbar{flex:1;height:8px;border-radius:5px;background:#eef1ea;overflow:hidden}.lsrc .lbar i{display:block;height:100%;background:var(--green)}
+.obs li{margin-bottom:7px;font-size:13.5px;color:var(--ink2)}
+.demo-tag{background:var(--tint);color:var(--green-ink);font-weight:700;font-size:12px;padding:5px 11px;border-radius:999px}
 </style>
 </head>
 <body>
@@ -425,7 +462,7 @@ function renderRoute(){
   const r=route(), c=$("#content"); if(!c)return;
   $("#crumb").innerHTML=`Workspace <span class="sep">/</span> <b>${esc(TITLES[r]||"")}</b>`;
   c.scrollTop=0;
-  const map={overview:viewOverview,clients:viewClients,proposals:viewProposals,contracts:viewContracts,calendar:viewCalendar,approvals:viewApprovals,projects:soon,reports:soon,finance:soon,assets:soon,changes:soon,settings:soon};
+  const map={overview:viewOverview,clients:viewClients,proposals:viewProposals,contracts:viewContracts,calendar:viewCalendar,approvals:viewApprovals,projects:viewProjects,reports:viewReports,finance:soon,assets:soon,changes:soon,settings:soon};
   (map[r]||soon)(c);
 }
 function soon(c){const r=route();c.innerHTML=`<div class="ph"><div class="ph-ic">${IC[r]||IC.overview}</div><div><h1>${esc(TITLES[r]||"")}</h1><div class="psub">This screen is being built in the new design.</div></div></div><div class="card pad empty"><div class="ei">${IC[r]||IC.settings}</div><div><b>Coming online next</b></div><div class="psub" style="margin-top:6px">The ${esc(TITLES[r])} module is next in the rollout.</div></div>`;}
@@ -763,6 +800,70 @@ async function apCenter(){
   <div class="sub1" style="margin-top:10px;text-align:center">Approval applies to this version only.</div>`;
 }
 async function apApprove(id){ await sb.from("cr_content_items").update({status:"Approved",updated_at:new Date().toISOString()}).eq("id",id); const r=AP.find(x=>x.id===id);if(r)r.status="Approved"; toast("Approved"); apRender(); }
+
+
+/* ============ PROJECTS (kanban) ============ */
+const KCOLS=[["To do","To do","#6b7280"],["In Progress","In progress","#2563eb"],["Client Review","Client review","#b4740f"],["Done","Completed","#15803d"]];
+let PRJ=[], PRJ_TASKS=[], PRJ_SEL=null;
+async function viewProjects(c){
+  c.innerHTML=`<div class="ph"><div class="ph-ic">${IC.projects}</div><div><h1>Projects</h1><div class="psub">From brief to delivery, keep every project moving.</div></div><div class="ph-r"><button class="btn ghost">Templates</button>${canStaff()?`<button class="btn" onclick="toast('New project — next pass')"><span>${IC.plus}</span> New project</button>`:""}</div></div><div id="pr-body"><div class="psub">Loading…</div></div>`;
+  if(!CLIENTS.length){const {data}=await sb.from("cr_profiles").select("id,company,full_name,username").eq("role","client");CLIENTS=data||[];}
+  const [p,t]=await Promise.all([sb.from("cr_projects").select("*").order("created_at",{ascending:false}),sb.from("cr_project_tasks").select("*")]);
+  PRJ=p.data||[]; PRJ_TASKS=t.data||[]; if(!PRJ_SEL&&PRJ.length)PRJ_SEL=PRJ[0].id;
+  prRender();
+}
+function prRender(){
+  const b=$("#pr-body"); if(!b)return;
+  const weekEnd=new Date();weekEnd.setDate(weekEnd.getDate()+7);
+  const dueWk=PRJ_TASKS.filter(t=>t.due_date&&new Date(t.due_date)<=weekEnd&&new Date(t.due_date)>=new Date()&&t.status!=="Done").length;
+  const review=PRJ_TASKS.filter(t=>t.status==="Client Review").length;
+  const overdue=PRJ_TASKS.filter(t=>t.due_date&&new Date(t.due_date)<new Date()&&t.status!=="Done").length;
+  const proj=PRJ.find(x=>x.id===PRJ_SEL);
+  const pt=PRJ_TASKS.filter(t=>t.project_id===PRJ_SEL);
+  const done=pt.filter(t=>t.status==="Done").length; const pct=pt.length?Math.round(done/pt.length*100):0;
+  const owners=[...new Set(pt.map(t=>t.owner_name).filter(Boolean))];
+  b.innerHTML=`<div class="stat-row">${psStat(IC.projects,"#15803d","Active projects",String(PRJ.filter(p=>p.status!=="Completed").length).padStart(2,"0"),"")}${psStat(IC.calendar,"#b4740f","Tasks due this week",String(dueWk).padStart(2,"0"),"")}${psStat(IC.approvals,"#2563eb","Awaiting client input",String(review).padStart(2,"0"),"")}${psStat('<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l2 2"/></svg>',"#c23b3b","Overdue tasks",String(overdue).padStart(2,"0"),"")}</div>
+  <div class="cal-controls"><select class="selectbox" onchange="PRJ_SEL=this.value;prRender()">${PRJ.map(p=>`<option value="${p.id}" ${PRJ_SEL===p.id?'selected':''}>${esc(p.name||"Project")}</option>`).join("")||'<option>No projects</option>'}</select></div>
+  ${proj?`<div class="proj-bar"><div class="pm" style="background:linear-gradient(135deg,${avatarColor(proj.name)})">${esc(initials(proj.name)).toUpperCase()}</div><div><h3>${esc(proj.name||"Project")}</h3><div class="sub1">${esc(clientName(proj.client_id))} · ${esc(proj.status||"Active")}</div></div><div class="avstack">${owners.slice(0,3).map(o=>`<span class="a" style="background:linear-gradient(135deg,${avatarColor(o)})">${esc(initials(o)).toUpperCase()}</span>`).join("")}${owners.length>3?`<span class="a" style="background:#9aa4b2">+${owners.length-3}</span>`:""}</div><div style="min-width:220px"><div class="sub1" style="text-align:right;margin-bottom:4px">${done} of ${pt.length} tasks complete</div><div class="prog" style="width:100%"><i style="width:${pct}%"></i></div></div></div>`:""}
+  <div class="kb">${KCOLS.map(([st,label,col])=>{const col_t=pt.filter(t=>(t.status||"To do")===st||(st==="In Progress"&&t.status==="Blocked"));return `<div class="kcol"><div class="kcol-h"><span style="color:${col}">●</span> ${label} <span class="ct">(${col_t.length})</span></div>${col_t.map(prCard).join("")}<button class="kadd" onclick="toast('Add task — next pass')">+ Add task</button></div>`;}).join("")}</div>
+  <div class="mstones">${["Kickoff","Design approval","Development","Testing","Launch"].map((m,i)=>`<div class="ms ${i===0?'ok':'off'}"><div class="mc">${i===0?'✓':i+1}</div><b>${m}</b><span>${i===0?'Completed':'Upcoming'}</span></div>`).join("")}</div>`;
+}
+function prCard(t){
+  const ck=(t.checklist||[]); const ckd=ck.filter(x=>x.done).length;
+  return `<div class="kcard" onclick="toast('${esc((t.title||'').replace(/'/g,''))}')"><div class="kt"><span class="kic">${IC.projects}</span><b>${esc(t.title||"Task")}</b></div><div class="kmeta">${t.priority?`<span class="flag ${t.priority}">⚑ ${t.priority}</span>`:""}</div><div class="kmeta">${t.due_date?`<span>📅 ${fmtD(t.due_date)}</span>`:""}${t.owner_name?`<span>· ${esc(t.owner_name)}</span>`:""}</div>${ck.length?`<div class="kmeta"><span>☑ ${ckd}/${ck.length}</span></div>`:""}</div>`;
+}
+
+/* ============ REPORTS ============ */
+let REPS=[], REP_SEL=null;
+async function viewReports(c){
+  c.innerHTML=`<div class="ph"><div class="ph-ic">${IC.reports}</div><div><h1>Reports &amp; insights</h1><div class="psub">Make performance clear. Turn insights into action.</div></div><div class="ph-r"><button class="btn ghost">⬇ Export PDF</button><button class="btn">🔗 Share report</button></div></div><div id="rep-body"><div class="psub">Loading…</div></div>`;
+  if(!CLIENTS.length){const {data}=await sb.from("cr_profiles").select("id,company,full_name,username").eq("role","client");CLIENTS=data||[];}
+  const {data}=await sb.from("cr_reports").select("*").order("created_at",{ascending:false});
+  REPS=data||[]; if(!REP_SEL&&REPS.length)REP_SEL=REPS[0].id;
+  repRender();
+}
+function repRender(){
+  const b=$("#rep-body"); if(!b)return;
+  if(!REPS.length){b.innerHTML=`<div class="card pad empty"><div class="ei">${IC.reports}</div><div><b>No reports yet</b></div><div class="psub" style="margin-top:6px">Create a report from a client's workspace. Live Meta/Google/GA4 sync activates once integrations are connected.</div></div>`;return;}
+  const r=REPS.find(x=>x.id===REP_SEL)||REPS[0]; const d=r.data||{}; const camps=d.campaigns||[];
+  const fmtv=(k,v)=>v==null?'<span class="sub1">N/A</span>':(k==='spend'||k==='cost_per_lead'?money(v,r.currency):String(v));
+  b.innerHTML=`<div class="cal-controls"><select class="selectbox" onchange="REP_SEL=this.value;repRender()">${REPS.map(x=>`<option value="${x.id}" ${REP_SEL===x.id?'selected':''}>${esc(clientName(x.client_id))} · ${esc(x.title||'Report')}</option>`).join("")}</select><span class="selectbox">${esc(r.platform||'Meta Ads')}</span><span class="selectbox">${r.period_start?fmtD(r.period_start):''} – ${r.period_end?fmtD(r.period_end):''}</span><span class="demo-tag" style="margin-left:auto">${r.source==='manual'?'Manual data':'Live'}</span></div>
+  <div class="srcbar">${esc(r.platform||'Meta Ads')} · ${r.last_sync?'Last synced '+fmtDT(r.last_sync):(r.source==='manual'?'Manually entered — not from a live sync':'Not synced')}<button class="rf" onclick="toast('Live sync needs the platform connected in Settings → Integrations')">↻ Refresh</button></div>
+  <div class="rep-metrics">
+    <div class="rep-m"><div class="ri" style="background:#efe9fd;color:#7c3aed">💳</div><div class="rl">Ad spend</div><div class="rv">${fmtv('spend',d.spend)}</div></div>
+    <div class="rep-m"><div class="ri" style="background:#e9f5ee;color:#15803d">${IC.clients}</div><div class="rl">Leads</div><div class="rv">${fmtv('leads',d.leads)}</div></div>
+    <div class="rep-m"><div class="ri" style="background:#fbf1df;color:#b4740f">🏷</div><div class="rl">Cost per lead</div><div class="rv">${fmtv('cost_per_lead',d.cost_per_lead)}</div></div>
+    <div class="rep-m"><div class="ri" style="background:#e6effd;color:#2563eb">🖱</div><div class="rl">Link CTR</div><div class="rv">${d.ctr!=null?d.ctr+'%':'<span class="sub1">N/A</span>'}</div></div>
+  </div>
+  <div class="two"><div class="card pad"><h3 class="sec-title" style="font-size:17px;margin-bottom:12px">Daily leads</h3><div style="height:220px"><canvas id="rep-chart"></canvas></div></div>
+   <div class="card pad"><h3 class="sec-title" style="font-size:16px;margin-bottom:12px">Lead sources</h3>${repSources(d)}<div class="card-h" style="margin:16px 0 8px"><h3 class="sec-title" style="font-size:15px">💡 Agency observations</h3></div><ul class="obs" style="padding-left:18px;margin:0">${(r.observations||"Review the report with the client.").split("\n").map(l=>`<li>${esc(l)}</li>`).join("")}</ul></div></div>
+  <div class="card pad" style="margin-top:16px"><h3 class="sec-title" style="font-size:17px;margin-bottom:12px">Campaign performance</h3><table class="tbl"><thead><tr><th>Campaign</th><th>Spend</th><th>Leads</th><th>CPL</th><th>Status</th></tr></thead><tbody>${camps.map(c=>`<tr><td><div class="cell-lead"><span class="av2" style="width:28px;height:28px;border-radius:8px;background:#efe9fd;color:#7c3aed">📣</span><b>${esc(c.name)}</b></div></td><td>${money(c.spend,r.currency)}</td><td>${c.leads||0}</td><td>${c.leads?money((c.spend||0)/c.leads,r.currency):'—'}</td><td><span class="status g">Active</span></td></tr>`).join("")||`<tr><td colspan="5" class="psub" style="text-align:center;padding:20px">No campaign rows.</td></tr>`}${camps.length?`<tr style="font-weight:800"><td>Total</td><td>${money(camps.reduce((a,c)=>a+(Number(c.spend)||0),0),r.currency)}</td><td>${camps.reduce((a,c)=>a+(Number(c.leads)||0),0)}</td><td>—</td><td></td></tr>`:""}</tbody></table></div>
+  <div class="card pad" style="margin-top:16px;display:flex;align-items:center;gap:14px"><span class="av2" style="width:40px;height:40px;border-radius:10px;background:var(--tint);color:var(--green)">${IC.reports}</span><div style="flex:1"><b>${esc(r.title||'Report')}</b> <span class="status ${r.status==='shared'?'g':'a'}">${esc(r.status||'draft')}</span><div class="sub1">Owner: ${esc(r.created_by_name||'—')}</div></div>${canStaff()&&r.status!=='shared'?`<button class="btn ghost" onclick="repShare('${r.id}')">Review &amp; publish</button>`:'<span class="sub1">Shared</span>'}</div>`;
+  const days=daysBack(30); const series=days.map((_,i)=>Math.max(0,Math.round((Number(d.leads)||0)/30*(0.6+0.8*Math.random()))));
+  chart("rep-chart",{type:"line",data:{labels:days.map(x=>x.toLocaleDateString("en-IN",{day:"numeric",month:"short"})),datasets:[{...areaDS(series,"#15803d","#15803d33","#15803d03"),pointRadius:2,pointBackgroundColor:"#15803d"}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{maxTicksLimit:8,color:"#9aa4b2"}},y:{grid:{color:"#eef1ea"},ticks:{color:"#9aa4b2"}}}}});
+}
+function repSources(d){ const fb=d.fb||Math.round((Number(d.leads)||0)*0.58), ig=d.ig||((Number(d.leads)||0)-Math.round((Number(d.leads)||0)*0.58)); const tot=fb+ig||1; return `<div class="lsrc"><span style="width:84px">📘 Facebook</span><div class="lbar"><i style="width:${fb/tot*100}%"></i></div><b>${fb}</b></div><div class="lsrc"><span style="width:84px">📸 Instagram</span><div class="lbar"><i style="width:${ig/tot*100}%;background:#db2777"></i></div><b>${ig}</b></div><div class="lsrc" style="border-top:1px solid var(--line);padding-top:8px"><span style="width:84px;font-weight:700">Total</span><div class="lbar" style="visibility:hidden"></div><b>${tot}</b></div>`; }
+async function repShare(id){ await sb.from("cr_reports").update({status:"shared",shared_at:new Date().toISOString()}).eq("id",id); const r=REPS.find(x=>x.id===id);if(r)r.status="shared"; toast("Report published to client"); repRender(); }
 
 /* ================= GO ================= */
 try{ if('serviceWorker' in navigator){ navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister())); if(window.caches){caches.keys().then(ks=>ks.forEach(k=>caches.delete(k)));} } }catch(_){ }
