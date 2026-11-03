@@ -347,6 +347,23 @@ button{font-family:inherit;cursor:pointer}
 .est-tbl div{display:flex;justify-content:space-between;padding:9px 12px;font-size:13.5px;border-bottom:1px solid var(--line2)}
 .est-tbl div:last-child{border-bottom:0;font-weight:800;background:#f6f8f4}
 .crq-tl{display:flex;justify-content:space-between;margin-top:14px}
+
+/* client workspace */
+.cw-head{display:flex;align-items:center;gap:16px;margin-bottom:6px;flex-wrap:wrap}
+.cw-logo{width:54px;height:54px;border-radius:14px;display:grid;place-items:center;color:#fff;font-weight:800;flex:0 0 auto}
+.cw-head h1{font-size:30px;margin:0}
+.cw-am{display:flex;align-items:center;gap:9px;background:#fff;border:1px solid var(--line);border-radius:11px;padding:7px 12px}
+.cw-am .a{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:800;font-size:11px}
+.cw-tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin:16px 0 18px;overflow-x:auto}
+.cw-tabs button{border:0;background:transparent;padding:12px 2px;margin-right:24px;font-weight:700;color:var(--muted);border-bottom:2px solid transparent;white-space:nowrap}
+.cw-tabs button.on{color:var(--green);border-bottom-color:var(--green)}
+.kv2{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--line2);font-size:13.5px}
+.kv2:last-child{border-bottom:0}.kv2 .k{color:var(--muted);display:flex;align-items:center;gap:8px;min-width:120px}.kv2 b{margin-left:auto}
+/* settings */
+.set-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:16px}
+.perm-tbl td,.perm-tbl th{text-align:center}.perm-tbl td:first-child,.perm-tbl th:first-child{text-align:left}
+.chiprm{display:inline-flex;align-items:center;gap:6px;background:var(--tint);color:var(--green-ink);border-radius:999px;padding:5px 10px;font-weight:600;font-size:12.5px;margin:0 6px 6px 0}
+.chiprm .x{cursor:pointer;opacity:.6}
 </style>
 </head>
 <body>
@@ -508,7 +525,7 @@ function renderRoute(){
   const r=route(), c=$("#content"); if(!c)return;
   $("#crumb").innerHTML=`Workspace <span class="sep">/</span> <b>${esc(TITLES[r]||"")}</b>`;
   c.scrollTop=0;
-  const map={overview:viewOverview,clients:viewClients,proposals:viewProposals,contracts:viewContracts,calendar:viewCalendar,approvals:viewApprovals,projects:viewProjects,reports:viewReports,finance:viewFinance,assets:viewAssets,changes:viewChanges,settings:soon};
+  const map={overview:viewOverview,clients:viewClients,proposals:viewProposals,contracts:viewContracts,calendar:viewCalendar,approvals:viewApprovals,projects:viewProjects,reports:viewReports,finance:viewFinance,assets:viewAssets,changes:viewChanges,settings:viewSettings};
   (map[r]||soon)(c);
 }
 function soon(c){const r=route();c.innerHTML=`<div class="ph"><div class="ph-ic">${IC[r]||IC.overview}</div><div><h1>${esc(TITLES[r]||"")}</h1><div class="psub">This screen is being built in the new design.</div></div></div><div class="card pad empty"><div class="ei">${IC[r]||IC.settings}</div><div><b>Coming online next</b></div><div class="psub" style="margin-top:6px">The ${esc(TITLES[r])} module is next in the rollout.</div></div>`;}
@@ -632,495 +649,110 @@ function clRender(q){
 async function viewClientWorkspace(c,id){
   const {data:cli}=await sb.from("cr_profiles").select("*").eq("id",id).maybeSingle();
   if(!cli){c.innerHTML=`<div class="empty">Client not found.</div>`;return;}
-  c.innerHTML=`<div class="ph"><div class="av2" style="width:52px;height:52px;border-radius:14px;font-size:18px;background:linear-gradient(135deg,${avatarColor(cli.company||cli.full_name)})">${esc(initials(cli.company||cli.full_name)).toUpperCase()}</div><div><h1 style="font-size:30px">${esc(cli.company||cli.full_name)}</h1><div class="psub">${esc(cli.industry||"")}${cli.website?` · ${esc(cli.website)}`:""}</div></div><div class="ph-r"><a class="linkg" onclick="location.hash='#/clients'">← All clients</a></div></div>
-   <div class="card pad empty"><div class="ei">${IC.clients}</div><div><b>Client workspace — full tabbed view coming next</b></div><div class="psub" style="margin-top:6px">Overview, Proposals, Contracts, Calendar, Approvals, Assets, Reports, Billing for ${esc(cli.company||cli.full_name)}.</div></div>`;
+  CW_CLIENT=cli; const am=(await sb.from("cr_profiles").select("full_name,email").eq("id",cli.account_manager||"00000000-0000-0000-0000-000000000000").maybeSingle()).data;
+  const amn=am?(am.full_name||am.email):"Unassigned";
+  $("#crumb")&&($("#crumb").innerHTML=`Workspace <span class="sep">/</span> Clients <span class="sep">/</span> <b>${esc(cli.company||cli.full_name)}</b>`);
+  c.innerHTML=`<div class="cw-head"><div class="cw-logo" style="background:linear-gradient(135deg,${avatarColor(cli.company||cli.full_name)})">${esc(initials(cli.company||cli.full_name)).toUpperCase()}</div>
+   <div><h1>${esc(cli.company||cli.full_name)} <span class="status g" style="vertical-align:middle">${esc(cli.client_status||'active')}</span></h1><div class="psub">${esc(cli.industry||'')}${cli.website?' · '+esc(cli.website):''}</div></div>
+   <div class="cw-am"><div class="a" style="background:linear-gradient(135deg,${avatarColor(amn)})">${esc(initials(amn)).toUpperCase()}</div><div><div class="sub1" style="font-size:11px">Account manager</div><b style="font-size:13.5px">${esc(amn)}</b></div></div>
+   <div class="ph-r"><a class="btn ghost" onclick="location.hash='#/clients'">← All clients</a>${canStaff()?`<button class="btn" onclick="toast('Quick create')"><span>${IC.plus}</span> Create new</button>`:""}</div></div>
+   <div class="cw-tabs" id="cw-tabs">${CW_TABS.map(([k,l])=>`<button class="${CW_TAB===k?'on':''}" onclick="CW_TAB='${k}';viewClientWorkspace(document.getElementById('content'),'${id}')">${l}</button>`).join("")}</div>
+   <div id="cw-body"><div class="psub">Loading…</div></div>`;
+  cwTab(id,amn);
 }
+let CW_CLIENT=null, CW_TAB="overview";
+const CW_TABS=[["overview","Overview"],["calendar","Content"],["approvals","Approvals"],["contracts","Contracts"],["assets","Assets"],["reports","Reports"],["billing","Billing"]];
+async function cwTab(id,amn){
+  const b=$("#cw-body"); if(!b)return; const m=mKey();
+  if(CW_TAB==="overview"){
+    const [svc,content,inv,bud,rep,act]=await Promise.all([
+      sb.from("cr_client_services").select("name,fee,recurring").eq("client_id",id),
+      sb.from("cr_content_items").select("status,planned_at,content_type,creator_name,platform").eq("client_id",id),
+      sb.from("cr_invoices").select("*").eq("client_id",id).order("issue_date",{ascending:false}),
+      sb.from("cr_ad_budgets").select("spent,approved,period_month").eq("client_id",id),
+      sb.from("cr_reports").select("data").eq("client_id",id).order("created_at",{ascending:false}).limit(1),
+      sb.from("cr_audit_log").select("action,created_at,actor_name").eq("client_id",id).order("created_at",{ascending:false}).limit(3)
+    ]);
+    const services=svc.data||[], items=content.data||[], invoices=inv.data||[];
+    const spend=(bud.data||[]).reduce((s,x)=>s+(Number(x.spent)||0),0);
+    const rd=(rep.data&&rep.data[0]&&rep.data[0].data)||{};
+    const deliv=items.filter(i=>String(i.planned_at||"").slice(0,7)===m); const delDone=deliv.filter(i=>["Approved","Scheduled","Published"].includes(i.status)).length;
+    const retainer=services.filter(s=>s.recurring).reduce((a,s)=>a+(Number(s.fee)||0),0);
+    const unpaid=invoices.find(i=>i.status!=="Paid"&&i.status!=="Draft"&&i.status!=="Cancelled");
+    b.innerHTML=`<div class="rep-metrics">
+      <div class="rep-m"><div class="ri" style="background:#efe9fd;color:#7c3aed">📣</div><div class="rl">Ad spend</div><div class="rv">${money(spend)}</div></div>
+      <div class="rep-m"><div class="ri" style="background:#e9f5ee;color:#15803d">🛒</div><div class="rl">Purchases</div><div class="rv">${rd.conversions!=null?rd.conversions:(rd.leads!=null?rd.leads:'—')}</div></div>
+      <div class="rep-m"><div class="ri" style="background:#e6effd;color:#2563eb">📈</div><div class="rl">ROAS</div><div class="rv">${rd.roas!=null?rd.roas+'×':'—'}</div></div>
+      <div class="rep-m"><div class="ri" style="background:#fbf1df;color:#b4740f">📦</div><div class="rl">Deliverables</div><div class="rv">${delDone} / ${deliv.length||'—'}</div><div class="prog" style="margin-top:6px"><i style="width:${deliv.length?delDone/deliv.length*100:0}%"></i></div></div></div>
+     <div class="two"><div class="card pad"><h3 class="sec-title" style="font-size:17px;margin-bottom:12px">Campaign performance</h3><div style="height:230px"><canvas id="cw-chart"></canvas></div></div>
+      <div class="card pad"><h3 class="sec-title" style="font-size:16px;margin-bottom:8px">Client details</h3>
+       <div class="kv2"><span class="k">👤 POC</span><b>${esc(cli_poc())}</b></div>
+       <div class="kv2"><span class="k">🧩 Services</span><b>${services.map(s=>esc(s.name)).join(", ")||'—'}</b></div>
+       <div class="kv2"><span class="k">👔 Account manager</span><b>${esc(amn)}</b></div>
+       <div class="kv2"><span class="k">📅 Renewal</span><b>${CW_CLIENT.renewal_date?fmtD(CW_CLIENT.renewal_date):'—'}</b></div>
+       <div class="kv2"><span class="k">₹ Monthly retainer</span><b>${money(retainer)}</b></div></div></div>
+     <div class="two" style="margin-top:16px"><div class="card pad"><h3 class="sec-title" style="font-size:17px;margin-bottom:12px">Deliverables &amp; approvals</h3><table class="tbl"><thead><tr><th>Deliverable</th><th>Owner</th><th>Due date</th><th>Status</th><th></th></tr></thead><tbody>${deliv.slice(0,5).map(i=>{const col=CC_STC[i.status]||["#6b7280","#eef1ea"];return `<tr><td><div class="cell-lead"><span class="av2" style="width:26px;height:26px;border-radius:7px;background:var(--tint);color:var(--green)">${IC.assets}</span><b>${esc(i.content_type||'Content')}</b></div></td><td>${esc(i.creator_name||'—')}</td><td>${i.planned_at?fmtD(i.planned_at):'—'}</td><td><span class="status" style="background:${col[1]};color:${col[0]}">${esc(i.status)}</span></td><td style="text-align:right"><a class="linkg" onclick="location.hash='#/approvals'">Review ›</a></td></tr>`;}).join("")||'<tr><td colspan="5" class="sub1" style="text-align:center;padding:16px">No deliverables this month.</td></tr>'}</tbody></table></div>
+      <div class="card pad"><h3 class="sec-title" style="font-size:16px;margin-bottom:12px">Billing snapshot</h3>${unpaid?`<div class="card pad" style="background:var(--panel2)"><div style="display:flex;align-items:center;justify-content:space-between"><div><div class="sub1">${esc(unpaid.kind||'Invoice')} · ${unpaid.invoice_no||''}</div><div class="fv" style="font-size:24px;font-weight:800">${money(unpaid.total)}</div></div><span class="status a">${invStatusLabel(unpaid)}</span></div><div class="sub1" style="margin-top:6px">Due: ${unpaid.due_date?fmtD(unpaid.due_date):'—'}</div></div><button class="btn block" style="margin-top:12px" onclick="CW_TAB='billing';viewClientWorkspace(document.getElementById('content'),'${id}')">View invoice</button>`:`<div class="sub1" style="padding:16px 0">No outstanding invoices.</div>`}</div></div>
+     <div class="card pad" style="margin-top:16px"><h3 class="sec-title" style="font-size:16px;margin-bottom:10px">Recent activity</h3>${(act.data||[]).map(a=>`<div class="kv2"><span class="k">✓ ${esc(a.action)}</span><b class="sub1">${fmtDT(a.created_at)}</b></div>`).join("")||'<div class="sub1">No recent activity.</div>'}</div>`;
+    const days=daysBack(30); const base=(rd.conversions||spend/400||10); const rev=days.map((_,i)=>Math.round(base*900*(0.5+i/days.length)+Math.sin(i/3)*base*200)); const pur=days.map((_,i)=>Math.round(base*(0.5+i/days.length)));
+    chart("cw-chart",{type:"line",data:{labels:days.map(x=>x.toLocaleDateString("en-IN",{day:"numeric",month:"short"})),datasets:[{label:"Revenue",...areaDS(rev,"#15803d","#15803d22","#15803d02"),yAxisID:"y"},{label:"Purchases",...areaDS(pur,"#6ee7b7","#6ee7b733","#6ee7b703"),yAxisID:"y1"}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,align:"end",labels:{usePointStyle:true,boxWidth:7}}},scales:{x:{grid:{display:false},ticks:{maxTicksLimit:8,color:"#9aa4b2"}},y:{grid:{color:"#eef1ea"},ticks:{color:"#9aa4b2",callback:v=>"₹"+(v>=1000?Math.round(v/1000)+"K":v)}},y1:{position:"right",grid:{display:false},ticks:{color:"#9aa4b2"}}}}});
+  }
+  else if(CW_TAB==="calendar"){ const {data}=await sb.from("cr_content_items").select("*").eq("client_id",id).order("planned_at",{ascending:false}); b.innerHTML=cwList(data||[],["Planned","Platform/type","Status"],r=>`<td>${r.planned_at?fmtD(r.planned_at):'—'}</td><td>${esc(r.content_type||r.platform||'Content')}</td><td>${cwStatus(r.status)}</td>`); }
+  else if(CW_TAB==="approvals"){ const {data}=await sb.from("cr_content_items").select("*").eq("client_id",id).eq("status","Client Approval"); b.innerHTML=cwList(data||[],["Item","Platform","Planned"],r=>`<td>${esc(r.content_type||'Content')}</td><td>${esc(r.platform||'—')}</td><td>${r.planned_at?fmtD(r.planned_at):'—'}</td>`,"Nothing awaiting approval."); }
+  else if(CW_TAB==="contracts"){ const {data}=await sb.from("cr_contracts").select("*").eq("client_id",id); b.innerHTML=cwList(data||[],["Agreement","Period","Status"],r=>`<td><b>${esc(r.title||'Agreement')}</b></td><td>${r.service_start?fmtD(r.service_start):'—'}</td><td>${cwStatus(r.status)}</td>`); }
+  else if(CW_TAB==="assets"){ const {data}=await sb.from("cr_assets").select("*").eq("client_id",id); b.innerHTML=`<div class="agrid">${(data||[]).map(a=>{const u=a.file_path?supaImg(a.file_path):"";const img=(a.mime_type||"").startsWith("image");return `<div class="acard"><div class="ath">${img&&u?`<img src="${esc(u)}">`:'📄'}</div><div class="ab"><b>${esc(a.name)}</b><span class="status ${a.is_deliverable?'g':'n'}" style="font-size:11px;padding:3px 8px;margin-top:4px;display:inline-block">${a.is_deliverable?'Approved':'Working'}</span></div></div>`;}).join("")||'<div class="sub1">No assets.</div>'}</div>`; }
+  else if(CW_TAB==="reports"){ const {data}=await sb.from("cr_reports").select("*").eq("client_id",id); b.innerHTML=cwList(data||[],["Report","Period","Status"],r=>`<td><b>${esc(r.title||'Report')}</b></td><td>${r.period_start?fmtD(r.period_start):'—'}</td><td>${cwStatus(r.status)}</td>`); }
+  else if(CW_TAB==="billing"){ const {data}=await sb.from("cr_invoices").select("*").eq("client_id",id).order("issue_date",{ascending:false}); b.innerHTML=cwList(data||[],["Invoice","Total","Balance","Status"],r=>`<td><b>${esc(r.invoice_no||'(draft)')}</b></td><td>${money(r.total)}</td><td>${money((Number(r.total)||0)-(Number(r.paid)||0))}</td><td>${cwStatus(invStatusLabel(r))}</td>`); }
+}
+function cli_poc(){ return (CW_CLIENT&&(CW_CLIENT.full_name||CW_CLIENT.designation))?((CW_CLIENT.full_name||"")+(CW_CLIENT.designation?" · "+CW_CLIENT.designation:"")):"Client contact"; }
+function invStatusLabel(i){ if(i.status==="Paid"||i.status==="Draft"||i.status==="Cancelled")return i.status; const bal=(Number(i.total)||0)-(Number(i.paid)||0); if(bal<=0&&(Number(i.total)||0)>0)return "Paid"; if(i.due_date&&new Date(i.due_date)<new Date()&&bal>0)return "Overdue"; if((Number(i.paid)||0)>0&&bal>0)return "Partially Paid"; return i.status||"Issued"; }
+function cwStatus(s){ const g=/paid|active|approved|signed|published|scheduled|shared/i.test(s), a=/await|pending|review|overdue|draft|changes/i.test(s); return `<span class="status ${g?'g':(a?'a':'n')}">${esc(s||'—')}</span>`; }
+function cwList(rows,heads,rowFn,emptyMsg){ return `<div class="card pad"><table class="tbl"><thead><tr>${heads.map(h=>`<th>${h}</th>`).join("")}</tr></thead><tbody>${rows.map(r=>`<tr class="rowlink">${rowFn(r)}</tr>`).join("")||`<tr><td colspan="${heads.length}" class="sub1" style="text-align:center;padding:20px">${emptyMsg||'Nothing yet.'}</td></tr>`}</tbody></table></div>`; }
 
 
-/* ============ shared stat row ============ */
-let SPK=0;
-function psStat(ic,color,label,val,d){ const sid="spk"+(SPK++); setTimeout(()=>spark(sid,[4,6,5,8,7,10,9,12,11,14],color),0); return `<div class="stat"><div class="st-top"><div class="st-ic" style="background:${color}1a;color:${color}">${ic}</div><div class="spark"><canvas id="${sid}"></canvas></div></div><div class="lbl">${label}</div><div class="val">${val}</div>${d||""}</div>`; }
-function clientName(id){ const c=CLIENTS.find(x=>x.id===id); return c?(c.company||c.full_name||c.username||"Client"):"Client"; }
-
-/* ============ PROPOSALS ============ */
-const PROP_ST={draft:["Draft","n"],sent:["Sent","b"],viewed:["Viewed","b"],accepted:["Accepted","g"],rejected:["Rejected","r"],expired:["Expired","a"],superseded:["Superseded","n"]};
-let PROPS=[], PROP_SEL=null, PROP_TAB="all", PROP_Q="";
-async function viewProposals(c){
-  c.innerHTML=`<div class="ph"><div class="ph-ic">${IC.proposals}</div><div><h1>Proposals</h1><div class="psub">Turn your strategy into the next client partnership.</div></div><div class="ph-r"><button class="btn ghost">${IC.proposals} Templates</button>${canStaff()?`<button class="btn" onclick="propNew()"><span>${IC.plus}</span> New proposal</button>`:""}</div></div><div id="prop-body"><div class="psub">Loading…</div></div>`;
-  if(!CLIENTS.length){ const {data}=await sb.from("cr_profiles").select("id,company,full_name,username").eq("role","client"); CLIENTS=data||[]; }
-  const {data}=await sb.from("cr_proposals").select("*").order("created_at",{ascending:false});
-  PROPS=data||[]; if(!PROP_SEL&&PROPS.length)PROP_SEL=PROPS[0].id;
-  propRender();
+/* ============ SETTINGS / USERS & ACCESS ============ */
+let SET_TAB="users", ST_LIST=[], ST_SEL=null, SET_CLIENTS=[];
+const ROLE_LABEL={account_manager:"Account manager",team_member:"Team member",manager:"Manager",super_admin:"Super admin",admin:"Administrator",client:"Client"};
+const PERM={admin:{Clients:[1,1,1,1],Projects:[1,1,1,1],Approvals:[1,1,1,1],Reports:[1,1,1,1],Billing:[1,1,1,1],Payroll:[1,1,1,1],"Bank accounts":[1,1,1,1]},account_manager:{Clients:[1,1,0,1],Projects:[1,1,1,1],Approvals:[1,1,1,0],Reports:[1,1,0,1],Billing:[1,0,0,0],Payroll:[0,0,0,0],"Bank accounts":[0,0,0,0]},team_member:{Clients:[1,0,0,0],Projects:[1,1,0,0],Approvals:[1,1,0,0],Reports:[1,0,0,0],Billing:[0,0,0,0],Payroll:[0,0,0,0],"Bank accounts":[0,0,0,0]},manager:{Clients:[1,1,1,1],Projects:[1,1,1,1],Approvals:[1,1,1,1],Reports:[1,1,0,1],Billing:[1,1,0,1],Payroll:[0,0,0,0],"Bank accounts":[0,0,0,0]}};
+async function viewSettings(c){
+  if(!isAdmin()){ c.innerHTML=`<div class="ph"><div class="ph-ic">${IC.settings}</div><div><h1>Settings</h1><div class="psub">Manage your profile.</div></div></div><div class="card pad"><h3 class="sec-title" style="font-size:17px;margin-bottom:12px">My profile</h3><div class="kv2"><span class="k">Name</span><b>${esc(ME.full_name||'')}</b></div><div class="kv2"><span class="k">Email</span><b>${esc(ME.email||'')}</b></div><div class="kv2"><span class="k">Role</span><b>${esc(ROLE_LABEL[ME.role]||ME.role)}</b></div></div>`; return; }
+  c.innerHTML=`<div class="ph"><div><h1>Users &amp; access</h1><div class="psub">Give every person the right access to the right work.</div></div><div class="ph-r"><button class="btn ghost" onclick="toast('Role editor — presets shown under Roles tab')">Manage roles</button><button class="btn" onclick="setUserForm()"><span>${IC.plus}</span> Invite user</button></div></div>
+   <div class="subtabs">${[["users","Users"],["roles","Roles & permissions"],["access","Client access"],["audit","Audit log"]].map(([k,l])=>`<button class="${SET_TAB===k?'on':''}" onclick="SET_TAB='${k}';viewSettings(document.getElementById('content'))">${l}</button>`).join("")}</div><div id="set-body"><div class="psub">Loading…</div></div>`;
+  const [st,cls]=await Promise.all([ callFn("admin-staff",{action:"list"}).catch(()=>({staff:[]})), sb.from("cr_profiles").select("id,company,full_name,account_manager").eq("role","client") ]);
+  ST_LIST=(st&&st.staff)||[]; SET_CLIENTS=cls.data||[]; if(!ST_SEL&&ST_LIST.length)ST_SEL=ST_LIST[0].id;
+  setRender();
 }
-function propRender(){
-  const b=$("#prop-body"); if(!b)return;
-  const tot=PROPS.length, await_=PROPS.filter(p=>["sent","viewed"].includes(p.status)).length, acc=PROPS.filter(p=>p.status==="accepted").length;
-  const decided=PROPS.filter(p=>["accepted","rejected"].includes(p.status)).length; const rate=decided?Math.round(acc/decided*100):0;
-  const tabs=[["all","All proposals"],["draft","Drafts"],["sent","Sent"],["viewed","Viewed"],["accepted","Accepted"]];
-  let rows=PROPS.filter(p=>PROP_TAB==="all"||p.status===PROP_TAB);
-  if(PROP_Q)rows=rows.filter(p=>((p.title||"")+clientName(p.client_id)).toLowerCase().includes(PROP_Q.toLowerCase()));
-  b.innerHTML=`<div class="stat-row">${psStat(IC.proposals,"#15803d","Total proposals",tot,delta(9))}${psStat('<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 11v2a1 1 0 0 0 1 1h3l4 3V7L7 10H4a1 1 0 0 0-1 1z"/></svg>',"#15803d","Awaiting response",String(await_).padStart(2,"0"),delta(0))}${psStat(IC.approvals,"#15803d","Accepted",String(acc).padStart(2,"0"),delta(12))}${psStat(IC.reports,"#15803d","Acceptance rate",rate+"%",delta(5))}</div>
-   <div class="utabs">${tabs.map(([k,l])=>`<button class="${PROP_TAB===k?'on':''}" onclick="PROP_TAB='${k}';propRender()">${l}</button>`).join("")}</div>
-   <div class="lp"><div class="card pad"><div class="card-h"><h3 class="sec-title">Proposals (${rows.length})</h3><div class="filterbar" style="margin:0"><div class="search2"><span>${IC.search}</span><input placeholder="Search proposals…" value="${esc(PROP_Q)}" oninput="PROP_Q=this.value;propRender()"/></div></div></div>
-     <table class="tbl"><thead><tr><th>Proposal</th><th>Client</th><th>Value</th><th>Status</th></tr></thead><tbody>${rows.map(p=>{const st=PROP_ST[p.status]||["Draft","n"];const val=p.total_recurring>0?money(p.total_recurring)+" / mo":(p.total_onetime>0?money(p.total_onetime)+" one-time":"—");return `<tr class="rowlink ${PROP_SEL===p.id?'sel':''}" onclick="PROP_SEL='${p.id}';propRender()"><td><div class="cell-lead"><span class="av2" style="width:30px;height:30px;border-radius:9px;background:var(--tint);color:var(--green)">${IC.proposals}</span><b>${esc(p.title||"Proposal")}</b></div></td><td>${esc(clientName(p.client_id))}</td><td>${val}</td><td><span class="status ${st[1]}">${st[0]}</span></td></tr>`;}).join("")||`<tr><td colspan="4" class="psub" style="text-align:center;padding:24px">No proposals.</td></tr>`}</tbody></table>
-     <div class="card-h" style="margin:22px 0 0"><h3 class="sec-title" style="font-size:16px">Reusable templates</h3><span class="sub1">Create proposals faster with branded templates.</span></div>
-     <div class="tplrow">${[["Digital Marketing",IC.reports],["Website Development",IC.projects],["Social Media",IC.assets]].map(t=>`<div class="tpl" onclick="propNew()"><span class="ti">${t[1]}</span><b>${t[0]}</b><span style="margin-left:auto;color:var(--faint)">›</span></div>`).join("")}</div>
-     </div>
-     <div class="card pad" id="prop-prev"></div></div>`;
-  propPreview();
+function setRender(){
+  const b=$("#set-body"); if(!b)return;
+  if(SET_TAB==="audit"){ setAudit(b); return; }
+  if(SET_TAB==="roles"){ b.innerHTML=`<div class="card pad"><h3 class="sec-title" style="font-size:17px;margin-bottom:12px">Role permissions</h3><table class="tbl perm-tbl"><thead><tr><th>Module</th><th>Super admin</th><th>Account manager</th><th>Team member</th><th>Manager</th></tr></thead><tbody>${Object.keys(PERM.admin).map(mod=>`<tr><td>${mod}</td>${["admin","account_manager","team_member","manager"].map(r=>`<td>${PERM[r][mod][0]?'<span style="color:var(--green)">✓</span>':'—'}</td>`).join("")}</tr>`).join("")}</tbody></table><div class="sub1" style="margin-top:8px">Access is enforced on the server (RLS). Columns show view access; create/approve/export follow the same role presets.</div></div>`; return; }
+  if(SET_TAB==="access"){ b.innerHTML=`<div class="card pad"><h3 class="sec-title" style="font-size:17px;margin-bottom:12px">Client access</h3><table class="tbl"><thead><tr><th>Client</th><th>Account manager</th></tr></thead><tbody>${SET_CLIENTS.map(c=>{const am=ST_LIST.find(s=>s.id===c.account_manager);return `<tr><td><b>${esc(c.company||c.full_name)}</b></td><td>${am?esc(am.full_name||am.email):'<span class="sub1">Unassigned</span>'}</td></tr>`;}).join("")}</tbody></table><div class="sub1" style="margin-top:8px">Clients see only their own company. Account managers access only assigned clients.</div></div>`; return; }
+  // users
+  const active=ST_LIST.length; const ams=ST_LIST.filter(s=>s.role==="account_manager").length;
+  b.innerHTML=`<div class="set-stats">${psStat(IC.clients,"#15803d","Active users",String(active).padStart(2,"0"),"")}${psStat('<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>',"#15803d","Account managers",String(ams).padStart(2,"0"),"")}${psStat(IC.settings,"#15803d","Custom roles","04","")}${psStat('<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>',"#15803d","Finance access",String(ST_LIST.filter(s=>s.fin_access||["admin","super_admin","account_manager"].includes(s.role)).length).padStart(2,"0"),"")}</div>
+   <div class="lp"><div class="card pad"><div class="card-h"><h3 class="sec-title" style="font-size:16px">Team members</h3></div><table class="tbl"><thead><tr><th>User</th><th>Role</th><th>Finance</th><th></th></tr></thead><tbody>${ST_LIST.map(u=>`<tr class="rowlink ${ST_SEL===u.id?'sel':''}" onclick="ST_SEL='${u.id}';setRender()"><td><div class="cell-lead"><span class="av2" style="width:30px;height:30px;border-radius:9px;font-size:11px;background:linear-gradient(135deg,${avatarColor(u.full_name||u.email)})">${esc(initials(u.full_name||u.email)).toUpperCase()}</span><div><b>${esc(u.full_name||'—')}</b><div class="sub1">${esc(u.email||'')}</div></div></div></td><td><span class="tag">${esc(ROLE_LABEL[u.role]||u.role)}</span></td><td>${u.fin_access||["admin","super_admin","account_manager"].includes(u.role)?'<span style="color:var(--green)">✓</span>':'—'}</td><td style="text-align:right"><a class="linkg">Manage</a></td></tr>`).join("")||'<tr><td colspan="4" class="sub1" style="text-align:center;padding:16px">No team members. Invite one.</td></tr>'}</tbody></table></div>
+   <div class="card pad" id="set-det"></div></div>`;
+  setDetail();
 }
-async function propPreview(){
-  const el=$("#prop-prev"); if(!el)return; const p=PROPS.find(x=>x.id===PROP_SEL);
-  if(!p){el.innerHTML=`<div class="empty"><div class="ei">${IC.proposals}</div><div>Select a proposal</div></div>`;return;}
-  const {data:items}=await sb.from("cr_proposal_items").select("*").eq("proposal_id",p.id).order("sort");
-  const deliv=(items||[]).filter(i=>i.section!=="exclusion").slice(0,6);
-  const tl=[["Created",p.created_at],["Sent",p.sent_at],["Viewed",p.viewed_at]];
-  el.innerHTML=`<div class="card-h"><h3 class="sec-title" style="font-size:17px">Proposal preview</h3><span class="sub1">PR-${(p.id||"").slice(0,8)} · v${p.version||1}</span></div>
-  <div class="doc"><div class="doc-top"><div class="doc-brand"><span class="mk"><i></i><i></i><i></i><i></i></span>STEPSTONES SOLUTIONS</div><div class="doc-title">${esc(p.title||"Proposal")}</div><div class="doc-prep">Prepared for ${esc(clientName(p.client_id))}</div></div>
-   <div class="doc-body"><div class="doc-sec">Scope of work</div>${deliv.map(i=>`<div class="doc-li">${esc(i.name)}</div>`).join("")||'<div class="sub1">—</div>'}
-    <div class="doc-sec">Investment summary</div><div class="inv-tbl"><div><span class="k">Agency fee</span><span>${p.total_recurring>0?money(p.total_recurring,p.currency)+" / month":money(p.total_onetime,p.currency)}</span></div><div><span class="k">Ad budget</span><span>${money(p.ad_budget,p.currency)} / month (separate)</span></div></div>
-    <div class="sub1" style="margin-top:8px;font-style:italic">Taxes extra, if applicable</div>
-    <div class="timeline">${tl.map(([l,d])=>`<div class="tl ${d?'':'off'}"><div class="d">${d?'✓':'·'}</div><b>${l}</b><span>${d?fmtD(d):'—'}</span></div>`).join("")}</div>
-    <div class="btnrow"><button class="btn ghost" onclick="propPDF('${p.id}')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 21h14"/></svg> Download PDF</button><button class="btn" onclick="propOpen('${p.id}')">Open proposal ↗</button></div>
-   </div></div>`;
+function setDetail(){ const el=$("#set-det"); if(!el)return; const u=ST_LIST.find(x=>x.id===ST_SEL);
+  if(!u){el.innerHTML=`<div class="empty"><div class="ei">${IC.clients}</div><div>Select a user</div></div>`;return;}
+  const assigned=SET_CLIENTS.filter(c=>c.account_manager===u.id);
+  const pm=PERM[u.role]||PERM.team_member;
+  el.innerHTML=`<div class="cell-lead" style="margin-bottom:14px"><span class="av2" style="width:46px;height:46px;border-radius:12px;background:linear-gradient(135deg,${avatarColor(u.full_name||u.email)})">${esc(initials(u.full_name||u.email)).toUpperCase()}</span><div><b style="font-size:17px">${esc(u.full_name||'—')}</b><div class="sub1">${esc(ROLE_LABEL[u.role]||u.role)} · ${esc(u.email||'')}</div></div></div>
+   <h3 class="sec-title" style="font-size:14px;margin-bottom:8px">Assigned clients <span class="sub1" style="font-weight:600">${u.role==='account_manager'?'(access limited to these)':''}</span></h3>
+   <div style="margin-bottom:12px">${assigned.map(c=>`<span class="chiprm">${esc(c.company||c.full_name)}</span>`).join("")||'<span class="sub1">None assigned</span>'}</div>
+   <h3 class="sec-title" style="font-size:14px;margin-bottom:8px">Module permissions</h3>
+   <table class="tbl perm-tbl" style="font-size:12.5px"><thead><tr><th>Module</th><th>View</th><th>Edit</th><th>Approve</th><th>Export</th></tr></thead><tbody>${Object.keys(pm).map(mod=>`<tr><td>${mod}</td>${pm[mod].map(x=>`<td>${x?'<span style="color:var(--green)">✓</span>':'—'}</td>`).join("")}</tr>`).join("")}</tbody></table>
+   <div class="sub1" style="margin:8px 0 12px">Inherited from ${esc(ROLE_LABEL[u.role]||u.role)} role.</div>
+   <div class="btnrow"><button class="btn ghost" onclick="setReset('${u.id}')">Reset password</button><button class="btn" onclick="setUserEdit('${u.id}')">Edit role</button></div>`;
 }
-function propOpen(id){ const p=PROPS.find(x=>x.id===id); propDetailModal(p); }
-function propNew(){ toast("Proposal builder opens here — full editor next pass."); }
-async function propPDF(id){
-  const p=PROPS.find(x=>x.id===id); const {data:items}=await sb.from("cr_proposal_items").select("*").eq("proposal_id",id).order("sort");
-  const {jsPDF}=window.jspdf; const doc=new jsPDF(); doc.setFillColor(21,128,61);doc.rect(0,0,210,24,"F");doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(15);doc.text("Stepstones Solutions",14,12);doc.setFontSize(10);doc.text("PROPOSAL",14,19);
-  let y=36;doc.setTextColor(20,20,30);doc.setFontSize(16);doc.text(doc.splitTextToSize(p.title||"Proposal",180),14,y);y+=9;doc.setFontSize(11);doc.setFont("helvetica","normal");doc.text("Prepared for "+clientName(p.client_id),14,y);y+=8;
-  doc.autoTable({startY:y,head:[["Section","Item","Fee"]],body:(items||[]).map(i=>[i.section,i.name,i.section==="exclusion"?"—":money2(i.fee,p.currency)+(i.recurring?"/mo":"")]),headStyles:{fillColor:[21,128,61]},styles:{fontSize:9}});
-  let ty=doc.lastAutoTable.finalY+8;doc.setFont("helvetica","bold");doc.text("One-time: "+money2(p.total_onetime,p.currency),14,ty);doc.text("Recurring: "+money2(p.total_recurring,p.currency)+"/mo",14,ty+6);doc.text("Ad budget (separate): "+money2(p.ad_budget,p.currency),14,ty+12);
-  doc.save("proposal-"+(p.title||"").replace(/[^\w]+/g,"_").slice(0,24)+".pdf");
-}
-function propDetailModal(p){ propPreview(); toast("Opened "+(p.title||"proposal")); }
-
-/* ============ CONTRACTS ============ */
-const CON_ST={draft:["Draft","n"],sent:["Awaiting signature","b"],signed:["Signed","g"],countersigned:["Active","g"],terminated:["Terminated","r"]};
-let CONS=[], CON_SEL=null, CON_TAB="all", CON_Q="";
-async function viewContracts(c){
-  c.innerHTML=`<div class="ph"><div class="ph-ic">${IC.contracts}</div><div><h1>Contracts</h1><div class="psub">Keep every agreement, signature and renewal in one place.</div></div><div class="ph-r"><button class="btn ghost">${IC.contracts} Templates</button>${canStaff()?`<button class="btn" onclick="toast('Contract editor — next pass')"><span>${IC.plus}</span> Create contract</button>`:""}</div></div><div id="con-body"><div class="psub">Loading…</div></div>`;
-  if(!CLIENTS.length){ const {data}=await sb.from("cr_profiles").select("id,company,full_name,username,renewal_date").eq("role","client"); CLIENTS=data||[]; }
-  const {data}=await sb.from("cr_contracts").select("*").order("created_at",{ascending:false});
-  CONS=data||[]; if(!CON_SEL&&CONS.length)CON_SEL=CONS[0].id;
-  conRender();
-}
-function conRender(){
-  const b=$("#con-body"); if(!b)return;
-  const activeN=CONS.filter(c=>["signed","countersigned"].includes(c.status)).length;
-  const awaitN=CONS.filter(c=>c.status==="sent").length;
-  const nextMonth=new Date();nextMonth.setMonth(nextMonth.getMonth()+1);
-  const renewN=CONS.filter(c=>c.service_end&&new Date(c.service_end)<=nextMonth&&new Date(c.service_end)>=new Date()).length;
-  const draftN=CONS.filter(c=>c.status==="draft").length;
-  const tabs=[["all","All contracts"],["sent","Awaiting signature"],["active","Active"],["expiring","Expiring soon"],["draft","Drafts"]];
-  let rows=CONS.filter(c=>{if(CON_TAB==="all")return true;if(CON_TAB==="active")return["signed","countersigned"].includes(c.status);if(CON_TAB==="expiring")return c.service_end&&new Date(c.service_end)<=nextMonth&&new Date(c.service_end)>=new Date();if(CON_TAB==="sent")return c.status==="sent";return c.status===CON_TAB;});
-  if(CON_Q)rows=rows.filter(c=>((c.title||"")+clientName(c.client_id)).toLowerCase().includes(CON_Q.toLowerCase()));
-  const upcoming=CONS.filter(c=>c.service_end&&new Date(c.service_end)<=nextMonth&&new Date(c.service_end)>=new Date()).slice(0,3);
-  b.innerHTML=`<div class="stat-row">${psStat(IC.contracts,"#15803d","Active agreements",String(activeN).padStart(2,"0"),delta(4))}${psStat('<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 11v2a1 1 0 0 0 1 1h3l4 3V7L7 10H4a1 1 0 0 0-1 1z"/></svg>',"#15803d","Awaiting signature",String(awaitN).padStart(2,"0"),delta(0))}${psStat(IC.calendar,"#15803d","Renewing this month",String(renewN).padStart(2,"0"),delta(0))}${psStat(IC.proposals,"#15803d","Drafts",String(draftN).padStart(2,"0"),delta(0))}</div>
-   <div class="utabs">${tabs.map(([k,l])=>`<button class="${CON_TAB===k?'on':''}" onclick="CON_TAB='${k}';conRender()">${l}</button>`).join("")}</div>
-   <div class="lp"><div><div class="card pad"><div class="card-h"><h3 class="sec-title">Contracts (${rows.length})</h3><div class="search2"><span>${IC.search}</span><input placeholder="Search contracts…" value="${esc(CON_Q)}" oninput="CON_Q=this.value;conRender()"/></div></div>
-     <table class="tbl"><thead><tr><th>Agreement</th><th>Client</th><th>Renewal</th><th>Status</th></tr></thead><tbody>${rows.map(c=>{const st=CON_ST[c.status]||["Draft","n"];return `<tr class="rowlink ${CON_SEL===c.id?'sel':''}" onclick="CON_SEL='${c.id}';conRender()"><td><div class="cell-lead"><span class="av2" style="width:30px;height:30px;border-radius:9px;background:var(--tint);color:var(--green)">${IC.contracts}</span><b>${esc(c.title||"Agreement")}</b></div></td><td>${esc(clientName(c.client_id))}</td><td>${c.service_end?fmtD(c.service_end):"One-time"}</td><td><span class="status ${st[1]}">${st[0]}</span></td></tr>`;}).join("")||`<tr><td colspan="4" class="psub" style="text-align:center;padding:24px">No contracts.</td></tr>`}</tbody></table></div>
-     ${upcoming.length?`<div class="card pad" style="margin-top:16px"><div class="card-h"><h3 class="sec-title" style="font-size:16px">Upcoming renewals (${upcoming.length})</h3><span class="sub1">Due in the next 30 days.</span></div>${upcoming.map(c=>{const d=new Date(c.service_end);return `<div class="upc"><div class="dt"><b>${d.getDate()}</b><span>${d.toLocaleDateString("en-IN",{month:"short"})}</span></div><div class="ti" style="flex:1"><b>${esc(clientName(c.client_id))}</b><span>${esc(c.title||"Agreement")}</span></div><button class="btn ghost sm" onclick="CON_SEL='${c.id}';conRender()">Review renewal</button></div>`;}).join("")}</div>`:""}
-     </div>
-     <div class="card pad" id="con-prev"></div></div>`;
-  conPreview();
-}
-async function conPreview(){
-  const el=$("#con-prev"); if(!el)return; const c=CONS.find(x=>x.id===CON_SEL);
-  if(!c){el.innerHTML=`<div class="empty"><div class="ei">${IC.contracts}</div><div>Select a contract</div></div>`;return;}
-  const {data:sigs}=await sb.from("cr_signatures").select("*").eq("contract_id",c.id).order("signed_at");
-  const clientSig=(sigs||[]).find(s=>s.signer_role==="client"); const agencySig=(sigs||[]).find(s=>s.signer_role==="agency");
-  const done=(sigs||[]).length; const prog=Math.min(100,Math.round(done/2*100));
-  el.innerHTML=`<div class="card-h"><h3 class="sec-title" style="font-size:17px">Agreement details</h3><span class="sub1">CT-${(c.id||"").slice(0,8)} · v${c.version||1}</span></div>
-  <div class="doc"><div class="doc-top"><div class="doc-brand"><span class="mk"><i></i><i></i><i></i><i></i></span>STEPSTONES SOLUTIONS</div><div class="doc-title">${esc(c.title||"Service Agreement")}</div><div class="doc-prep">Prepared for ${esc(clientName(c.client_id))}</div></div>
-   <div class="doc-body">${c.scope?`<div class="doc-sec">Scope of services</div>${c.scope.split("\n").slice(0,4).map(l=>`<div class="doc-li">${esc(l)}</div>`).join("")}`:""}
-    <div class="inv-tbl" style="margin-top:10px"><div><span class="k">Service period</span><span>${c.service_start?fmtD(c.service_start):"—"} – ${c.service_end?fmtD(c.service_end):"—"}</span></div><div><span class="k">Agency fee</span><span>${esc(c.payment_schedule||"As agreed")}</span></div></div>
-   </div></div>
-   <div class="card-h" style="margin:16px 0 4px"><h3 class="sec-title" style="font-size:15px">Signature workflow</h3><a class="linkg" onclick="toast('Audit trail — full view next')">View audit trail</a></div>
-   <div class="sigwf"><div class="sigrow"><span class="si ${agencySig?'ok':'pend'}">${agencySig?'✓':'…'}</span><div><b>Agency representative</b><span>${agencySig?esc(agencySig.signer_name):"Not signed"}</span></div><span class="when">${agencySig?fmtDT(agencySig.signed_at):""}</span></div>
-   <div class="sigrow"><span class="si ${clientSig?'ok':'pend'}">${clientSig?'✓':'…'}</span><div><b>Client representative</b><span>${clientSig?esc(clientSig.signer_name):(c.status==='sent'?"Awaiting signature":"Not sent")}</span></div><span class="when">${clientSig?fmtDT(clientSig.signed_at):""}</span></div></div>
-   <div class="sigbar"><i style="width:${prog}%"></i></div><div class="sub1" style="text-align:right">${done} of 2 signatures complete</div>
-   <div class="btnrow"><button class="btn ghost sm" onclick="conPDF('${c.id}')">Preview PDF</button>${c.status==='sent'?`<button class="btn ghost sm" onclick="toast('Reminder noted')">Send reminder</button>`:""}${ME.role==='client'&&!clientSig?`<button class="btn sm" onclick="conSign('${c.id}')">Review &amp; sign</button>`:`<button class="btn sm" onclick="toast('Signing link copied')">View signing link</button>`}</div>`;
-}
-async function conPDF(id){ const c=CONS.find(x=>x.id===id); const {data:sigs}=await sb.from("cr_signatures").select("*").eq("contract_id",id); const {jsPDF}=window.jspdf; const doc=new jsPDF(); doc.setFillColor(21,128,61);doc.rect(0,0,210,24,"F");doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(15);doc.text("Stepstones Solutions",14,12);doc.setFontSize(10);doc.text("CONTRACT",14,19);let y=36;doc.setTextColor(20,20,30);doc.setFontSize(15);doc.text(doc.splitTextToSize(c.title||"Agreement",180),14,y);y+=9;doc.setFontSize(11);doc.setFont("helvetica","normal");doc.text("Client: "+clientName(c.client_id),14,y);y+=8;[["Scope",c.scope],["Payment",c.payment_schedule],["Renewal",c.renewal],["Termination",c.termination],["Contract",c.body]].forEach(([h,t])=>{if(!t)return;doc.setFont("helvetica","bold");doc.text(h,14,y);y+=5;doc.setFont("helvetica","normal");const ls=doc.splitTextToSize(t,182);if(y+ls.length*5>275){doc.addPage();y=20;}doc.text(ls,14,y);y+=ls.length*5+5;});doc.setFont("helvetica","bold");doc.text("Signatures",14,y);y+=6;doc.setFont("helvetica","normal");doc.setFontSize(9);(sigs||[]).forEach(sgn=>{doc.text(`${sgn.signer_role.toUpperCase()}: ${sgn.signer_name} — ${sgn.method} — ${fmtDT(sgn.signed_at)}`,14,y);y+=5;});doc.save("contract-"+(c.title||"").replace(/[^\w]+/g,"_").slice(0,24)+".pdf"); }
-function conSign(id){ toast("Signing flow opens here — porting the consent+sign modal next."); }
-
-
-/* ============ CONTENT CALENDAR ============ */
-const CC_STC={Planned:["#7c3aed","#efe9fd"],"In Production":["#2563eb","#e6effd"],"Internal Review":["#2563eb","#e6effd"],"Client Approval":["#b4740f","#fbf1df"],Approved:["#15803d","#e9f5ee"],Scheduled:["#0891b2","#e0f7fb"],Published:["#15803d","#e9f5ee"],"Changes Requested":["#c23b3b","#fbe9e9"],Cancelled:["#6b7280","#eef1ea"]};
-let CC=[], CC_REF=new Date(), CC_SEL=null, CC_CLIENT="", CC_PLAT="";
-async function viewCalendar(c){
-  c.innerHTML=`<div class="ph"><div class="ph-ic">${IC.calendar}</div><div><h1>Content Calendar</h1><div class="psub">Plan, review and schedule every client's content.</div></div><div class="ph-r"><button class="btn ghost">⬇ Export</button>${canStaff()?`<button class="btn" onclick="ccNew()"><span>${IC.plus}</span> Create content</button>`:""}</div></div><div id="cc-body"><div class="psub">Loading…</div></div>`;
-  if(!CLIENTS.length){const {data}=await sb.from("cr_profiles").select("id,company,full_name,username").eq("role","client");CLIENTS=data||[];}
-  const {data}=await sb.from("cr_content_items").select("*").order("planned_at");
-  CC=data||[]; if(!CC_SEL&&CC.length)CC_SEL=CC[0].id;
-  ccRender();
-}
-function ccStat(label){return CC.filter(x=>x.status===label).length;}
-function ccRender(){
-  const b=$("#cc-body"); if(!b)return;
-  const plats=[...new Set(CC.map(x=>x.platform).filter(Boolean))];
-  b.innerHTML=`<div class="stat-row">${psStat(IC.calendar,"#15803d","Planned",String(ccStat("Planned")).padStart(2,"0"),"")}${psStat(IC.projects,"#15803d","In production",String(ccStat("In Production")).padStart(2,"0"),"")}${psStat(IC.approvals,"#b4740f","Awaiting approval",String(ccStat("Client Approval")).padStart(2,"0"),"")}${psStat(IC.contracts,"#0891b2","Scheduled",String(ccStat("Scheduled")).padStart(2,"0"),"")}</div>
-  <div class="cal-controls"><select class="selectbox" onchange="CC_CLIENT=this.value;ccRender()"><option value="">All clients</option>${CLIENTS.map(c=>`<option value="${c.id}" ${CC_CLIENT===c.id?'selected':''}>${esc(c.company||c.full_name)}</option>`).join("")}</select><select class="selectbox" onchange="CC_PLAT=this.value;ccRender()"><option value="">All platforms</option>${plats.map(p=>`<option ${CC_PLAT===p?'selected':''}>${esc(p)}</option>`).join("")}</select></div>
-  <div class="calwrap"><div class="cal"><div class="cal-h"><h3>${CC_REF.toLocaleDateString("en-IN",{month:"long",year:"numeric"})}</h3><div class="cal-nav"><button onclick="ccNav(-1)">‹</button><button onclick="ccNav(1)">›</button><button class="btn ghost sm" style="width:auto" onclick="CC_REF=new Date();ccRender()">Today</button></div></div>
-  <div class="cal-dow">${["SUN","MON","TUE","WED","THU","FRI","SAT"].map(d=>`<div>${d}</div>`).join("")}</div><div class="cal-grid">${ccGrid()}</div>
-  <div class="cal-legend">${[["Planned","#7c3aed"],["In production","#2563eb"],["Awaiting approval","#b4740f"],["Scheduled","#0891b2"],["Approved","#15803d"]].map(([l,c])=>`<span><i style="background:${c}"></i>${l}</span>`).join("")}<span style="margin-left:auto">Timezone: Asia/Kolkata</span></div></div>
-  <div class="card pad cdet" id="cc-det"></div></div>`;
-  ccDetail();
-}
-function ccFiltered(){ return CC.filter(x=>(!CC_CLIENT||x.client_id===CC_CLIENT)&&(!CC_PLAT||x.platform===CC_PLAT)); }
-function ccNav(n){CC_REF=new Date(CC_REF.getFullYear(),CC_REF.getMonth()+n,1);ccRender();}
-function ccGrid(){
-  const rows=ccFiltered(); const byDay={}; rows.forEach(r=>{if(r.planned_at){const k=new Date(r.planned_at).toDateString();(byDay[k]=byDay[k]||[]).push(r);}});
-  const first=new Date(CC_REF.getFullYear(),CC_REF.getMonth(),1); const start=new Date(first); start.setDate(1-first.getDay());
-  const today=new Date().toDateString(); let out="";
-  for(let i=0;i<42;i++){const d=new Date(start);d.setDate(start.getDate()+i);const oth=d.getMonth()!==CC_REF.getMonth();const items=byDay[d.toDateString()]||[];
-    out+=`<div class="cal-c ${oth?'oth':''} ${d.toDateString()===today?'today':''}"><div class="cd">${d.getDate()}</div>${items.slice(0,3).map(r=>{const col=CC_STC[r.status]||["#6b7280","#eef1ea"];const t=r.planned_at?new Date(r.planned_at).toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"}):"";return `<div class="ev ${CC_SEL===r.id?'sel':''}" style="background:${col[1]};color:${col[0]}" onclick="CC_SEL='${r.id}';ccRender()"><b>${esc(clientName(r.client_id))}</b></div><div class="ev" style="background:transparent;color:${col[0]};padding:0 6px;margin-top:-2px"><small>${esc(r.content_type||r.platform||"")} ${t}</small></div>`;}).join("")}${items.length>3?`<div class="sub1" style="font-size:10px">+${items.length-3} more</div>`:""}</div>`;}
-  return out;
-}
-async function ccDetail(){
-  const el=$("#cc-det"); if(!el)return; const r=CC.find(x=>x.id===CC_SEL);
-  if(!r){el.innerHTML=`<div class="empty"><div class="ei">${IC.calendar}</div><div>Select a content item</div></div>`;return;}
-  const {data:assets}=await sb.from("cr_content_assets").select("*").eq("content_item_id",r.id);
-  const col=CC_STC[r.status]||["#6b7280","#eef1ea"]; const img=(assets||[]).find(a=>(a.mime_type||"").startsWith("image"));
-  el.innerHTML=`<div class="card-h"><h3 class="sec-title" style="font-size:17px">Content details</h3><span class="status" style="background:${col[1]};color:${col[0]}">${esc(r.status)}</span></div>
-  <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><span class="status g" style="padding:4px 10px">${esc(clientName(r.client_id))}</span></div>
-  <div style="font-size:18px;font-weight:800;margin-bottom:10px">${esc(r.content_type||"Content")} · ${esc(r.platform||"")}</div>
-  ${img?`<img class="pv" src="${esc(supaImg(img.file_path))}">`:`<div class="pvph">${IC.assets}</div>`}
-  <div class="meta-row"><span>📱 ${esc(r.platform||"—")}</span><span>${r.planned_at?fmtDT(r.planned_at):"Unscheduled"}</span></div>
-  ${r.caption?`<p style="margin:12px 0;font-size:14px">${esc(r.caption)}</p>`:""}
-  <div class="meta-row"><span>Owner <b style="color:var(--ink)">${esc(r.creator_name||"—")}</b></span><span>Version ${r.version||1}</span></div>
-  <div class="btnrow">${ME.role==='client'&&r.status==='Client Approval'?`<button class="btn block" onclick="ccDecide('${r.id}','Approved')">✓ Approve content</button>`:`<button class="btn block" onclick="location.hash='#/approvals'">Review content</button>`}</div>
-  ${ME.role==='client'&&r.status==='Client Approval'?`<button class="btn ghost block" style="margin-top:8px" onclick="ccChanges('${r.id}')">Request changes</button>`:""}
-  <div class="sub1" style="margin-top:10px;text-align:center">Publishing requires approval.</div>`;
-}
-function supaImg(path){ return path?sb.storage.from("cr-logos").getPublicUrl(path).data.publicUrl:""; }
-async function ccDecide(id,st){ await sb.from("cr_content_items").update({status:st,updated_at:new Date().toISOString()}).eq("id",id); const r=CC.find(x=>x.id===id); if(r)r.status=st; toast("Marked "+st); ccRender(); }
-async function ccChanges(id){ const n=prompt("What changes are needed?"); if(n===null)return; await sb.from("cr_content_items").update({status:"Changes Requested",approval_comment:n}).eq("id",id); const r=CC.find(x=>x.id===id);if(r){r.status="Changes Requested";r.approval_comment=n;} toast("Changes requested"); ccRender(); }
-function ccNew(){ toast("Content composer — next pass"); }
-
-/* ============ APPROVALS ============ */
-let AP=[], AP_SEL=null, AP_TAB="await";
-async function viewApprovals(c){
-  c.innerHTML=`<div class="ph"><div class="ph-ic">${IC.approvals}</div><div><h1>Approvals</h1><div class="psub">Clear feedback. Faster approvals. Better work.</div></div><div class="ph-r"><button class="btn ghost">🔗 Share review link</button></div></div><div id="ap-body"><div class="psub">Loading…</div></div>`;
-  if(!CLIENTS.length){const {data}=await sb.from("cr_profiles").select("id,company,full_name,username").eq("role","client");CLIENTS=data||[];}
-  const {data}=await sb.from("cr_content_items").select("*").order("planned_at");
-  AP=data||[]; apRender();
-}
-function apQueue(){ return AP.filter(x=>{ if(AP_TAB==="await")return["Client Approval","Internal Review"].includes(x.status); if(AP_TAB==="changes")return x.status==="Changes Requested"; if(AP_TAB==="approved")return["Approved","Scheduled","Published"].includes(x.status); return true; }); }
-function apRender(){
-  const b=$("#ap-body"); if(!b)return;
-  const awaitN=AP.filter(x=>["Client Approval","Internal Review"].includes(x.status)).length;
-  const chg=AP.filter(x=>x.status==="Changes Requested").length;
-  const mKey=new Date().toISOString().slice(0,7);
-  const appr=AP.filter(x=>["Approved","Scheduled","Published"].includes(x.status)&&String(x.updated_at||x.planned_at||"").slice(0,7)===mKey).length;
-  const overdue=AP.filter(x=>x.status==="Client Approval"&&x.planned_at&&new Date(x.planned_at)<new Date()).length;
-  const q=apQueue(); if(!AP_SEL&&q.length)AP_SEL=q[0].id;
-  b.innerHTML=`<div class="stat-row">${psStat(IC.approvals,"#15803d","Awaiting review",String(awaitN).padStart(2,"0"),"")}${psStat('<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',"#b4740f","Changes requested",String(chg).padStart(2,"0"),"")}${psStat(IC.approvals,"#15803d","Approved this month",String(appr).padStart(2,"0"),"")}${psStat('<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l2 2"/></svg>',"#c23b3b","Overdue",String(overdue).padStart(2,"0"),"")}</div>
-  <div class="utabs">${[["await","Awaiting review"],["changes","Changes requested"],["approved","Approved"]].map(([k,l])=>`<button class="${AP_TAB===k?'on':''}" onclick="AP_TAB='${k}';AP_SEL=null;apRender()">${l}</button>`).join("")}</div>
-  <div class="appr"><div class="card pad"><div class="card-h"><h3 class="sec-title" style="font-size:16px">Review queue (${q.length})</h3></div>${q.map(r=>{const col=CC_STC[r.status]||["#6b7280","#eef1ea"];return `<div class="q-item ${AP_SEL===r.id?'sel':''}" onclick="AP_SEL='${r.id}';apRender()"><div class="th" style="display:grid;place-items:center;color:var(--green)">${IC.assets}</div><div style="flex:1;min-width:0"><b>${esc(clientName(r.client_id))}</b><div class="m">${esc(r.content_type||r.platform||"Content")} · v${r.version||1}</div><span class="status" style="background:${col[1]};color:${col[0]};font-size:11px;padding:3px 8px;margin-top:4px;display:inline-block">${esc(r.status)}</span></div></div>`;}).join("")||`<div class="psub" style="padding:20px;text-align:center">Nothing here.</div>`}</div>
-  <div class="card pad" id="ap-center"></div>
-  <div class="card pad" id="ap-fb"></div></div>`;
-  apCenter();
-}
-async function apCenter(){
-  const el=$("#ap-center"), fb=$("#ap-fb"); if(!el)return; const r=AP.find(x=>x.id===AP_SEL);
-  if(!r){el.innerHTML=`<div class="empty"><div class="ei">${IC.approvals}</div><div>Select an item to review</div></div>`;if(fb)fb.innerHTML="";return;}
-  const {data:assets}=await sb.from("cr_content_assets").select("*").eq("content_item_id",r.id);
-  const img=(assets||[]).find(a=>(a.mime_type||"").startsWith("image"));
-  el.innerHTML=`<div class="card-h"><h3 class="sec-title" style="font-size:17px">${esc(r.content_type||"Content")}</h3><span class="sub1">v${r.version||1}</span></div>
-  <div style="margin-bottom:10px"><span class="status g" style="padding:4px 10px">${esc(clientName(r.client_id))}</span></div>
-  ${img?`<img class="pv" src="${esc(supaImg(img.file_path))}">`:`<div class="pvph" style="height:320px">${IC.assets}</div>`}
-  ${r.caption?`<p style="margin-top:12px;font-size:14px">${esc(r.caption)}</p>`:""}
-  <div class="meta-row"><span>Uploaded by ${esc(r.creator_name||"—")}</span><span>${r.planned_at?fmtD(r.planned_at):""}</span></div>`;
-  const col=CC_STC[r.status]||["#6b7280","#eef1ea"];
-  const steps=[["Internal review",["Approved","Scheduled","Published","Client Approval"].includes(r.status)?"ok":(r.status==="Internal Review"?"pend":"off")],["Client approval",["Approved","Scheduled","Published"].includes(r.status)?"ok":(r.status==="Client Approval"?"pend":"off")],["Scheduled",["Scheduled","Published"].includes(r.status)?"ok":"off"]];
-  const {data:vers}=await sb.from("cr_content_versions").select("*").eq("content_item_id",r.id).order("created_at",{ascending:false});
-  fb.innerHTML=`<div class="card-h"><h3 class="sec-title" style="font-size:16px">Feedback &amp; approval</h3><span class="status" style="background:${col[1]};color:${col[0]}">${esc(r.status)}</span></div>
-  <div class="steps3">${steps.map(([l,s])=>`<div class="step3 ${s}"><div class="s3i">${s==='ok'?'✓':(s==='pend'?'…':'·')}</div><b>${l}</b><span>${s==='ok'?'Complete':(s==='pend'?'Pending':'Not started')}</span></div>`).join("")}</div>
-  <div style="margin-bottom:10px">${r.approval_comment?`<div class="cmt"><div class="ca" style="background:linear-gradient(135deg,${avatarColor(clientName(r.client_id))})">${esc(initials(clientName(r.client_id))).toUpperCase()}</div><div class="cb"><div class="ch"><b>${esc(clientName(r.client_id))}</b></div>${esc(r.approval_comment)}</div></div>`:`<div class="sub1" style="padding:8px 0">No comments yet.</div>`}</div>
-  ${canStaff()?`<textarea class="inp" id="ap-cmt" rows="2" placeholder="Add your feedback…"></textarea>
-  <div class="btnrow" style="margin-top:8px">${r.status==="Internal Review"?`<button class="btn block" onclick="ccDecide('${r.id}','Client Approval');apRender()">Send to client</button>`:`<button class="btn block" onclick="apApprove('${r.id}')">✓ Approve v${r.version||1}</button>`}</div>
-  <button class="btn ghost block" style="margin-top:8px;color:var(--amber)" onclick="ccChanges('${r.id}');apRender()">Request changes</button>`:(r.status==='Client Approval'?`<div class="btnrow"><button class="btn block" onclick="apApprove('${r.id}')">✓ Approve</button></div><button class="btn ghost block" style="margin-top:8px;color:var(--amber)" onclick="ccChanges('${r.id}');apRender()">Request changes</button>`:"")}
-  <div class="sub1" style="margin-top:10px;text-align:center">Approval applies to this version only.</div>`;
-}
-async function apApprove(id){ await sb.from("cr_content_items").update({status:"Approved",updated_at:new Date().toISOString()}).eq("id",id); const r=AP.find(x=>x.id===id);if(r)r.status="Approved"; toast("Approved"); apRender(); }
-
-
-/* ============ PROJECTS (kanban) ============ */
-const KCOLS=[["To do","To do","#6b7280"],["In Progress","In progress","#2563eb"],["Client Review","Client review","#b4740f"],["Done","Completed","#15803d"]];
-let PRJ=[], PRJ_TASKS=[], PRJ_SEL=null;
-async function viewProjects(c){
-  c.innerHTML=`<div class="ph"><div class="ph-ic">${IC.projects}</div><div><h1>Projects</h1><div class="psub">From brief to delivery, keep every project moving.</div></div><div class="ph-r"><button class="btn ghost">Templates</button>${canStaff()?`<button class="btn" onclick="toast('New project — next pass')"><span>${IC.plus}</span> New project</button>`:""}</div></div><div id="pr-body"><div class="psub">Loading…</div></div>`;
-  if(!CLIENTS.length){const {data}=await sb.from("cr_profiles").select("id,company,full_name,username").eq("role","client");CLIENTS=data||[];}
-  const [p,t]=await Promise.all([sb.from("cr_projects").select("*").order("created_at",{ascending:false}),sb.from("cr_project_tasks").select("*")]);
-  PRJ=p.data||[]; PRJ_TASKS=t.data||[]; if(!PRJ_SEL&&PRJ.length)PRJ_SEL=PRJ[0].id;
-  prRender();
-}
-function prRender(){
-  const b=$("#pr-body"); if(!b)return;
-  const weekEnd=new Date();weekEnd.setDate(weekEnd.getDate()+7);
-  const dueWk=PRJ_TASKS.filter(t=>t.due_date&&new Date(t.due_date)<=weekEnd&&new Date(t.due_date)>=new Date()&&t.status!=="Done").length;
-  const review=PRJ_TASKS.filter(t=>t.status==="Client Review").length;
-  const overdue=PRJ_TASKS.filter(t=>t.due_date&&new Date(t.due_date)<new Date()&&t.status!=="Done").length;
-  const proj=PRJ.find(x=>x.id===PRJ_SEL);
-  const pt=PRJ_TASKS.filter(t=>t.project_id===PRJ_SEL);
-  const done=pt.filter(t=>t.status==="Done").length; const pct=pt.length?Math.round(done/pt.length*100):0;
-  const owners=[...new Set(pt.map(t=>t.owner_name).filter(Boolean))];
-  b.innerHTML=`<div class="stat-row">${psStat(IC.projects,"#15803d","Active projects",String(PRJ.filter(p=>p.status!=="Completed").length).padStart(2,"0"),"")}${psStat(IC.calendar,"#b4740f","Tasks due this week",String(dueWk).padStart(2,"0"),"")}${psStat(IC.approvals,"#2563eb","Awaiting client input",String(review).padStart(2,"0"),"")}${psStat('<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l2 2"/></svg>',"#c23b3b","Overdue tasks",String(overdue).padStart(2,"0"),"")}</div>
-  <div class="cal-controls"><select class="selectbox" onchange="PRJ_SEL=this.value;prRender()">${PRJ.map(p=>`<option value="${p.id}" ${PRJ_SEL===p.id?'selected':''}>${esc(p.name||"Project")}</option>`).join("")||'<option>No projects</option>'}</select></div>
-  ${proj?`<div class="proj-bar"><div class="pm" style="background:linear-gradient(135deg,${avatarColor(proj.name)})">${esc(initials(proj.name)).toUpperCase()}</div><div><h3>${esc(proj.name||"Project")}</h3><div class="sub1">${esc(clientName(proj.client_id))} · ${esc(proj.status||"Active")}</div></div><div class="avstack">${owners.slice(0,3).map(o=>`<span class="a" style="background:linear-gradient(135deg,${avatarColor(o)})">${esc(initials(o)).toUpperCase()}</span>`).join("")}${owners.length>3?`<span class="a" style="background:#9aa4b2">+${owners.length-3}</span>`:""}</div><div style="min-width:220px"><div class="sub1" style="text-align:right;margin-bottom:4px">${done} of ${pt.length} tasks complete</div><div class="prog" style="width:100%"><i style="width:${pct}%"></i></div></div></div>`:""}
-  <div class="kb">${KCOLS.map(([st,label,col])=>{const col_t=pt.filter(t=>(t.status||"To do")===st||(st==="In Progress"&&t.status==="Blocked"));return `<div class="kcol"><div class="kcol-h"><span style="color:${col}">●</span> ${label} <span class="ct">(${col_t.length})</span></div>${col_t.map(prCard).join("")}<button class="kadd" onclick="toast('Add task — next pass')">+ Add task</button></div>`;}).join("")}</div>
-  <div class="mstones">${["Kickoff","Design approval","Development","Testing","Launch"].map((m,i)=>`<div class="ms ${i===0?'ok':'off'}"><div class="mc">${i===0?'✓':i+1}</div><b>${m}</b><span>${i===0?'Completed':'Upcoming'}</span></div>`).join("")}</div>`;
-}
-function prCard(t){
-  const ck=(t.checklist||[]); const ckd=ck.filter(x=>x.done).length;
-  return `<div class="kcard" onclick="toast('${esc((t.title||'').replace(/'/g,''))}')"><div class="kt"><span class="kic">${IC.projects}</span><b>${esc(t.title||"Task")}</b></div><div class="kmeta">${t.priority?`<span class="flag ${t.priority}">⚑ ${t.priority}</span>`:""}</div><div class="kmeta">${t.due_date?`<span>📅 ${fmtD(t.due_date)}</span>`:""}${t.owner_name?`<span>· ${esc(t.owner_name)}</span>`:""}</div>${ck.length?`<div class="kmeta"><span>☑ ${ckd}/${ck.length}</span></div>`:""}</div>`;
-}
-
-/* ============ REPORTS ============ */
-let REPS=[], REP_SEL=null;
-async function viewReports(c){
-  c.innerHTML=`<div class="ph"><div class="ph-ic">${IC.reports}</div><div><h1>Reports &amp; insights</h1><div class="psub">Make performance clear. Turn insights into action.</div></div><div class="ph-r"><button class="btn ghost">⬇ Export PDF</button><button class="btn">🔗 Share report</button></div></div><div id="rep-body"><div class="psub">Loading…</div></div>`;
-  if(!CLIENTS.length){const {data}=await sb.from("cr_profiles").select("id,company,full_name,username").eq("role","client");CLIENTS=data||[];}
-  const {data}=await sb.from("cr_reports").select("*").order("created_at",{ascending:false});
-  REPS=data||[]; if(!REP_SEL&&REPS.length)REP_SEL=REPS[0].id;
-  repRender();
-}
-function repRender(){
-  const b=$("#rep-body"); if(!b)return;
-  if(!REPS.length){b.innerHTML=`<div class="card pad empty"><div class="ei">${IC.reports}</div><div><b>No reports yet</b></div><div class="psub" style="margin-top:6px">Create a report from a client's workspace. Live Meta/Google/GA4 sync activates once integrations are connected.</div></div>`;return;}
-  const r=REPS.find(x=>x.id===REP_SEL)||REPS[0]; const d=r.data||{}; const camps=d.campaigns||[];
-  const fmtv=(k,v)=>v==null?'<span class="sub1">N/A</span>':(k==='spend'||k==='cost_per_lead'?money(v,r.currency):String(v));
-  b.innerHTML=`<div class="cal-controls"><select class="selectbox" onchange="REP_SEL=this.value;repRender()">${REPS.map(x=>`<option value="${x.id}" ${REP_SEL===x.id?'selected':''}>${esc(clientName(x.client_id))} · ${esc(x.title||'Report')}</option>`).join("")}</select><span class="selectbox">${esc(r.platform||'Meta Ads')}</span><span class="selectbox">${r.period_start?fmtD(r.period_start):''} – ${r.period_end?fmtD(r.period_end):''}</span><span class="demo-tag" style="margin-left:auto">${r.source==='manual'?'Manual data':'Live'}</span></div>
-  <div class="srcbar">${esc(r.platform||'Meta Ads')} · ${r.last_sync?'Last synced '+fmtDT(r.last_sync):(r.source==='manual'?'Manually entered — not from a live sync':'Not synced')}<button class="rf" onclick="toast('Live sync needs the platform connected in Settings → Integrations')">↻ Refresh</button></div>
-  <div class="rep-metrics">
-    <div class="rep-m"><div class="ri" style="background:#efe9fd;color:#7c3aed">💳</div><div class="rl">Ad spend</div><div class="rv">${fmtv('spend',d.spend)}</div></div>
-    <div class="rep-m"><div class="ri" style="background:#e9f5ee;color:#15803d">${IC.clients}</div><div class="rl">Leads</div><div class="rv">${fmtv('leads',d.leads)}</div></div>
-    <div class="rep-m"><div class="ri" style="background:#fbf1df;color:#b4740f">🏷</div><div class="rl">Cost per lead</div><div class="rv">${fmtv('cost_per_lead',d.cost_per_lead)}</div></div>
-    <div class="rep-m"><div class="ri" style="background:#e6effd;color:#2563eb">🖱</div><div class="rl">Link CTR</div><div class="rv">${d.ctr!=null?d.ctr+'%':'<span class="sub1">N/A</span>'}</div></div>
-  </div>
-  <div class="two"><div class="card pad"><h3 class="sec-title" style="font-size:17px;margin-bottom:12px">Daily leads</h3><div style="height:220px"><canvas id="rep-chart"></canvas></div></div>
-   <div class="card pad"><h3 class="sec-title" style="font-size:16px;margin-bottom:12px">Lead sources</h3>${repSources(d)}<div class="card-h" style="margin:16px 0 8px"><h3 class="sec-title" style="font-size:15px">💡 Agency observations</h3></div><ul class="obs" style="padding-left:18px;margin:0">${(r.observations||"Review the report with the client.").split("\n").map(l=>`<li>${esc(l)}</li>`).join("")}</ul></div></div>
-  <div class="card pad" style="margin-top:16px"><h3 class="sec-title" style="font-size:17px;margin-bottom:12px">Campaign performance</h3><table class="tbl"><thead><tr><th>Campaign</th><th>Spend</th><th>Leads</th><th>CPL</th><th>Status</th></tr></thead><tbody>${camps.map(c=>`<tr><td><div class="cell-lead"><span class="av2" style="width:28px;height:28px;border-radius:8px;background:#efe9fd;color:#7c3aed">📣</span><b>${esc(c.name)}</b></div></td><td>${money(c.spend,r.currency)}</td><td>${c.leads||0}</td><td>${c.leads?money((c.spend||0)/c.leads,r.currency):'—'}</td><td><span class="status g">Active</span></td></tr>`).join("")||`<tr><td colspan="5" class="psub" style="text-align:center;padding:20px">No campaign rows.</td></tr>`}${camps.length?`<tr style="font-weight:800"><td>Total</td><td>${money(camps.reduce((a,c)=>a+(Number(c.spend)||0),0),r.currency)}</td><td>${camps.reduce((a,c)=>a+(Number(c.leads)||0),0)}</td><td>—</td><td></td></tr>`:""}</tbody></table></div>
-  <div class="card pad" style="margin-top:16px;display:flex;align-items:center;gap:14px"><span class="av2" style="width:40px;height:40px;border-radius:10px;background:var(--tint);color:var(--green)">${IC.reports}</span><div style="flex:1"><b>${esc(r.title||'Report')}</b> <span class="status ${r.status==='shared'?'g':'a'}">${esc(r.status||'draft')}</span><div class="sub1">Owner: ${esc(r.created_by_name||'—')}</div></div>${canStaff()&&r.status!=='shared'?`<button class="btn ghost" onclick="repShare('${r.id}')">Review &amp; publish</button>`:'<span class="sub1">Shared</span>'}</div>`;
-  const days=daysBack(30); const series=days.map((_,i)=>Math.max(0,Math.round((Number(d.leads)||0)/30*(0.6+0.8*Math.random()))));
-  chart("rep-chart",{type:"line",data:{labels:days.map(x=>x.toLocaleDateString("en-IN",{day:"numeric",month:"short"})),datasets:[{...areaDS(series,"#15803d","#15803d33","#15803d03"),pointRadius:2,pointBackgroundColor:"#15803d"}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{maxTicksLimit:8,color:"#9aa4b2"}},y:{grid:{color:"#eef1ea"},ticks:{color:"#9aa4b2"}}}}});
-}
-function repSources(d){ const fb=d.fb||Math.round((Number(d.leads)||0)*0.58), ig=d.ig||((Number(d.leads)||0)-Math.round((Number(d.leads)||0)*0.58)); const tot=fb+ig||1; return `<div class="lsrc"><span style="width:84px">📘 Facebook</span><div class="lbar"><i style="width:${fb/tot*100}%"></i></div><b>${fb}</b></div><div class="lsrc"><span style="width:84px">📸 Instagram</span><div class="lbar"><i style="width:${ig/tot*100}%;background:#db2777"></i></div><b>${ig}</b></div><div class="lsrc" style="border-top:1px solid var(--line);padding-top:8px"><span style="width:84px;font-weight:700">Total</span><div class="lbar" style="visibility:hidden"></div><b>${tot}</b></div>`; }
-async function repShare(id){ await sb.from("cr_reports").update({status:"shared",shared_at:new Date().toISOString()}).eq("id",id); const r=REPS.find(x=>x.id===id);if(r)r.status="shared"; toast("Report published to client"); repRender(); }
-
-
-/* ============ MODAL HELPER ============ */
-function sheet(title,bodyHtml){ document.getElementById("modal").innerHTML=`<div class="modal-bg" onclick="if(event.target===this)closeModal()"><div class="sheet"><div class="sheet-h"><h3>${title}</h3><button class="x" onclick="closeModal()">×</button></div><div class="sheet-b">${bodyHtml}</div></div></div>`; }
-function v(id){const e=document.getElementById(id);return e?e.value:"";}
-
-/* ============ FINANCE ============ */
-let FIN={tab:"overview"}, FD={acc:[],tx:[],exp:[],pay:[],inv:[]};
-const FIN_TABS=[["overview","Overview"],["ledger","General ledger"],["profit","Client profitability"],["payroll","Payroll"],["expenses","Expenses"],["accounts","Accounts"],["recon","Reconciliation"]];
-async function viewFinance(c){
-  if(!cr_can_fin_client()){ c.innerHTML=`<div class="card pad empty"><div class="ei">${IC.finance}</div><div><b>Finance access required</b></div><div class="psub" style="margin-top:6px">Ask an admin to grant you financial access.</div></div>`; return; }
-  c.innerHTML=`<div class="ph"><div><h1>Finance &amp; Accounts</h1><div class="psub">Your agency's finances, in one place.</div></div><div class="ph-r" id="fin-actions"></div></div><div class="subtabs" id="fin-tabs">${FIN_TABS.map(([k,l])=>`<button class="${FIN.tab===k?'on':''}" onclick="FIN.tab='${k}';finRender()">${l}</button>`).join("")}</div><div id="fin-body"><div class="psub">Loading…</div></div>`;
-  if(!CLIENTS.length){const {data}=await sb.from("cr_profiles").select("id,company,full_name,username").eq("role","client");CLIENTS=data||[];}
-  const [a,t,e,p,i]=await Promise.all([
-    sb.from("cr_fin_accounts").select("*").order("created_at"),
-    sb.from("cr_fin_tx").select("*").order("txn_date",{ascending:false}),
-    sb.from("cr_fin_expenses").select("*").order("exp_date",{ascending:false}),
-    sb.from("cr_fin_payroll").select("*").order("created_at",{ascending:false}),
-    sb.from("cr_invoices").select("client_id,total,paid,status,issue_date")
-  ]);
-  FD={acc:a.data||[],tx:t.data||[],exp:e.data||[],pay:p.data||[],inv:i.data||[]};
-  finRender();
-}
-function cr_can_fin_client(){ return ME&&(["admin","super_admin","account_manager"].includes(ME.role)||(ME.role==="team_member"&&ME.fin_access)); }
-function acctBal(id){ const o=(FD.acc.find(a=>a.id===id)||{}).opening_balance||0; const deb=FD.tx.filter(t=>t.account_id===id).reduce((s,t)=>s+(Number(t.debit)||0),0); const cred=FD.tx.filter(t=>t.account_id===id).reduce((s,t)=>s+(Number(t.credit)||0),0); return Number(o)+deb-cred; }
-function mKey(){ return new Date().toISOString().slice(0,7); }
-function finRender(){
-  document.querySelectorAll("#fin-tabs button").forEach(b=>b.classList.remove("on"));
-  const idx=FIN_TABS.findIndex(t=>t[0]===FIN.tab); const btns=document.querySelectorAll("#fin-tabs button"); if(btns[idx])btns[idx].classList.add("on");
-  ({overview:finOverview,ledger:finLedger,profit:finProfit,payroll:finPayroll,expenses:finExpenses,accounts:finAccounts,recon:finRecon}[FIN.tab]||finOverview)();
-}
-function finOverview(){
-  const b=$("#fin-body"), act=$("#fin-actions"); if(!b)return;
-  act.innerHTML=`<span class="selectbox">${monthLabel()}</span><button class="btn" onclick="finTxForm()"><span>${IC.plus}</span> Record transaction</button>`;
-  const m=mKey();
-  const revenue=FD.inv.filter(i=>["Paid","Partially Paid","Issued","Overdue"].includes(i.status)).reduce((s,i)=>s+(Number(i.total)||0),0);
-  const payroll=FD.pay.filter(p=>String(p.period_month||"").slice(0,7)===m).reduce((s,p)=>s+(Number(p.gross)||0),0)||FD.pay.reduce((s,p)=>s+(Number(p.gross)||0),0);
-  const expenses=FD.exp.reduce((s,e)=>s+(Number(e.amount)||0),0);
-  const costs=payroll+expenses; const profit=revenue-costs; const margin=revenue?Math.round(profit/revenue*100):0;
-  const receivables=FD.inv.filter(i=>i.status!=="Paid"&&i.status!=="Cancelled"&&i.status!=="Draft").reduce((s,i)=>s+((Number(i.total)||0)-(Number(i.paid)||0)),0);
-  const totalBank=FD.acc.reduce((s,a)=>s+acctBal(a.id),0);
-  b.innerHTML=`<div class="fin-stats">
-    <div class="fin-s"><div class="fl">Revenue</div><div class="fv">${money(revenue)}</div><div class="fx">Service income</div></div>
-    <div class="fin-s"><div class="fl">Total costs</div><div class="fv">${money(costs)}</div><div class="fx">Payroll ${money(payroll)} + expenses ${money(expenses)}</div></div>
-    <div class="fin-s hl"><div class="fl">Operating profit</div><div class="fv">${money(profit)}</div><div class="fx">Before tax · ${margin}% margin</div></div>
-    <div class="fin-s"><div class="fl">Receivables</div><div class="fv">${money(receivables)}</div><div class="fx">Awaiting collection</div></div></div>
-   <div class="two"><div class="card pad"><div class="card-h"><h3 class="sec-title" style="font-size:17px">Client profitability</h3><a class="linkg" onclick="FIN.tab='profit';finRender()">View all ↗</a></div>${finProfitTable(5)}</div>
-   <div class="card pad"><div class="card-h"><h3 class="sec-title" style="font-size:16px">Bank &amp; cash</h3></div><div class="fv" style="font-size:26px;font-weight:800;color:var(--green)">${money(totalBank)}</div><div class="sub1" style="margin-bottom:10px">Total available</div>${FD.acc.map(a=>`<div class="upc" style="padding:9px 0"><div class="ti" style="flex:1"><b>${esc(a.bank||a.name)} ${a.type==='cash'?'':'· '+esc(a.name)}</b></div><b>${money(acctBal(a.id))}</b></div>`).join("")||'<div class="sub1">No accounts yet.</div>'}<div class="btnrow"><button class="btn ghost sm" onclick="finTransferForm()">⇄ Transfer funds</button><button class="btn ghost sm" onclick="FIN.tab='accounts';finRender()">⚙ Manage accounts</button></div></div></div>
-   <div class="grid" style="grid-template-columns:1.2fr 1fr 1fr;margin-top:16px">
-     <div class="card pad"><div class="card-h"><h3 class="sec-title" style="font-size:16px">Recent transactions</h3><a class="linkg" onclick="FIN.tab='ledger';finRender()">Open ledger ↗</a></div><table class="tbl"><tbody>${FD.tx.slice(0,4).map(t=>`<tr><td>${fmtD(t.txn_date)}</td><td>${esc(t.description||'')}</td><td style="text-align:right" class="${t.debit>0?'money-pos':'money-neg'}">${t.debit>0?'+':'-'}${money(t.debit>0?t.debit:t.credit)}</td></tr>`).join("")||'<tr><td class="sub1">No transactions.</td></tr>'}</tbody></table></div>
-     <div class="card pad"><div class="card-h"><h3 class="sec-title" style="font-size:16px">Payroll</h3><a class="linkg" onclick="FIN.tab='payroll';finRender()">View ↗</a></div><div class="fv" style="font-size:22px;font-weight:800">${money(payroll)}</div><div class="sub1">Total payroll</div><div class="prog" style="width:100%;margin-top:10px"><i style="width:${FD.pay.length?Math.round(FD.pay.filter(p=>p.status==='paid').length/FD.pay.length*100):0}%"></i></div><div class="sub1" style="margin-top:6px">${FD.pay.filter(p=>p.status==='paid').length} paid · ${FD.pay.filter(p=>p.status!=='paid').length} pending</div></div>
-     <div class="card pad"><div class="card-h"><h3 class="sec-title" style="font-size:16px">Company overhead</h3><a class="linkg" onclick="FIN.tab='expenses';finRender()">View ↗</a></div><div class="fv" style="font-size:22px;font-weight:800">${money(FD.exp.filter(e=>e.cost_type==='company').reduce((s,e)=>s+(Number(e.amount)||0),0))}</div><div class="sub1">Company costs</div></div></div>
-   <div class="sub1" style="margin-top:14px">Advertising funds tracked separately · Transfers excluded from profit</div>`;
-}
-function finProfitTable(limit){
-  const m=mKey();
-  const rows=CLIENTS.map(c=>{
-    const rev=FD.inv.filter(i=>i.client_id===c.id&&["Paid","Partially Paid","Issued","Overdue"].includes(i.status)).reduce((s,i)=>s+(Number(i.total)||0),0);
-    const direct=FD.exp.filter(e=>e.client_id===c.id).reduce((s,e)=>s+(Number(e.amount)||0),0);
-    const payAlloc=FD.pay.reduce((s,p)=>s+(Number(p.direct_alloc)||0),0)/Math.max(1,CLIENTS.length);
-    const cost=direct+payAlloc; const gp=rev-cost; const margin=rev?Math.round(gp/rev*100):0;
-    return {c,rev,cost,gp,margin};
-  }).filter(r=>r.rev>0||r.cost>0).sort((a,b)=>b.rev-a.rev);
-  const show=limit?rows.slice(0,limit):rows;
-  return `<table class="tbl"><thead><tr><th>Client</th><th>Revenue</th><th>Delivery cost</th><th>Gross profit</th><th>Margin</th></tr></thead><tbody>${show.map(r=>`<tr><td><div class="cell-lead"><span class="av2" style="width:26px;height:26px;border-radius:7px;font-size:10px;background:linear-gradient(135deg,${avatarColor(r.c.company||r.c.full_name)})">${esc(initials(r.c.company||r.c.full_name)).toUpperCase()}</span><b>${esc(r.c.company||r.c.full_name)}</b></div></td><td>${money(r.rev)}</td><td>${money(r.cost)}</td><td>${money(r.gp)}</td><td><div style="display:flex;align-items:center;gap:8px"><b style="color:var(--green)">${r.margin}%</b><div class="prog" style="width:70px"><i style="width:${Math.max(0,r.margin)}%"></i></div></div></td></tr>`).join("")||'<tr><td colspan="5" class="sub1" style="text-align:center;padding:16px">No client revenue yet. Issue invoices to populate.</td></tr>'}</tbody></table>`;
-}
-function finProfit(){ const b=$("#fin-body"),act=$("#fin-actions"); act.innerHTML=`<span class="selectbox">${monthLabel()}</span><button class="btn ghost">⬇ Export report</button>`;
-  const m=mKey(); const rev=FD.inv.reduce((s,i)=>s+(Number(i.total)||0),0); const costs=FD.exp.reduce((s,e)=>s+(Number(e.amount)||0),0)+FD.pay.reduce((s,p)=>s+(Number(p.gross)||0),0); const net=rev-costs;
-  b.innerHTML=`<div class="fin-stats"><div class="fin-s"><div class="fl">Service revenue</div><div class="fv">${money(rev)}</div></div><div class="fin-s"><div class="fl">Delivery costs</div><div class="fv">${money(FD.exp.reduce((s,e)=>s+(e.cost_type!=='company'?Number(e.amount)||0:0),0))}</div></div><div class="fin-s"><div class="fl">Payroll</div><div class="fv">${money(FD.pay.reduce((s,p)=>s+(Number(p.gross)||0),0))}</div></div><div class="fin-s hl"><div class="fl">Net profit</div><div class="fv">${money(net)}</div><div class="fx">${rev?Math.round(net/rev*100):0}% margin · before tax</div></div></div>
-   <div class="card pad"><h3 class="sec-title" style="font-size:17px;margin-bottom:12px">Monthly client performance</h3>${finProfitTable(0)}<div class="sub1" style="margin-top:10px">Delivery cost includes allocated payroll and direct expenses. Ad spend excluded from service revenue.</div></div>`; }
-
-function finLedger(){ const b=$("#fin-body"),act=$("#fin-actions"); act.innerHTML=`<button class="btn ghost">⬇ Export</button><button class="btn" onclick="finTxForm('journal')"><span>${IC.plus}</span> Journal entry</button>`;
-  if(!FIN.acc&&FD.acc.length)FIN.acc=FD.acc[0].id;
-  const a=FD.acc.find(x=>x.id===FIN.acc)||FD.acc[0]; if(!a){b.innerHTML=`<div class="card pad empty"><div class="ei">${IC.finance}</div><div>No accounts. Add one under Accounts.</div></div>`;return;}
-  const tx=FD.tx.filter(t=>t.account_id===a.id).slice().reverse();
-  let bal=Number(a.opening_balance)||0; const rows=[{open:true,d:a.created_at,bal}]; const deb=tx.reduce((s,t)=>s+(Number(t.debit)||0),0),cred=tx.reduce((s,t)=>s+(Number(t.credit)||0),0);
-  tx.forEach(t=>{bal+=(Number(t.debit)||0)-(Number(t.credit)||0);rows.push({t,bal});});
-  const closing=bal;
-  b.innerHTML=`<div class="cal-controls"><select class="selectbox" onchange="FIN.acc=this.value;finRender()">${FD.acc.map(x=>`<option value="${x.id}" ${a.id===x.id?'selected':''}>${esc(x.bank||x.name)}${x.last4?' ····'+x.last4:''}</option>`).join("")}</select></div>
-   <div class="fin-stats"><div class="fin-s"><div class="fl">Opening balance</div><div class="fv">${money(a.opening_balance)} Dr</div></div><div class="fin-s"><div class="fl">Total debits</div><div class="fv">${money(deb)}</div></div><div class="fin-s"><div class="fl">Total credits</div><div class="fv">${money(cred)}</div></div><div class="fin-s hl"><div class="fl">Closing balance</div><div class="fv">${money(closing)} Dr</div></div></div>
-   <div class="card pad"><h3 class="sec-title" style="font-size:17px;margin-bottom:4px">${esc(a.bank||a.name)} ledger</h3><div class="sub1" style="margin-bottom:12px">INR</div>
-   <table class="tbl"><thead><tr><th>Date</th><th>Reference</th><th>Description</th><th style="text-align:right">Debit</th><th style="text-align:right">Credit</th><th style="text-align:right">Balance</th></tr></thead><tbody>
-   <tr><td>${fmtD(a.created_at)}</td><td>—</td><td>Opening balance</td><td></td><td></td><td style="text-align:right" class="bal">${money(a.opening_balance)} Dr</td></tr>
-   ${tx.map((t,i)=>`<tr class="rowlink"><td>${fmtD(t.txn_date)}</td><td>${esc(t.reference||'—')}</td><td>${esc(t.description||'')}</td><td style="text-align:right">${t.debit>0?money(t.debit):''}</td><td style="text-align:right">${t.credit>0?money(t.credit):''}</td><td style="text-align:right" class="bal">${money(rows[i+1].bal)} Dr</td></tr>`).join("")}
-   <tr style="font-weight:800"><td colspan="3">Totals</td><td style="text-align:right">${money(deb)}</td><td style="text-align:right">${money(cred)}</td><td style="text-align:right">${money(closing)} Dr</td></tr>
-   </tbody></table><div class="sub1" style="margin-top:10px">Account transfers move balances; they do not create revenue.</div></div>`;
-}
-function finAccounts(){ const b=$("#fin-body"),act=$("#fin-actions"); act.innerHTML=`<button class="btn ghost" onclick="finTransferForm()">⇄ Transfer funds</button><button class="btn" onclick="finAccountForm()"><span>${IC.plus}</span> Add account</button>`;
-  const bank=FD.acc.filter(a=>a.type!=='cash').reduce((s,a)=>s+acctBal(a.id),0), cash=FD.acc.filter(a=>a.type==='cash').reduce((s,a)=>s+acctBal(a.id),0);
-  b.innerHTML=`<div class="fin-stats" style="grid-template-columns:repeat(3,1fr)"><div class="fin-s"><div class="fl">🏦 Bank balances</div><div class="fv">${money(bank)}</div></div><div class="fin-s"><div class="fl">💵 Cash in hand</div><div class="fv">${money(cash)}</div></div><div class="fin-s hl"><div class="fl">Total book balance</div><div class="fv">${money(bank+cash)}</div></div></div>
-   <div class="card pad"><div class="card-h"><h3 class="sec-title" style="font-size:17px">Your accounts</h3></div><table class="tbl"><thead><tr><th>Account</th><th>Type</th><th style="text-align:right">Book balance</th><th></th></tr></thead><tbody>${FD.acc.map(a=>`<tr><td><div class="cell-lead"><span class="av2" style="width:30px;height:30px;border-radius:8px;background:var(--tint);color:var(--green)">🏦</span><div><b>${esc(a.bank||a.name)}${a.last4?' ···· '+a.last4:''}</b><div class="sub1">${esc(a.name)}</div></div></div></td><td><span class="tag">${a.type==='cash'?'Cash':'Current account'}</span></td><td style="text-align:right" class="bal">${money(acctBal(a.id))}</td><td style="text-align:right"><a class="linkg" onclick="FIN.acc='${a.id}';FIN.tab='ledger';finRender()">View ledger</a></td></tr>`).join("")||'<tr><td colspan="4" class="sub1" style="text-align:center;padding:16px">No accounts yet.</td></tr>'}<tr style="font-weight:800"><td colspan="2">Total book balance</td><td style="text-align:right">${money(bank+cash)}</td><td></td></tr></tbody></table><div class="sub1" style="margin-top:8px">Transfers are excluded from revenue and expenses.</div></div>`;
-}
-function finExpenses(){ const b=$("#fin-body"),act=$("#fin-actions"); act.innerHTML=`<button class="btn ghost">⬇ Export</button><button class="btn" onclick="finExpenseForm()"><span>${IC.plus}</span> Add expense</button>`;
-  const rec=FD.exp.reduce((s,e)=>s+(Number(e.amount)||0),0), paid=FD.exp.filter(e=>e.payment_status==='paid').reduce((s,e)=>s+(Number(e.amount)||0),0), unpaid=rec-paid, recurring=FD.exp.filter(e=>e.recurring).reduce((s,e)=>s+(Number(e.amount)||0),0);
-  b.innerHTML=`<div class="fin-stats"><div class="fin-s"><div class="fl">Recorded expenses</div><div class="fv">${money(rec)}</div></div><div class="fin-s"><div class="fl">Paid</div><div class="fv">${money(paid)}</div></div><div class="fin-s"><div class="fl">Unpaid</div><div class="fv">${money(unpaid)}</div></div><div class="fin-s hl"><div class="fl">Recurring costs</div><div class="fv">${money(recurring)}</div></div></div>
-   <div class="card pad"><div class="card-h"><h3 class="sec-title" style="font-size:17px">Expense register</h3></div><table class="tbl"><thead><tr><th>Date</th><th>Expense &amp; vendor</th><th>Category</th><th>Allocation</th><th style="text-align:right">Amount</th><th>Status</th><th></th></tr></thead><tbody>${FD.exp.map(e=>`<tr><td>${fmtD(e.exp_date)}</td><td><b>${esc(e.vendor||'Expense')}</b><div class="sub1">${esc(e.note||'')}</div></td><td><span class="tag">${esc(e.category||'—')}</span></td><td>${e.cost_type==='direct'?esc(clientName(e.client_id)):(e.cost_type==='shared'?'Shared':'Company')}</td><td style="text-align:right">${money(e.amount)}</td><td><span class="status ${e.payment_status==='paid'?'g':'a'}">${e.payment_status==='paid'?'Paid':'Unpaid'}</span></td><td style="text-align:right">${e.payment_status!=='paid'?`<a class="linkg" onclick="finExpensePay('${e.id}')">Pay</a>`:''}</td></tr>`).join("")||'<tr><td colspan="7" class="sub1" style="text-align:center;padding:16px">No expenses yet.</td></tr>'}<tr style="font-weight:800"><td colspan="4">Total</td><td style="text-align:right">${money(rec)}</td><td colspan="2"></td></tr></tbody></table><div class="sub1" style="margin-top:8px">Payments settle recorded expenses without adding the cost again.</div></div>`;
-}
-function finPayroll(){ const b=$("#fin-body"),act=$("#fin-actions"); act.innerHTML=`<button class="btn ghost">⬇ Export</button><button class="btn" onclick="finPayrollForm()"><span>${IC.plus}</span> Add employee run</button>`;
-  const gross=FD.pay.reduce((s,p)=>s+(Number(p.gross)||0),0), ded=FD.pay.reduce((s,p)=>s+(Number(p.deductions)||0),0), net=gross-ded, paid=FD.pay.filter(p=>p.status==='paid').reduce((s,p)=>s+(Number(p.net)||0),0);
-  b.innerHTML=`<div class="fin-stats"><div class="fin-s"><div class="fl">Gross earnings</div><div class="fv">${money(gross)}</div></div><div class="fin-s"><div class="fl">Deductions</div><div class="fv">${money(ded)}</div></div><div class="fin-s"><div class="fl">Net payable</div><div class="fv">${money(net)}</div></div><div class="fin-s hl"><div class="fl">Paid</div><div class="fv">${money(paid)}</div><div class="fx">Pending ${money(net-paid)}</div></div></div>
-   <div class="card pad"><div class="card-h"><h3 class="sec-title" style="font-size:17px">Payroll</h3></div><table class="tbl"><thead><tr><th>Employee</th><th>Department</th><th style="text-align:right">Gross</th><th style="text-align:right">Deductions</th><th style="text-align:right">Net</th><th>Status</th><th></th></tr></thead><tbody>${FD.pay.map(p=>`<tr><td><div class="cell-lead"><span class="av2" style="width:30px;height:30px;border-radius:9px;font-size:11px;background:linear-gradient(135deg,${avatarColor(p.employee_name)})">${esc(initials(p.employee_name)).toUpperCase()}</span><div><b>${esc(p.employee_name)}</b><div class="sub1">${esc(p.designation||'')}</div></div></div></td><td>${esc(p.department||'—')}</td><td style="text-align:right">${money(p.gross)}</td><td style="text-align:right">${money(p.deductions)}</td><td style="text-align:right">${money(p.net)}</td><td><span class="status ${p.status==='paid'?'g':'a'}">${p.status==='paid'?'Paid':'Pending'}</span></td><td style="text-align:right">${p.status!=='paid'?`<a class="linkg" onclick="finPayrollPay('${p.id}')">Record payment</a>`:''}</td></tr>`).join("")||'<tr><td colspan="7" class="sub1" style="text-align:center;padding:16px">No payroll entries.</td></tr>'}<tr style="font-weight:800"><td colspan="2">Total</td><td style="text-align:right">${money(gross)}</td><td style="text-align:right">${money(ded)}</td><td style="text-align:right">${money(net)}</td><td colspan="2"></td></tr></tbody></table><div class="sub1" style="margin-top:8px">Recording a payment does not initiate a bank transfer.</div></div>`;
-}
-function finRecon(){ const b=$("#fin-body"),act=$("#fin-actions"); act.innerHTML=`<button class="btn ghost">Import statement</button><button class="btn">Review reconciliation</button>`;
-  const a=FD.acc.find(x=>x.id===FIN.acc)||FD.acc[0]; if(!a){b.innerHTML=`<div class="card pad empty"><div class="ei">${IC.finance}</div><div>Add an account to reconcile.</div></div>`;return;}
-  const book=acctBal(a.id); const unrec=FD.tx.filter(t=>t.account_id===a.id&&!t.reconciled);
-  b.innerHTML=`<div class="cal-controls"><select class="selectbox" onchange="FIN.acc=this.value;finRender()">${FD.acc.map(x=>`<option value="${x.id}" ${a.id===x.id?'selected':''}>${esc(x.bank||x.name)}</option>`).join("")}</select></div>
-   <div class="fin-stats"><div class="fin-s"><div class="fl">Book closing balance</div><div class="fv">${money(book)}</div></div><div class="fin-s"><div class="fl">Unreconciled</div><div class="fv">${unrec.length}</div></div><div class="fin-s"><div class="fl">Reconciled</div><div class="fv">${FD.tx.filter(t=>t.account_id===a.id&&t.reconciled).length}</div></div><div class="fin-s hl"><div class="fl">Matched</div><div class="fv">${FD.tx.filter(t=>t.account_id===a.id&&t.reconciled).length} / ${FD.tx.filter(t=>t.account_id===a.id).length}</div></div></div>
-   <div class="card pad"><div class="card-h"><h3 class="sec-title" style="font-size:17px">Match transactions</h3><span class="sub1">Tick a book entry to mark it reconciled against your statement.</span></div><table class="tbl"><thead><tr><th></th><th>Date</th><th>Description</th><th style="text-align:right">Amount</th></tr></thead><tbody>${FD.tx.filter(t=>t.account_id===a.id).map(t=>`<tr><td><input type="checkbox" ${t.reconciled?'checked':''} onchange="finReconToggle('${t.id}',this.checked)"></td><td>${fmtD(t.txn_date)}</td><td>${esc(t.description||'')}</td><td style="text-align:right" class="${t.debit>0?'money-pos':'money-neg'}">${t.debit>0?'+':'-'}${money(t.debit>0?t.debit:t.credit)}</td></tr>`).join("")||'<tr><td colspan="4" class="sub1" style="text-align:center;padding:16px">No transactions on this account.</td></tr>'}</tbody></table><div class="sub1" style="margin-top:8px">Importing a statement does not create duplicate ledger entries.</div></div>`;
-}
-/* ---- finance actions ---- */
-async function finReconToggle(id,val){ await sb.from("cr_fin_tx").update({reconciled:val}).eq("id",id); const t=FD.tx.find(x=>x.id===id);if(t)t.reconciled=val; }
-function finAccountForm(){ sheet("Add account",`<div class="g2"><div class="fld2"><label>Account name</label><input id="fa-name" class="inp" placeholder="Operating"/></div><div class="fld2"><label>Bank</label><input id="fa-bank" class="inp" placeholder="HDFC"/></div><div class="fld2"><label>Type</label><select id="fa-type" class="inp"><option value="bank">Bank</option><option value="cash">Cash</option></select></div><div class="fld2"><label>Last 4 digits</label><input id="fa-last4" class="inp"/></div><div class="fld2"><label>Opening balance</label><input id="fa-open" class="inp" type="number" value="0"/></div></div><button class="btn block" onclick="finAccountSave()">Add account</button>`); }
-async function finAccountSave(){ const {error}=await sb.from("cr_fin_accounts").insert({name:v("fa-name")||"Account",bank:v("fa-bank")||null,type:v("fa-type"),last4:v("fa-last4")||null,opening_balance:Number(v("fa-open"))||0,created_by:SESSION.user.id}); if(error){toast(error.message,true);return;} closeModal();toast("Account added");viewFinance($("#content")); }
-function finTxForm(kind){ sheet(kind==='journal'?"Journal entry":"Record transaction",`<div class="fld2"><label>Account</label><select id="ft-acc" class="inp">${FD.acc.map(a=>`<option value="${a.id}">${esc(a.bank||a.name)}</option>`).join("")}</select></div><div class="g2"><div class="fld2"><label>Date</label><input id="ft-date" type="date" class="inp" value="${new Date().toISOString().slice(0,10)}"/></div><div class="fld2"><label>Direction</label><select id="ft-dir" class="inp"><option value="debit">Money in (debit)</option><option value="credit">Money out (credit)</option></select></div><div class="fld2"><label>Amount</label><input id="ft-amt" type="number" class="inp"/></div><div class="fld2"><label>Reference</label><input id="ft-ref" class="inp"/></div></div><div class="fld2"><label>Description</label><input id="ft-desc" class="inp"/></div><div class="fld2"><label>Client (optional)</label><select id="ft-client" class="inp"><option value="">—</option>${CLIENTS.map(c=>`<option value="${c.id}">${esc(c.company||c.full_name)}</option>`).join("")}</select></div><button class="btn block" onclick="finTxSave('${kind||'journal'}')">Save entry</button>`); }
-async function finTxSave(kind){ const amt=Number(v("ft-amt"))||0; if(amt<=0){toast("Enter an amount",true);return;} const dir=v("ft-dir"); const {error}=await sb.from("cr_fin_tx").insert({account_id:v("ft-acc"),txn_date:v("ft-date"),reference:v("ft-ref")||null,description:v("ft-desc")||null,kind:kind,client_id:v("ft-client")||null,debit:dir==='debit'?amt:0,credit:dir==='credit'?amt:0,created_by:SESSION.user.id,created_by_name:ME.full_name||ME.email}); if(error){toast(error.message,true);return;} closeModal();toast("Transaction recorded");viewFinance($("#content")); }
-function finTransferForm(){ sheet("Transfer funds",`<div class="g2"><div class="fld2"><label>From</label><select id="tr-from" class="inp">${FD.acc.map(a=>`<option value="${a.id}">${esc(a.bank||a.name)}</option>`).join("")}</select></div><div class="fld2"><label>To</label><select id="tr-to" class="inp">${FD.acc.map(a=>`<option value="${a.id}">${esc(a.bank||a.name)}</option>`).join("")}</select></div><div class="fld2"><label>Amount</label><input id="tr-amt" type="number" class="inp"/></div><div class="fld2"><label>Date</label><input id="tr-date" type="date" class="inp" value="${new Date().toISOString().slice(0,10)}"/></div></div><div class="fld2"><label>Reference</label><input id="tr-ref" class="inp" value="Internal transfer"/></div><button class="btn block" onclick="finTransferSave()">Record transfer</button><div class="sub1" style="margin-top:8px">Records a transfer in your books; does not send money through your bank.</div>`); }
-async function finTransferSave(){ const amt=Number(v("tr-amt"))||0,from=v("tr-from"),to=v("tr-to"); if(amt<=0||from===to){toast("Pick two accounts and an amount",true);return;} const g=crypto.randomUUID(); const {error}=await sb.from("cr_fin_tx").insert([{account_id:from,txn_date:v("tr-date"),reference:v("tr-ref"),description:"Transfer out",kind:"transfer",credit:amt,debit:0,transfer_group:g,created_by:SESSION.user.id},{account_id:to,txn_date:v("tr-date"),reference:v("tr-ref"),description:"Transfer in",kind:"transfer",debit:amt,credit:0,transfer_group:g,created_by:SESSION.user.id}]); if(error){toast(error.message,true);return;} closeModal();toast("Transfer recorded");viewFinance($("#content")); }
-function finExpenseForm(){ sheet("Add expense",`<div class="g2"><div class="fld2"><label>Vendor</label><input id="fe-vendor" class="inp"/></div><div class="fld2"><label>Category</label><input id="fe-cat" class="inp" placeholder="Software"/></div><div class="fld2"><label>Amount</label><input id="fe-amt" type="number" class="inp"/></div><div class="fld2"><label>Date</label><input id="fe-date" type="date" class="inp" value="${new Date().toISOString().slice(0,10)}"/></div><div class="fld2"><label>Cost type</label><select id="fe-type" class="inp"><option value="company">Company</option><option value="shared">Shared</option><option value="direct">Direct (client)</option></select></div><div class="fld2"><label>Client (if direct)</label><select id="fe-client" class="inp"><option value="">—</option>${CLIENTS.map(c=>`<option value="${c.id}">${esc(c.company||c.full_name)}</option>`).join("")}</select></div></div><label class="chk" style="margin:4px 0 10px"><input type="checkbox" id="fe-rec"> Recurring monthly</label><button class="btn block" onclick="finExpenseSave()">Add expense</button>`); }
-async function finExpenseSave(){ const amt=Number(v("fe-amt"))||0; if(amt<=0){toast("Enter amount",true);return;} const {error}=await sb.from("cr_fin_expenses").insert({vendor:v("fe-vendor")||"Expense",category:v("fe-cat")||null,amount:amt,exp_date:v("fe-date"),cost_type:v("fe-type"),client_id:v("fe-client")||null,recurring:document.getElementById("fe-rec").checked,payment_status:"unpaid",created_by:SESSION.user.id,created_by_name:ME.full_name||ME.email}); if(error){toast(error.message,true);return;} closeModal();toast("Expense added");viewFinance($("#content")); }
-async function finExpensePay(id){ await sb.from("cr_fin_expenses").update({payment_status:"paid",paid_at:new Date().toISOString().slice(0,10)}).eq("id",id); toast("Marked paid");viewFinance($("#content")); }
-function finPayrollForm(){ sheet("Payroll entry",`<div class="g2"><div class="fld2"><label>Employee</label><input id="fp-name" class="inp"/></div><div class="fld2"><label>Department</label><input id="fp-dept" class="inp"/></div><div class="fld2"><label>Designation</label><input id="fp-desig" class="inp"/></div><div class="fld2"><label>Month</label><input id="fp-month" type="date" class="inp" value="${new Date().toISOString().slice(0,8)}01"/></div><div class="fld2"><label>Gross</label><input id="fp-gross" type="number" class="inp"/></div><div class="fld2"><label>Deductions</label><input id="fp-ded" type="number" class="inp" value="0"/></div></div><button class="btn block" onclick="finPayrollSave()">Add to payroll</button>`); }
-async function finPayrollSave(){ const g=Number(v("fp-gross"))||0,d=Number(v("fp-ded"))||0; if(g<=0){toast("Enter gross",true);return;} const {error}=await sb.from("cr_fin_payroll").insert({employee_name:v("fp-name")||"Employee",department:v("fp-dept")||null,designation:v("fp-desig")||null,period_month:v("fp-month"),gross:g,deductions:d,net:g-d,status:"pending",created_by:SESSION.user.id}); if(error){toast(error.message,true);return;} closeModal();toast("Added to payroll");viewFinance($("#content")); }
-async function finPayrollPay(id){ await sb.from("cr_fin_payroll").update({status:"paid",pay_date:new Date().toISOString().slice(0,10)}).eq("id",id); toast("Payment recorded");viewFinance($("#content")); }
-
-
-/* ============ ASSETS ============ */
-let AS=[], AS_CLIENT="", AS_FOLDER="", AS_SEL=null, AS_TAB="all";
-const AS_FOLDERS=["Brand assets","Product photos","Social creatives","Videos","Reports & documents","Archived"];
-async function viewAssets(c){
-  c.innerHTML=`<div class="ph"><div><h1>Asset library</h1><div class="psub">Every brand file and deliverable, organized by client.</div></div><div class="ph-r"><button class="btn ghost" onclick="toast('Folders are set when you upload')">+ New folder</button>${canStaff()?`<label class="btn" style="cursor:pointer">⬆ Upload files<input type="file" multiple hidden onchange="asUpload(this)"></label>`:""}</div></div><div id="as-body"><div class="psub">Loading…</div></div>`;
-  if(!CLIENTS.length){const {data}=await sb.from("cr_profiles").select("id,company,full_name,username").eq("role","client");CLIENTS=data||[];}
-  if(!AS_CLIENT&&CLIENTS.length)AS_CLIENT=CLIENTS[0].id;
-  await asLoad();
-}
-async function asLoad(){ const {data}=await sb.from("cr_assets").select("*").eq("client_id",AS_CLIENT).order("created_at",{ascending:false}); AS=data||[]; if(!AS_FOLDER){const f=[...new Set(AS.map(a=>a.folder).filter(Boolean))]; AS_FOLDER=f[0]||AS_FOLDERS[2];} asRender(); }
-function asRender(){
-  const b=$("#as-body"); if(!b)return;
-  const folders=[...new Set(AS_FOLDERS.concat(AS.map(a=>a.folder).filter(Boolean)))];
-  let files=AS.filter(a=>(a.folder||AS_FOLDERS[2])===AS_FOLDER);
-  if(AS_TAB==="approved")files=files.filter(a=>a.is_deliverable);
-  if(AS_TAB==="working")files=files.filter(a=>!a.is_deliverable);
-  if(!AS_SEL&&files.length)AS_SEL=files[0].id;
-  b.innerHTML=`<div class="asset-top"><select class="selectbox" onchange="AS_CLIENT=this.value;AS_SEL=null;asLoad()">${CLIENTS.map(c=>`<option value="${c.id}" ${AS_CLIENT===c.id?'selected':''}>${esc(c.company||c.full_name)}</option>`).join("")}</select><div class="search2"><span>${IC.search}</span><input placeholder="Search assets…"/></div></div>
-  <div class="aw"><div class="card pad"><h3 class="sec-title" style="font-size:15px;margin-bottom:10px">${esc(clientName(AS_CLIENT))}</h3>${folders.map(f=>{const n=AS.filter(a=>(a.folder||AS_FOLDERS[2])===f).length;return `<div class="fold ${AS_FOLDER===f?'on':''}" onclick="AS_FOLDER='${f.replace(/'/g,'')}';AS_SEL=null;asRender()">📁 ${esc(f)} <span class="fc">${n}</span></div>`;}).join("")}<div style="margin-top:12px"><div class="sub1">${(AS.length)} files</div><div class="usebar"><i style="width:${Math.min(100,AS.length*4)}%"></i></div></div></div>
-  <div class="card pad"><div class="card-h"><h3 class="sec-title" style="font-size:17px">${esc(AS_FOLDER)}</h3><div class="utabs" style="margin:0;border:0">${[["all","All files"],["approved","Approved"],["working","Working files"]].map(([k,l])=>`<button class="${AS_TAB===k?'on':''}" style="padding:7px 2px;margin-right:16px" onclick="AS_TAB='${k}';asRender()">${l}</button>`).join("")}<span class="sub1">${files.length} files</span></div></div>
-   <div class="agrid">${files.map(a=>{const u=a.file_path?supaImg(a.file_path):"";const img=(a.mime_type||"").startsWith("image");return `<div class="acard ${AS_SEL===a.id?'sel':''}" onclick="AS_SEL='${a.id}';asRender()"><div class="ath">${img&&u?`<img src="${esc(u)}">`:'📄'}</div><div class="ab"><b>${esc(a.name||'File')}</b><div class="as">${esc((a.mime_type||'file').split('/')[1]||'').toUpperCase()}</div><span class="status ${a.is_deliverable?'g':'n'}" style="margin-top:6px;display:inline-block;font-size:11px;padding:3px 8px">${a.is_deliverable?'Approved':'Working'}</span></div></div>`;}).join("")||`<div class="sub1" style="grid-column:1/-1;text-align:center;padding:30px">No files in this folder.</div>`}</div></div>
-  <div class="card pad" id="as-det"></div></div>`;
-  asDetail();
-}
-function asDetail(){ const el=$("#as-det"); if(!el)return; const a=AS.find(x=>x.id===AS_SEL);
-  if(!a){el.innerHTML=`<div class="empty"><div class="ei">${IC.assets}</div><div>Select a file</div></div>`;return;}
-  const u=a.file_path?supaImg(a.file_path):""; const img=(a.mime_type||"").startsWith("image");
-  el.innerHTML=`<h3 class="sec-title" style="font-size:16px;margin-bottom:12px">File details</h3>${img&&u?`<img class="pv" src="${esc(u)}" style="margin-bottom:12px">`:`<div class="pvph" style="height:150px;margin-bottom:12px">📄</div>`}
-   <div style="display:flex;align-items:center;gap:8px"><b style="flex:1">${esc(a.name||'File')}</b><span class="status ${a.is_deliverable?'g':'a'}">${a.is_deliverable?'Approved':'Working'}</span></div>
-   <div class="sub1" style="margin:4px 0 12px">${esc((a.mime_type||'').toUpperCase())}</div>
-   <div class="meta-row" style="margin:0 0 6px"><span>Owner</span><b style="margin-left:auto;color:var(--ink)">${esc(a.created_by_name||'—')}</b></div>
-   <div class="meta-row" style="margin:0 0 6px"><span>Uploaded</span><b style="margin-left:auto;color:var(--ink)">${fmtD(a.created_at)}</b></div>
-   <div class="meta-row" style="margin:0 0 12px"><span>Version</span><b style="margin-left:auto;color:var(--ink)">${a.version||1}</b></div>
-   <h3 class="sec-title" style="font-size:14px;margin-bottom:8px">Sharing &amp; access</h3><div class="selectbox" style="width:100%;justify-content:space-between">${a.is_deliverable?'🌐 Shared with client':'🔒 Internal team'}<span></span></div>
-   ${!a.is_deliverable?`<div class="sub1" style="margin-top:6px">Not shared with client yet.</div>`:""}
-   <div class="btnrow">${canStaff()?`<button class="btn block" onclick="asToggle('${a.id}',${!a.is_deliverable})">${a.is_deliverable?'Make working file':'Mark as deliverable'}</button>`:""}</div>
-   ${u?`<a class="btn ghost block" style="margin-top:8px" href="${esc(u)}" target="_blank">⬇ Download</a>`:""}
-   ${canStaff()?`<button class="btn ghost block" style="margin-top:8px;color:var(--red)" onclick="asDel('${a.id}')">Delete</button>`:""}`;
-}
-async function asUpload(inp){ const files=[...(inp.files||[])]; if(!files.length)return; toast("Uploading…"); for(const f of files){ try{ const path=`assets/${AS_CLIENT}/${Date.now()}_${f.name.replace(/[^\w.\-]/g,'_')}`; await sb.storage.from("cr-logos").upload(path,f,{upsert:true}); await sb.from("cr_assets").insert({client_id:AS_CLIENT,folder:AS_FOLDER,name:f.name.replace(/\.[^.]+$/,''),file_path:path,mime_type:f.type,kind:(f.type||'').split('/')[0],is_deliverable:false,created_by:SESSION.user.id,created_by_name:ME.full_name||ME.email}); }catch(_){} } toast("Uploaded"); asLoad(); }
-async function asToggle(id,val){ await sb.from("cr_assets").update({is_deliverable:val}).eq("id",id); const a=AS.find(x=>x.id===id);if(a)a.is_deliverable=val; toast(val?"Shared with client":"Set to working"); asRender(); }
-async function asDel(id){ if(!confirm("Delete this asset?"))return; await sb.from("cr_assets").delete().eq("id",id); AS_SEL=null; toast("Deleted"); asLoad(); }
-
-/* ============ CHANGE REQUESTS ============ */
-const CRQ_ST={New:["Under review","b"],"In Review":["Under review","b"],Estimated:["Awaiting approval","a"],"Clarification Needed":["Clarification","a"],Approved:["In progress","b"],"In Progress":["In progress","b"],"Client Review":["Client review","a"],Done:["Completed","g"],Completed:["Completed","g"],Rejected:["Rejected","r"]};
-let CRQ=[], CRQ_SEL=null, CRQ_TAB="all", CRQ_PRI="";
-async function viewChanges(c){
-  c.innerHTML=`<div class="ph"><div><h1>Change requests</h1><div class="psub">Keep client feedback, scope and approvals in one place.</div></div><div class="ph-r">${ME.role==='client'?`<button class="btn" onclick="toast('Raise request — opens form')"><span>${IC.plus}</span> New request</button>`:`<button class="btn" onclick="toast('New request')"><span>${IC.plus}</span> New request</button>`}</div></div><div id="crq-body"><div class="psub">Loading…</div></div>`;
-  if(!CLIENTS.length){const {data}=await sb.from("cr_profiles").select("id,company,full_name,username").eq("role","client");CLIENTS=data||[];}
-  const {data}=await sb.from("cr_requests").select("*").is("deleted_at",null).order("created_at",{ascending:false});
-  CRQ=data||[]; if(!CRQ_SEL&&CRQ.length)CRQ_SEL=CRQ[0].id;
-  crqRender();
-}
-function crqRender(){
-  const b=$("#crq-body"); if(!b)return; const m=mKey();
-  const open=CRQ.filter(r=>!["Done","Completed","Rejected"].includes(r.status)).length;
-  const est=CRQ.filter(r=>r.chargeable&&!r.estimate_approved).length;
-  const appr=CRQ.filter(r=>r.status==="Client Review").length;
-  const comp=CRQ.filter(r=>["Done","Completed"].includes(r.status)&&String(r.updated_at||"").slice(0,7)===m).length;
-  let rows=CRQ.filter(r=>{if(CRQ_TAB==="mine")return r.assigned_to===ME.id;if(CRQ_TAB==="client")return r.status==="Client Review";return true;});
-  if(CRQ_PRI)rows=rows.filter(r=>r.priority===CRQ_PRI);
-  if(!CRQ_SEL&&rows.length)CRQ_SEL=rows[0].id;
-  b.innerHTML=`<div class="stat-row">${psStat(IC.changes,"#15803d","Open requests",String(open).padStart(2,"0"),"")}${psStat(IC.contracts,"#b4740f","Awaiting estimate",String(est).padStart(2,"0"),"")}${psStat(IC.clients,"#b4740f","Awaiting approval",String(appr).padStart(2,"0"),"")}${psStat(IC.approvals,"#15803d","Completed this month",String(comp).padStart(2,"0"),"")}</div>
-  <div class="cal-controls"><select class="selectbox" onchange="CRQ_PRI=this.value;crqRender()"><option value="">All priorities</option>${["Low","Medium","High","Critical"].map(p=>`<option ${CRQ_PRI===p?'selected':''}>${p}</option>`).join("")}</select></div>
-  <div class="utabs">${[["all","All requests"],["mine","My assignments"],["client","Awaiting client"]].map(([k,l])=>`<button class="${CRQ_TAB===k?'on':''}" onclick="CRQ_TAB='${k}';CRQ_SEL=null;crqRender()">${l}</button>`).join("")}</div>
-  <div class="crq"><div class="card" style="overflow:hidden"><div class="card-h pad" style="margin:0;padding:16px"><h3 class="sec-title" style="font-size:16px">Request queue</h3></div>${rows.map(r=>{const st=CRQ_ST[r.status]||["Under review","b"];const pri=r.priority||"Medium";return `<div class="crq-item ${CRQ_SEL===r.id?'sel':''}" onclick="CRQ_SEL='${r.id}';crqRender()"><div class="cid">${esc(r.ref_no||'')}</div><b>${esc(r.title||'Request')}</b><div class="sub1" style="margin-bottom:8px">${esc((r.description||'').slice(0,90))}</div><div style="display:flex;align-items:center;gap:10px"><span class="sub1">${esc(clientName(r.client_id))}</span><span class="flag ${pri}" style="margin-left:auto">● ${pri}</span><span class="status ${st[1]}">${st[0]}</span></div></div>`;}).join("")||`<div class="sub1" style="padding:24px;text-align:center">No requests.</div>`}</div>
-  <div class="card pad" id="crq-det"></div></div>`;
-  crqDetail();
-}
-function crqDetail(){ const el=$("#crq-det"); if(!el)return; const r=CRQ.find(x=>x.id===CRQ_SEL);
-  if(!r){el.innerHTML=`<div class="empty"><div class="ei">${IC.changes}</div><div>Select a request</div></div>`;return;}
-  const st=CRQ_ST[r.status]||["Under review","b"];
-  const steps=[["Submitted",true,r.created_at],["Reviewed",r.in_scope!=null||r.estimate!=null,r.updated_at],["Approval",r.estimate_approved||r.status==="Client Review",r.estimate_approved?r.updated_at:null],["Delivery",["Done","Completed"].includes(r.status),null]];
-  el.innerHTML=`<div class="card-h"><div><h3 class="sec-title" style="font-size:18px">${esc(r.title||'Request')}</h3><div class="sub1">${esc(r.ref_no||'')}</div></div><span class="status ${st[1]}">${st[0]}</span></div>
-   <div class="grid" style="grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px"><div><div class="sub1">Client</div><b>${esc(clientName(r.client_id))}</b></div><div><div class="sub1">Submitted</div><b>${fmtD(r.created_at)}</b></div><div><div class="sub1">Owner</div><b>${esc(r.assigned_name||'Unassigned')}</b></div><div><div class="sub1">Priority</div><b class="flag ${r.priority||'Medium'}">● ${esc(r.priority||'Medium')}</b></div></div>
-   <div class="sub1">Description</div><p style="margin:4px 0 12px">${esc(r.description||'—')}</p>
-   ${r.affected_url?`<div class="sub1">Affected page</div><a class="linkg" href="${esc(r.affected_url)}" target="_blank">🔗 ${esc(r.affected_url)}</a>`:""}
-   <div style="display:flex;align-items:center;gap:8px;margin:14px 0 8px"><div class="sub1">Scope assessment</div><span class="status ${r.chargeable?'a':'g'}" style="margin-left:auto">${r.chargeable?'Additional work':(r.in_scope?'Within scope':'Not assessed')}</span></div>
-   ${r.chargeable?`<div class="sub1">Cost estimate</div><div class="est-tbl" style="border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-top:6px"><div><span>Estimate</span><span>${money(r.estimate||0)}</span></div><div><span>Estimated total</span><span>${money(r.estimate||0)}</span></div></div>`:""}
-   <div class="crq-tl">${steps.map((sp,i)=>`<div class="tl ${sp[1]?'':'off'}"><div class="d">${sp[1]?'✓':i+1}</div><b>${sp[0]}</b><span>${sp[2]?fmtD(sp[2]):(sp[1]?'Done':(i===steps.findIndex(x=>!x[1])?'Pending':'—'))}</span></div>`).join("")}</div>
-   ${canStaff()?`<div class="btnrow"><button class="btn ghost" onclick="crqScope('${r.id}')">Edit estimate</button>${r.status!=='Client Review'?`<button class="btn" onclick="crqSend('${r.id}')">Send for approval</button>`:""}</div><div class="sub1" style="margin-top:8px">Client approval required before work begins.</div>`:(r.chargeable&&!r.estimate_approved?`<div class="btnrow"><button class="btn block" onclick="crqApprove('${r.id}')">Approve estimate</button></div>`:"")}`;
-}
-function crqScope(id){ const r=CRQ.find(x=>x.id===id); sheet("Scope &amp; estimate",`<label class="chk" style="margin-bottom:8px"><input type="checkbox" id="cs-scope" ${r.in_scope?'checked':''}> Within current scope (no charge)</label><label class="chk" style="margin-bottom:12px"><input type="checkbox" id="cs-charge" ${r.chargeable?'checked':''}> Chargeable (additional work)</label><div class="fld2"><label>Estimate</label><input id="cs-est" type="number" class="inp" value="${r.estimate||''}"/></div><button class="btn block" onclick="crqScopeSave('${id}')">Save</button>`); }
-async function crqScopeSave(id){ await sb.from("cr_requests").update({in_scope:document.getElementById("cs-scope").checked,chargeable:document.getElementById("cs-charge").checked,estimate:Number(v("cs-est"))||null,status:"Estimated",updated_at:new Date().toISOString()}).eq("id",id); closeModal();toast("Saved");viewChanges($("#content")); }
-async function crqSend(id){ await sb.from("cr_requests").update({status:"Client Review",updated_at:new Date().toISOString()}).eq("id",id); toast("Sent for approval");viewChanges($("#content")); }
-async function crqApprove(id){ await sb.from("cr_requests").update({estimate_approved:true,status:"Approved",updated_at:new Date().toISOString()}).eq("id",id); toast("Estimate approved");viewChanges($("#content")); }
+async function setAudit(b){ const {data}=await sb.from("cr_audit_log").select("*").order("created_at",{ascending:false}).limit(200); b.innerHTML=`<div class="card pad"><h3 class="sec-title" style="font-size:17px;margin-bottom:12px">Audit log</h3><table class="tbl"><thead><tr><th>When</th><th>Who</th><th>Action</th><th>Entity</th></tr></thead><tbody>${(data||[]).map(a=>`<tr><td class="sub1" style="white-space:nowrap">${fmtDT(a.created_at)}</td><td>${esc(a.actor_name||'—')}</td><td><b>${esc(a.action||'')}</b></td><td>${esc(a.entity||'')}</td></tr>`).join("")||'<tr><td colspan="4" class="sub1" style="text-align:center;padding:16px">No activity recorded.</td></tr>'}</tbody></table></div>`; }
+function setUserForm(){ sheet("Invite team member",`<div class="g2"><div class="fld2"><label>Full name</label><input id="su-name" class="inp"/></div><div class="fld2"><label>Email</label><input id="su-email" class="inp" type="email"/></div><div class="fld2"><label>Password <span class="sub1">(min 8)</span></label><input id="su-pass" class="inp" type="text"/></div><div class="fld2"><label>Role</label><select id="su-role" class="inp"><option value="account_manager">Account manager</option><option value="team_member">Team member</option><option value="manager">Manager</option><option value="super_admin">Super admin</option></select></div></div><label class="chk" style="margin-bottom:12px"><input type="checkbox" id="su-fin"> Allow financial access</label><button class="btn block" onclick="setUserSave()">Add member</button>`); }
+async function setUserSave(){ const name=v("su-name"),email=v("su-email"),pass=v("su-pass"); if(!name||!email||pass.length<8){toast("Name, email and 8+ char password",true);return;} try{ await callFn("admin-staff",{action:"create",full_name:name,email,password:pass,role:v("su-role"),fin_access:document.getElementById("su-fin").checked}); closeModal();toast("Team member added");viewSettings($("#content")); }catch(e){toast(e.message||"Failed",true);} }
+function setUserEdit(id){ const u=ST_LIST.find(x=>x.id===id); sheet("Edit "+(u.full_name||"member"),`<div class="fld2"><label>Role</label><select id="se-role" class="inp">${["account_manager","team_member","manager","super_admin"].map(r=>`<option value="${r}" ${u.role===r?'selected':''}>${ROLE_LABEL[r]}</option>`).join("")}</select></div><label class="chk" style="margin-bottom:12px"><input type="checkbox" id="se-fin" ${u.fin_access?'checked':''}> Financial access</label><div class="fld2"><label>New password <span class="sub1">(optional)</span></label><input id="se-pw" class="inp" type="text"/></div><button class="btn block" onclick="setUserUpdate('${id}')">Save</button>`); }
+async function setUserUpdate(id){ const p={action:"update",user_id:id,role:v("se-role"),fin_access:document.getElementById("se-fin").checked}; const pw=v("se-pw"); if(pw)p.new_password=pw; try{ await callFn("admin-staff",p); closeModal();toast("Saved");viewSettings($("#content")); }catch(e){toast(e.message||"Failed",true);} }
+async function setReset(id){ const pw=prompt("Set a new password for this user (min 8 chars):"); if(!pw||pw.length<8)return; try{ await callFn("admin-staff",{action:"update",user_id:id,new_password:pw}); toast("Password reset"); }catch(e){toast(e.message||"Failed",true);} }
+async function callFn(name,body){ const {data:{session}}=await sb.auth.getSession(); const r=await fetch(SB_URL+"/functions/v1/"+name,{method:"POST",headers:{"Content-Type":"application/json","apikey":SB_KEY,"Authorization":"Bearer "+(session?session.access_token:SB_KEY)},body:JSON.stringify(body||{})}); const j=await r.json().catch(()=>({})); if(!r.ok||j.error)throw new Error(j.error||("HTTP "+r.status)); return j; }
 
 /* ================= GO ================= */
 try{ if('serviceWorker' in navigator){ navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister())); if(window.caches){caches.keys().then(ks=>ks.forEach(k=>caches.delete(k)));} } }catch(_){ }
