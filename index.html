@@ -761,12 +761,13 @@ function clientName(id){ const c=CLIENTS.find(x=>x.id===id); return c?(c.company
 
 /* ============ PROPOSALS ============ */
 const PROP_ST={draft:["Draft","n"],sent:["Sent","b"],viewed:["Viewed","b"],accepted:["Accepted","g"],rejected:["Rejected","r"],expired:["Expired","a"],superseded:["Superseded","n"]};
-let PROPS=[], PROP_SEL=null, PROP_TAB="all", PROP_Q="";
+let PROPS=[], SP_PROPS=[], PROP_SEL=null, PROP_TAB="all", PROP_Q="";
 async function viewProposals(c){
-  c.innerHTML=`<div class="ph"><div class="ph-ic">${IC.proposals}</div><div><h1>Proposals</h1><div class="psub">Turn your strategy into the next client partnership.</div></div><div class="ph-r"><button class="btn ghost">${IC.proposals} Templates</button>${canStaff()?`<button class="btn" onclick="propNew()"><span>${IC.plus}</span> New proposal</button>`:""}</div></div><div id="prop-body"><div class="psub">Loading…</div></div>`;
+  c.innerHTML=`<div class="ph"><div class="ph-ic">${IC.proposals}</div><div><h1>Proposals</h1><div class="psub">Turn your strategy into the next client partnership.</div></div><div class="ph-r"><button class="btn ghost" onclick="window.open('studio/','_blank')">✦ Proposal Studio</button>${canStaff()?`<button class="btn" onclick="propNew()"><span>${IC.plus}</span> New proposal</button>`:""}</div></div><div id="prop-body"><div class="psub">Loading…</div></div>`;
   if(!CLIENTS.length){ const {data}=await sb.from("cr_profiles").select("id,company,full_name,username").eq("role","client"); CLIENTS=data||[]; }
   const {data}=await sb.from("cr_proposals").select("*").order("created_at",{ascending:false});
-  PROPS=data||[]; if(!PROP_SEL&&PROPS.length)PROP_SEL=PROPS[0].id;
+  PROPS=data||[];
+  try{ const sp=await sb.from("sp_proposals").select("*").order("updated_at",{ascending:false}); SP_PROPS=sp.data||[]; }catch(_){ SP_PROPS=[]; } if(!PROP_SEL&&PROPS.length)PROP_SEL=PROPS[0].id;
   propRender();
 }
 function propRender(){
@@ -782,6 +783,7 @@ function propRender(){
      <table class="tbl"><thead><tr><th>Proposal</th><th>Client</th><th>Value</th><th>Status</th></tr></thead><tbody>${rows.map(p=>{const st=PROP_ST[p.status]||["Draft","n"];const val=p.total_recurring>0?money(p.total_recurring)+" / mo":(p.total_onetime>0?money(p.total_onetime)+" one-time":"—");return `<tr class="rowlink ${PROP_SEL===p.id?'sel':''}" onclick="PROP_SEL='${p.id}';propRender()"><td><div class="cell-lead"><span class="av2" style="width:30px;height:30px;border-radius:9px;background:var(--tint);color:var(--green)">${IC.proposals}</span><b>${esc(p.title||"Proposal")}</b></div></td><td>${esc(clientName(p.client_id))}</td><td>${val}</td><td><span class="status ${st[1]}">${st[0]}</span></td></tr>`;}).join("")||`<tr><td colspan="4" class="psub" style="text-align:center;padding:24px">No proposals.</td></tr>`}</tbody></table>
      <div class="card-h" style="margin:22px 0 0"><h3 class="sec-title" style="font-size:16px">Reusable templates</h3><span class="sub1">Create proposals faster with branded templates.</span></div>
      <div class="tplrow">${[["Digital Marketing",IC.reports],["Website Development",IC.projects],["Social Media",IC.assets]].map(t=>`<div class="tpl" onclick="propNew()"><span class="ti">${t[1]}</span><b>${t[0]}</b><span style="margin-left:auto;color:var(--faint)">›</span></div>`).join("")}</div>
+     ${SP_PROPS&&SP_PROPS.length?`<div class="card-h" style="margin:22px 0 0"><h3 class="sec-title" style="font-size:16px">✦ Proposal Studio microsites</h3><a class="linkg" onclick="window.open('studio/','_blank')">Open studio ↗</a></div><table class="tbl"><thead><tr><th>Proposal</th><th>Client</th><th>Value</th><th>Status</th><th></th></tr></thead><tbody>${SP_PROPS.map(p=>`<tr class="rowlink"><td><div class="cell-lead"><span class="av2" style="width:28px;height:28px;border-radius:8px;background:#fdf3d0;color:#b4740f">✦</span><b>${esc(p.title||p.pno||"Proposal")}</b></div></td><td>${esc(p.client_company||"—")}</td><td>${p.total?money(p.total,p.currency):"—"}</td><td><span class="status ${p.status==='accepted'?'g':(p.status==='sent'?'b':'n')}">${esc(p.status||'draft')}</span></td><td style="text-align:right"><a class="linkg" onclick="studioOpen('${p.id}')">Edit</a>${p.share_token?` · <a class="linkg" onclick="studioMicrosite('${p.share_token}')">Microsite</a>`:""}</td></tr>`).join("")}</tbody></table>`:""}
      </div>
      <div class="card pad" id="prop-prev"></div></div>`;
   propPreview();
@@ -802,7 +804,9 @@ async function propPreview(){
    </div></div>`;
 }
 function propOpen(id){ const p=PROPS.find(x=>x.id===id); propDetailModal(p); }
-function propNew(){ toast("Proposal builder opens here — full editor next pass."); }
+function propNew(){ window.open("studio/?new","_blank"); }
+function studioOpen(id){ window.open("studio/?id="+id,"_blank"); }
+function studioMicrosite(tok){ window.open("studio/#t="+tok,"_blank"); }
 async function propPDF(id){
   const p=PROPS.find(x=>x.id===id); const {data:items}=await sb.from("cr_proposal_items").select("*").eq("proposal_id",id).order("sort");
   const {jsPDF}=window.jspdf; const doc=new jsPDF(); doc.setFillColor(21,128,61);doc.rect(0,0,210,24,"F");doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(15);doc.text("Stepstones Solutions",14,12);doc.setFontSize(10);doc.text("PROPOSAL",14,19);
