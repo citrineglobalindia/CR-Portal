@@ -364,6 +364,18 @@ button{font-family:inherit;cursor:pointer}
 .perm-tbl td,.perm-tbl th{text-align:center}.perm-tbl td:first-child,.perm-tbl th:first-child{text-align:left}
 .chiprm{display:inline-flex;align-items:center;gap:6px;background:var(--tint);color:var(--green-ink);border-radius:999px;padding:5px 10px;font-weight:600;font-size:12.5px;margin:0 6px 6px 0}
 .chiprm .x{cursor:pointer;opacity:.6}
+
+.dd{position:absolute;top:52px;right:0;width:360px;max-height:440px;overflow:auto;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 20px 50px rgba(16,26,42,.18);z-index:120}
+.dd-h{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;font-weight:800}
+.dd-i{display:flex;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line2);cursor:pointer}
+.dd-i:hover{background:var(--panel2)}.dd-i.unread{background:#f2faf5}
+.dd-i .dot2{width:8px;height:8px;border-radius:50%;background:var(--green);margin-top:5px;flex:0 0 auto}
+.dd-i b{font-size:13.5px}.dd-i .m{color:var(--muted);font-size:12.5px}
+.gwrap{position:relative}
+.gres{position:absolute;top:48px;left:0;right:0;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 20px 50px rgba(16,26,42,.18);z-index:120;max-height:380px;overflow:auto}
+.gres .gi{display:flex;gap:10px;align-items:center;padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--line2)}
+.gres .gi:hover{background:var(--panel2)}.gres .gi:last-child{border-bottom:0}
+.gres .gt{font-size:11px;text-transform:uppercase;color:var(--faint);font-weight:700;padding:8px 14px 2px}
 </style>
 </head>
 <body>
@@ -503,14 +515,14 @@ function renderApp(){
       <div class="topbar">
         <button class="icon-btn" style="display:none" id="burger" onclick="document.getElementById('side').classList.toggle('open')">≡</button>
         <div class="crumb" id="crumb"></div>
-        <div class="search"><span>${IC.search}</span><input placeholder="Search clients, projects, proposals…"/></div>
-        <button class="icon-btn">${IC.bell}<span class="dot"></span></button>
+        <div class="search gwrap"><span>${IC.search}</span><input id="gsearch" placeholder="Search clients, projects, proposals…" oninput="gSearch(this.value)" onfocus="gSearch(this.value)"/><div id="gres" class="gres" style="display:none"></div></div>
+        <div style="position:relative"><button class="icon-btn" id="bellbtn" onclick="toggleNotif()">${IC.bell}<span class="dot" id="belldot" style="display:none"></span></button><div id="notifdd"></div></div>
         <div class="top-av">${esc(initials(name)).toUpperCase()}</div>
       </div>
       <div class="content" id="content"></div>
     </div>
   </div>`;
-  renderNav(); renderRoute();
+  renderNav(); renderRoute(); loadNotifBadge();
 }
 function renderNav(){
   const r=route();
@@ -771,7 +783,7 @@ async function viewProposals(c){
   PROPS=data||[];
   try{ const sp=await sb.from("sp_proposals").select("*").order("updated_at",{ascending:false}); SP_PROPS=sp.data||[];
     const ids=SP_PROPS.map(p=>p.id); SP_EVENTS=[]; if(ids.length){ const ev=await sb.from("sp_proposal_events").select("*").in("proposal_id",ids); SP_EVENTS=ev.data||[]; }
-    for(const p of SP_PROPS){ if(spIsAccepted(p.id)&&p.status!=="accepted"){ try{ await sb.from("sp_proposals").update({status:"accepted"}).eq("id",p.id); p.status="accepted"; }catch(_){ } } }
+    for(const p of SP_PROPS){ if(spIsAccepted(p.id)&&p.status!=="accepted"){ try{ await sb.from("sp_proposals").update({status:"accepted"}).eq("id",p.id); p.status="accepted"; await spAutoConvert(p); }catch(_){ } } }
    }catch(_){ SP_PROPS=[]; SP_EVENTS=[]; } if(!PROP_SEL&&PROPS.length)PROP_SEL=PROPS[0].id;
   propRender();
 }
@@ -1497,6 +1509,54 @@ async function tkReply(id){ const inp=document.getElementById("tk-reply"); const
 async function tkStatus(id,st){ await sb.from("cr_tickets").update({status:st,updated_at:new Date().toISOString()}).eq("id",id); const t=TKTS.find(x=>x.id===id);if(t)t.status=st; toast("Ticket "+st.toLowerCase()); tkRender(); }
 function tkForm(){ sheet("Raise ticket",`<div class="fld2"><label>Client</label><select id="nt-client" class="inp">${CLIENTS.map(c=>`<option value="${c.id}">${esc(c.company||c.full_name)}</option>`).join("")}</select></div><div class="fld2"><label>Subject</label><input id="nt-subj" class="inp"/></div><div class="g2"><div class="fld2"><label>Category</label><select id="nt-cat" class="inp">${["Question","Bug / Issue","Billing","Feature request","Other"].map(x=>`<option>${x}</option>`).join("")}</select></div><div class="fld2"><label>Priority</label><select id="nt-pri" class="inp">${["Low","Medium","High","Urgent"].map(x=>`<option ${x==="Medium"?"selected":""}>${x}</option>`).join("")}</select></div></div><div class="fld2"><label>Description</label><textarea id="nt-desc" class="inp" rows="3"></textarea></div><button class="btn block" onclick="tkSave()">Create ticket</button>`); }
 async function tkSave(){ const subj=v("nt-subj"),desc=v("nt-desc"); if(!subj||!desc){toast("Subject and description required",true);return;} const {data,error}=await sb.from("cr_tickets").insert({client_id:v("nt-client"),created_by:SESSION.user.id,created_by_name:ME.full_name||ME.email,subject:subj,category:v("nt-cat"),priority:v("nt-pri"),status:"Open"}).select().single(); if(error){toast(error.message,true);return;} await sb.from("cr_ticket_messages").insert({ticket_id:data.id,author_id:SESSION.user.id,author_name:ME.full_name||ME.email,author_role:ME.role,body:desc}); closeModal();toast("Ticket created");viewSupport($("#content")); }
+
+
+/* ============ NOTIFICATIONS ============ */
+let NOTIFS=[];
+async function loadNotifBadge(){ try{ const {data}=await sb.from("cr_notifications").select("id,is_read").eq("user_id",ME.id).eq("is_read",false).limit(50); const dot=document.getElementById("belldot"); if(dot)dot.style.display=(data&&data.length)?"":"none"; }catch(_){ } }
+async function toggleNotif(){
+  const dd=document.getElementById("notifdd"); if(!dd)return;
+  if(dd.innerHTML){ dd.innerHTML=""; return; }
+  const {data}=await sb.from("cr_notifications").select("*").eq("user_id",ME.id).order("created_at",{ascending:false}).limit(30); NOTIFS=data||[];
+  dd.innerHTML=`<div class="dd"><div class="dd-h"><span>Notifications</span>${NOTIFS.some(n=>!n.is_read)?`<a class="linkg" onclick="notifReadAll()">Mark all read</a>`:""}</div>${NOTIFS.length?NOTIFS.map(n=>`<div class="dd-i ${n.is_read?'':'unread'}" onclick="notifOpen('${n.id}','${n.type||''}')"><span class="dot2" style="${n.is_read?'visibility:hidden':''}"></span><div><b>${esc(n.title||'')}</b><div class="m">${esc(n.body||'')}</div><div class="m" style="margin-top:3px">${fmtDT(n.created_at)}</div></div></div>`).join(""):`<div class="empty" style="padding:30px"><div>You're all caught up.</div></div>`}</div>`;
+}
+async function notifReadAll(){ await sb.from("cr_notifications").update({is_read:true}).eq("user_id",ME.id).eq("is_read",false); NOTIFS.forEach(n=>n.is_read=true); document.getElementById("notifdd").innerHTML=""; loadNotifBadge(); }
+async function notifOpen(id,type){ await sb.from("cr_notifications").update({is_read:true}).eq("id",id); document.getElementById("notifdd").innerHTML=""; loadNotifBadge(); const go={proposal:"#/proposals",contract:"#/contracts",content:"#/approvals",invoice:"#/finance",review:"#/reviews",task:"#/projects"}[type]; if(go)location.hash=go; }
+document.addEventListener("click",e=>{ const dd=document.getElementById("notifdd"),bb=document.getElementById("bellbtn"); if(dd&&dd.innerHTML&&bb&&!bb.contains(e.target)&&!dd.contains(e.target))dd.innerHTML=""; const gr=document.getElementById("gres"),gs=document.getElementById("gsearch"); if(gr&&gr.style.display!=='none'&&gs&&!gs.contains(e.target)&&!gr.contains(e.target))gr.style.display='none'; });
+
+/* ============ GLOBAL SEARCH ============ */
+let G_CACHE=null, gTimer=null;
+async function gSearch(q){
+  const el=document.getElementById("gres"); if(!el)return; q=(q||"").trim().toLowerCase();
+  if(!q){el.innerHTML="";el.style.display="none";return;}
+  clearTimeout(gTimer); gTimer=setTimeout(async()=>{
+    if(!G_CACHE){ const [cl,pr,pp,sp]=await Promise.all([ sb.from("cr_profiles").select("id,company,full_name,industry").eq("role","client"), sb.from("cr_projects").select("id,name,client_name"), sb.from("cr_proposals").select("id,title,client_id"), sb.from("sp_proposals").select("id,title,client_company,share_token") ]); G_CACHE={cl:cl.data||[],pr:pr.data||[],pp:pp.data||[],sp:sp.data||[]}; if(!CLIENTS.length)CLIENTS=G_CACHE.cl; }
+    const cl=G_CACHE.cl.filter(c=>((c.company||"")+(c.full_name||"")+(c.industry||"")).toLowerCase().includes(q)).slice(0,5);
+    const pr=G_CACHE.pr.filter(p=>((p.name||"")+(p.client_name||"")).toLowerCase().includes(q)).slice(0,5);
+    const pp=G_CACHE.pp.filter(p=>(p.title||"").toLowerCase().includes(q)).slice(0,4);
+    const sp=G_CACHE.sp.filter(p=>((p.title||"")+(p.client_company||"")).toLowerCase().includes(q)).slice(0,4);
+    const row=(ic,t,sub,go)=>`<div class="gi" onclick="${go};document.getElementById('gres').style.display='none';document.getElementById('gsearch').value=''"><span class="av2" style="width:30px;height:30px;border-radius:8px;background:var(--tint);color:var(--green)">${ic}</span><div><b style="font-size:13.5px">${esc(t)}</b><div class="sub1">${esc(sub)}</div></div></div>`;
+    let h="";
+    if(cl.length)h+=`<div class="gt">Clients</div>`+cl.map(c=>row(IC.clients,c.company||c.full_name,c.industry||"Client",`location.hash='#/clients/${c.id}'`)).join("");
+    if(pr.length)h+=`<div class="gt">Projects</div>`+pr.map(p=>row(IC.projects,p.name,p.client_name||"",`location.hash='#/projects'`)).join("");
+    if(pp.length||sp.length)h+=`<div class="gt">Proposals</div>`+pp.map(p=>row(IC.proposals,p.title,clientName(p.client_id),`location.hash='#/proposals'`)).join("")+sp.map(p=>row("✦",p.title||"Proposal",p.client_company||"",`location.hash='#/proposals'`)).join("");
+    el.innerHTML=h||'<div class="gi"><div class="sub1">No matches</div></div>'; el.style.display='';
+  },180);
+}
+
+/* ============ AUTO-CONVERT accepted proposal -> contract + draft invoice ============ */
+async function spAutoConvert(p){
+  try{
+    const match=CLIENTS.find(c=>(c.company||"").toLowerCase()===(p.client_company||"").toLowerCase());
+    if(!match)return;
+    // contract (once)
+    const {data:ex}=await sb.from("cr_contracts").select("id").eq("client_id",match.id).ilike("title","%"+(p.title||"")+"%").limit(1);
+    if(!ex||!ex.length){ await sb.from("cr_contracts").insert({client_id:match.id,title:(p.title||"Agreement").replace(/proposal/i,"agreement"),scope:(p.payload&&(p.payload.solIntro||p.payload.title))||null,payment_schedule:p.total?("Total "+money(p.total,p.currency)):null,status:"draft",version:1,created_by:SESSION.user.id,created_by_name:ME.full_name||ME.email}); }
+    // draft invoice (once) — tagged with proposal id in notes
+    const {data:inv}=await sb.from("cr_invoices").select("id").ilike("notes","%"+p.id+"%").limit(1);
+    if((!inv||!inv.length)&&p.total){ const {data:iv}=await sb.from("cr_invoices").insert({client_id:match.id,kind:"one-time",total:p.total,subtotal:p.total,status:"Draft",notes:"Proposal: "+p.id,created_by:SESSION.user.id,created_by_name:ME.full_name||ME.email}).select().single(); if(iv)await sb.from("cr_invoice_items").insert({invoice_id:iv.id,name:p.title||"Proposal",qty:1,rate:p.total,amount:p.total,sort:0}); }
+  }catch(_){ }
+}
 
 /* ================= GO ================= */
 try{ if('serviceWorker' in navigator){ navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister())); if(window.caches){caches.keys().then(ks=>ks.forEach(k=>caches.delete(k)));} } }catch(_){ }
