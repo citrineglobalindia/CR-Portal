@@ -248,6 +248,41 @@ button{font-family:inherit;cursor:pointer}
 .file-drop:hover{border-color:var(--green2);color:var(--green);background:var(--tint)}
 .con-file{display:flex;align-items:center;gap:10px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13px;margin-top:8px}
 .sig-img{max-height:54px;background:#fff;border:1px solid var(--line);border-radius:8px;padding:4px}
+/* ---------- attendance ---------- */
+.att-hero{display:grid;grid-template-columns:1fr 1.3fr;gap:20px;background:linear-gradient(135deg,#0b1220 0%,#12233f 60%,#0e2b3d 100%);border-radius:var(--r);padding:24px 26px;color:#fff;margin-bottom:16px;position:relative;overflow:hidden}
+.att-hero:before{content:"";position:absolute;right:-70px;top:-70px;width:240px;height:240px;border-radius:50%;background:radial-gradient(circle,rgba(34,211,238,.28),transparent 70%);pointer-events:none}
+.att-clock{position:relative;z-index:2}
+.att-now{font-family:var(--font-head);font-size:44px;font-weight:800;letter-spacing:-1.5px;line-height:1}
+.att-date{color:#aeb9c9;font-size:14px;margin-top:6px}
+.att-state{margin-top:14px;display:inline-block;padding:7px 14px;border-radius:999px;font-weight:700;font-size:12.5px;font-family:var(--font-head)}
+.att-state.out{background:rgba(234,179,8,.18);color:#fde68a}.att-state.in{background:rgba(34,211,238,.18);color:#67e8f9}.att-state.done{background:rgba(52,211,153,.2);color:#6ee7b7}
+.att-act{display:flex;flex-direction:column;justify-content:center;gap:12px;position:relative;z-index:2}
+.att-big{font-size:17px;padding:16px;border-radius:14px}
+.att-inrow{display:flex;align-items:center;gap:14px;background:rgba(255,255,255,.07);border-radius:12px;padding:12px 16px}
+.att-inrow .k{display:block;color:#aeb9c9;font-size:12px}.att-inrow b{font-size:17px;font-family:var(--font-head)}
+.att-selfie{width:48px;height:48px;border-radius:10px;object-fit:cover;margin-left:auto;border:2px solid rgba(255,255,255,.22)}
+.att-summary2{display:flex;gap:22px;background:rgba(255,255,255,.07);border-radius:12px;padding:14px 18px}.att-summary2 .k{display:block;color:#aeb9c9;font-size:12px}.att-summary2 b{font-size:19px;font-family:var(--font-head)}
+.att-done{color:#6ee7b7;font-weight:700;font-size:13px;font-family:var(--font-head)}
+.att-stats{margin-bottom:16px}
+.att-reg{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:12px}
+.att-reg .dh{text-align:center;font-size:11px;color:var(--faint);font-weight:700;padding-bottom:2px;font-family:var(--font-head)}
+.att-cell{min-height:62px;border:1px solid var(--line);border-radius:10px;padding:6px 7px;display:flex;flex-direction:column;position:relative;font-size:12px;transition:.15s}
+.att-cell:hover{border-color:var(--green2)}
+.att-cell .dn{font-weight:700;color:var(--ink2)}
+.att-cell.we{background:var(--panel2)}
+.att-cell.today{outline:2px solid var(--green);outline-offset:-1px}
+.att-cell .dot{margin-top:auto;font-size:10px;font-weight:800;padding:2px 6px;border-radius:6px;align-self:flex-start;line-height:1.3}
+.d-present{background:var(--tint);color:var(--green-ink)}.d-wfh{background:#e0f2fe;color:#0369a1}.d-half{background:#fef3c7;color:#92400e}.d-leave{background:#ede9fe;color:#6d28d9}.d-absent{background:#fee2e2;color:#b91c1c}
+.att-legend .dot{display:inline-block;margin-right:3px}
+.att-nav{display:flex;align-items:center}
+.att-nav button{background:#fff;border:1px solid var(--line);border-radius:8px;width:30px;height:30px;cursor:pointer;font-size:15px;transition:.15s}
+.att-nav button:hover{background:var(--tint);border-color:var(--green2);color:var(--green)}
+.cam-wrap{position:relative;background:#0b1220;border-radius:14px;overflow:hidden;aspect-ratio:4/3;display:grid;place-items:center}
+.cam-wrap video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
+.cam-ph{position:absolute;color:#9aa4b2;font-size:13px;text-align:center;padding:16px}
+.att-geo{margin:12px 0;font-size:13px;color:var(--muted);background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:11px 13px}
+.ros-tbl .outst{color:var(--faint)}
+.appr-row{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:13px;border:1px solid var(--line);border-radius:11px;margin-bottom:9px}
 @media(max-width:860px){.app{grid-template-columns:1fr}.side{position:fixed;left:0;top:0;bottom:0;width:252px;z-index:120;transform:translateX(-100%);transition:.25s}.side.open{transform:none}.search{display:none}.auth{grid-template-columns:1fr}.auth-art{display:none}.auth-form{padding:36px 22px}.ph h1{font-size:26px}}
 
 /* list + preview layout */
@@ -524,6 +559,7 @@ const IC={
  calendar:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>',
  approvals:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>',
  projects:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="16" rx="1"/><rect x="14" y="4" width="7" height="10" rx="1"/></svg>',
+ attendance:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
  reports:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><rect x="5" y="11" width="3" height="7" rx="1"/><rect x="10.5" y="6" width="3" height="12" rx="1"/><rect x="16" y="9" width="3" height="9" rx="1"/></svg>',
  finance:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18v12H3z"/><path d="M3 11h18"/><circle cx="8" cy="15" r="1.3"/></svg>',
  assets:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 15l5-4 4 3 4-4 5 4"/><circle cx="8.5" cy="9" r="1.3"/></svg>',
@@ -535,7 +571,7 @@ reviews:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width
  search:'<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.2-3.2"/></svg>',
  plus:'<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>'
 };
-const NAV=[["overview","Overview"],["clients","Clients"],["proposals","Proposals"],["contracts","Contracts"],["calendar","Content Calendar"],["approvals","Approvals"],["projects","Projects"],["reports","Reports"],["finance","Finance & Accounts"],["assets","Asset Library"],["reviews","Reviews"],["support","Support"],["changes","Change Requests"]];
+const NAV=[["overview","Overview"],["clients","Clients"],["proposals","Proposals"],["contracts","Contracts"],["calendar","Content Calendar"],["approvals","Approvals"],["projects","Projects"],["attendance","Attendance"],["reports","Reports"],["finance","Finance & Accounts"],["assets","Asset Library"],["reviews","Reviews"],["support","Support"],["changes","Change Requests"]];
 
 /* ================= AUTH ================= */
 async function boot(){
@@ -645,7 +681,7 @@ function renderRoute(){
   const r=route(), c=$("#content"); if(!c)return;
   $("#crumb").innerHTML=`Workspace <span class="sep">/</span> <b>${esc(TITLES[r]||"")}</b>`;
   c.scrollTop=0;
-  const map={overview:viewOverview,clients:viewClients,proposals:viewProposals,contracts:viewContracts,calendar:viewCalendar,approvals:viewApprovals,projects:viewProjects,reports:viewReports,finance:viewFinance,assets:viewAssets,reviews:viewReviews,support:viewSupport,changes:viewChanges,settings:viewSettings};
+  const map={overview:viewOverview,clients:viewClients,proposals:viewProposals,contracts:viewContracts,calendar:viewCalendar,approvals:viewApprovals,projects:viewProjects,attendance:viewAttendance,reports:viewReports,finance:viewFinance,assets:viewAssets,reviews:viewReviews,support:viewSupport,changes:viewChanges,settings:viewSettings};
   (map[r]||soon)(c);
 }
 function soon(c){const r=route();c.innerHTML=`<div class="ph"><div class="ph-ic">${IC[r]||IC.overview}</div><div><h1>${esc(TITLES[r]||"")}</h1><div class="psub">This screen is being built in the new design.</div></div></div><div class="card pad empty"><div class="ei">${IC[r]||IC.settings}</div><div><b>Coming online next</b></div><div class="psub" style="margin-top:6px">The ${esc(TITLES[r])} module is next in the rollout.</div></div>`;}
@@ -1716,6 +1752,170 @@ async function conSignSubmit(id,role){
   await sb.from("cr_contracts").update({status:role==="agency"?"countersigned":"signed",updated_at:new Date().toISOString()}).eq("id",id);
   closeModal();toast("Signed — an immutable record was created");viewContracts($("#content"));
 }
+
+
+/* ============ ATTENDANCE ============ */
+let ATT={tab:'me',month:new Date(),cam:null,geo:null,selfie:null};
+function attDateStr(d){ return (d||new Date()).toLocaleDateString('en-CA',{timeZone:'Asia/Kolkata'}); }
+function attIsMgr(){ return isAdmin() || ['account_manager','manager','super_admin'].includes(ME.role); }
+function attTimeStr(ts){ return ts? new Date(ts).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}) : '—'; }
+function minsToHrs(m){ if(m==null)return '—'; const h=Math.floor(m/60),mm=m%60; return h+'h '+(mm<10?'0':'')+mm+'m'; }
+function attMonthLbl(){ return ATT.month.toLocaleDateString('en-IN',{month:'long',year:'numeric'}); }
+function attMonth(d){ ATT.month=new Date(ATT.month.getFullYear(),ATT.month.getMonth()+d,1); if(ATT.tab==='reports')attReports(); else attMe(); }
+
+async function viewAttendance(c){
+  c=c||$("#content");
+  const tabs=[['me','My attendance'],['leaves','Leaves']].concat(attIsMgr()?[['team','Team today'],['reports','Reports']]:[]);
+  if(!tabs.find(t=>t[0]===ATT.tab))ATT.tab='me';
+  c.innerHTML=`<div class="ph"><div class="ph-ic">${IC.attendance}</div><div><h1>Attendance</h1><div class="psub">Check in, track your hours and manage leave.</div></div></div>
+   <div class="utabs">${tabs.map(t=>`<button class="${ATT.tab===t[0]?'on':''}" onclick="ATT.tab='${t[0]}';viewAttendance()">${t[1]}</button>`).join("")}</div>
+   <div id="att-body"><div class="psub">Loading…</div></div>`;
+  if(ATT.tab==='me')attMe(); else if(ATT.tab==='leaves')attLeaves(); else if(ATT.tab==='team')attTeam(); else attReports();
+}
+function attTick(){ if(window._attTimer)clearInterval(window._attTimer); const upd=()=>{const el=document.getElementById('att-now'); if(!el){clearInterval(window._attTimer);return;} el.textContent=new Date().toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata',hour:'2-digit',minute:'2-digit',second:'2-digit'});}; upd(); window._attTimer=setInterval(upd,1000); }
+
+async function attMe(){
+  const b=$("#att-body"); const today=attDateStr();
+  const first=new Date(ATT.month.getFullYear(),ATT.month.getMonth(),1), last=new Date(ATT.month.getFullYear(),ATT.month.getMonth()+1,0);
+  const {data}=await sb.from('cr_attendance').select('*').eq('user_id',SESSION.user.id).gte('work_date',attDateStr(first)).lte('work_date',attDateStr(last)).order('work_date');
+  const rows=data||[]; const t=rows.find(r=>r.work_date===today);
+  const present=rows.filter(r=>['present','wfh','half-day'].includes(r.status)).length;
+  const lateCnt=rows.filter(r=>r.late).length; const totMin=rows.reduce((a,r)=>a+(r.work_minutes||0),0); const avg=present?Math.round(totMin/present):0;
+  const inDone=!!(t&&t.check_in), outDone=!!(t&&t.check_out);
+  const hero=`<div class="att-hero"><div class="att-clock"><div class="att-now" id="att-now">—</div><div class="att-date">${new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</div>
+     <div class="att-state ${inDone?(outDone?'done':'in'):'out'}">${!inDone?'Not checked in yet':(!outDone?'Checked in · working':'Checked out for today')}</div></div>
+   <div class="att-act">
+    ${!inDone?`<button class="btn att-big" onclick="attCheckIn()">&#9195; Check in now</button><div class="sub1" style="color:#aeb9c9">A selfie &amp; location are captured to verify your check-in.</div>`:
+      !outDone?`<div class="att-inrow"><div><span class="k">Checked in at</span><b>${attTimeStr(t.check_in)}</b></div>${t.late?'<span class="status a" style="margin-left:4px">Late</span>':''}${t.in_selfie?`<img class="att-selfie" src="${supaImg(t.in_selfie)}">`:''}</div><button class="btn att-big" onclick="attCheckOut('${t.id}','${t.check_in}')">&#9196; Check out</button>`:
+      `<div class="att-summary2"><div><span class="k">In</span><b>${attTimeStr(t.check_in)}</b></div><div><span class="k">Out</span><b>${attTimeStr(t.check_out)}</b></div><div><span class="k">Worked</span><b>${minsToHrs(t.work_minutes)}</b></div></div><div class="att-done">&#10003; Attendance recorded for today</div>`}
+   </div></div>`;
+  b.innerHTML=hero+`<div class="stat-row att-stats">
+     <div class="stat"><div class="st-ic">${IC.attendance}</div><div class="lbl">Present this month</div><div class="val">${present}</div></div>
+     <div class="stat"><div class="st-ic">${IC.reports}</div><div class="lbl">Avg hours / day</div><div class="val">${minsToHrs(avg)}</div></div>
+     <div class="stat"><div class="st-ic">${IC.approvals}</div><div class="lbl">Late days</div><div class="val">${lateCnt}</div></div>
+     <div class="stat"><div class="st-ic">${IC.calendar}</div><div class="lbl">Days logged</div><div class="val">${rows.length}</div></div></div>
+   <div class="card"><div class="card-h"><h3 class="sec-title">My register — ${attMonthLbl()}</h3><div class="att-nav"><button onclick="attMonth(-1)">‹</button><button onclick="attMonth(1)">›</button></div></div>${attRegisterGrid(rows,ATT.month)}</div>`;
+  attTick();
+}
+function attRegisterGrid(rows,month){
+  const map={}; rows.forEach(r=>map[r.work_date]=r);
+  const y=month.getFullYear(),m=month.getMonth(); const start=new Date(y,m,1).getDay(), days=new Date(y,m+1,0).getDate(); const today=attDateStr();
+  let cells=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d=>`<div class="dh">${d}</div>`).join("");
+  for(let i=0;i<start;i++)cells+=`<div></div>`;
+  const C={present:'d-present',wfh:'d-wfh','half-day':'d-half',leave:'d-leave',absent:'d-absent'}, L={present:'P',wfh:'WFH','half-day':'½',leave:'L',absent:'A'};
+  for(let d=1;d<=days;d++){ const ds=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`; const r=map[ds]; const wd=new Date(y,m,d).getDay(); const we=(wd===0||wd===6);
+    cells+=`<div class="att-cell ${we?'we':''} ${ds===today?'today':''}"><span class="dn">${d}</span>${r?`<span class="dot ${C[r.status]||''}" title="${r.status}${r.late?' · late':''}">${L[r.status]||''}${r.work_minutes?' · '+minsToHrs(r.work_minutes):''}</span>`:''}</div>`; }
+  return `<div class="att-reg">${cells}</div><div class="att-legend sub1" style="margin-top:12px;display:flex;gap:14px;flex-wrap:wrap"><span><b class="dot d-present">P</b> Present</span><span><b class="dot d-wfh">WFH</b> Work from home</span><span><b class="dot d-half">½</b> Half-day</span><span><b class="dot d-leave">L</b> Leave</span><span><b class="dot d-absent">A</b> Absent</span></div>`;
+}
+
+/* check-in: selfie + geo */
+function attCheckIn(){
+  ATT.geo=null; ATT.selfie=null;
+  sheet("Check in",`<div class="cam-wrap"><video id="att-vid" autoplay playsinline muted></video><canvas id="att-cvs" class="hide"></canvas><div class="cam-ph" id="att-camph">Starting camera…</div></div>
+   <div class="att-geo" id="att-geo">📍 Getting your location…</div>
+   <div class="btnrow"><button class="btn ghost" onclick="attStopCam();closeModal()">Cancel</button><button class="btn" id="att-cap" onclick="attCapture()">📸 Capture &amp; check in</button></div>
+   <div class="sub1" style="margin-top:6px">A selfie and location are recorded for verification.</div>`,{icon:IC.attendance,subtitle:'Verify and mark your check-in.'});
+  setTimeout(()=>{attStartCam();attGetGeo('att-geo');},80);
+}
+async function attStartCam(){
+  try{ const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'},audio:false}); ATT.cam=stream; const v=document.getElementById('att-vid'); if(v){v.srcObject=stream;} const ph=document.getElementById('att-camph'); if(ph)ph.style.display='none'; }
+  catch(e){ const ph=document.getElementById('att-camph'); if(ph)ph.innerHTML=`Camera unavailable.<br><label class="linkg" style="cursor:pointer">Tap to upload a photo<input type="file" accept="image/*" capture="user" style="display:none" onchange="attFilePhoto(this)"></label>`; }
+}
+function attStopCam(){ if(ATT.cam){ATT.cam.getTracks().forEach(t=>t.stop());ATT.cam=null;} if(window._attTimer2)clearInterval(window._attTimer2); }
+function attGetGeo(elId){ const el=document.getElementById(elId); if(!navigator.geolocation){if(el)el.textContent='📍 Location not supported';return;} navigator.geolocation.getCurrentPosition(p=>{ATT.geo={lat:p.coords.latitude,lng:p.coords.longitude}; if(el)el.innerHTML=`📍 Location captured (${ATT.geo.lat.toFixed(4)}, ${ATT.geo.lng.toFixed(4)})`;},()=>{if(el)el.textContent='📍 Location permission denied (optional)';},{enableHighAccuracy:true,timeout:8000}); }
+function attFilePhoto(inp){ const f=inp.files&&inp.files[0]; if(!f)return; const rd=new FileReader(); rd.onload=()=>{ATT.selfie=rd.result; attDoCheckIn();}; rd.readAsDataURL(f); }
+function attCapture(){ const v=document.getElementById('att-vid'); if(v&&v.videoWidth){ const cv=document.getElementById('att-cvs'); cv.width=v.videoWidth;cv.height=v.videoHeight; const cx=cv.getContext('2d'); cx.translate(cv.width,0);cx.scale(-1,1); cx.drawImage(v,0,0); ATT.selfie=cv.toDataURL('image/jpeg',0.82);} attDoCheckIn(); }
+async function attDoCheckIn(){
+  attStopCam(); const btn=document.getElementById('att-cap'); if(btn){btn.disabled=true;btn.textContent='Saving…';}
+  let selfiePath=null;
+  try{ if(ATT.selfie){ const blob=await (await fetch(ATT.selfie)).blob(); const path=`attendance/${SESSION.user.id}/${attDateStr()}_in_${Date.now()}.jpg`; await sb.storage.from('cr-logos').upload(path,blob,{upsert:true,contentType:'image/jpeg'}); selfiePath=path; } }catch(_){}
+  const now=new Date(); const ist=now.toLocaleString('en-GB',{timeZone:'Asia/Kolkata',hour12:false,hour:'2-digit',minute:'2-digit'}); const [h,mm]=ist.split(':').map(Number); const late=(h*60+mm)>(10*60);
+  const {error}=await sb.from('cr_attendance').insert({user_id:SESSION.user.id,user_name:ME.full_name||ME.email,work_date:attDateStr(),check_in:now.toISOString(),status:'present',late,in_lat:ATT.geo?ATT.geo.lat:null,in_lng:ATT.geo?ATT.geo.lng:null,in_selfie:selfiePath});
+  ATT.selfie=null;
+  if(error){toast(error.message,true); if(btn){btn.disabled=false;btn.textContent='📸 Capture & check in';} return;}
+  closeModal(); toast('Checked in'+(late?' (late)':'')); viewAttendance();
+}
+function attCheckOut(id,inTs){
+  ATT.geo=null;
+  sheet("Check out",`<div class="att-geo" id="att-geo2">📍 Getting your location…</div><p class="sub1">Confirm your check-out for today. Your hours will be calculated automatically.</p><div class="btnrow"><button class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn" onclick="attDoCheckOut('${id}','${inTs}')">Check out now</button></div>`,{icon:IC.attendance,subtitle:'End your work day.'});
+  setTimeout(()=>attGetGeo('att-geo2'),60);
+}
+async function attDoCheckOut(id,inTs){
+  const now=new Date(); const mins=Math.max(0,Math.round((now-new Date(inTs))/60000));
+  const ist=now.toLocaleString('en-GB',{timeZone:'Asia/Kolkata',hour12:false,hour:'2-digit',minute:'2-digit'}); const [h,mm]=ist.split(':').map(Number); const early=(h*60+mm)<(18*60);
+  const status=mins<4*60?'half-day':'present';
+  const {error}=await sb.from('cr_attendance').update({check_out:now.toISOString(),work_minutes:mins,early_leave:early,status,out_lat:ATT.geo?ATT.geo.lat:null,out_lng:ATT.geo?ATT.geo.lng:null,updated_at:now.toISOString()}).eq('id',id);
+  if(error){toast(error.message,true);return;} closeModal(); toast('Checked out — '+minsToHrs(mins)); viewAttendance();
+}
+
+/* leaves */
+async function attLeaves(){
+  const b=$("#att-body");
+  const {data}=await sb.from('cr_leaves').select('*').eq('user_id',SESSION.user.id).order('created_at',{ascending:false});
+  const rows=data||[]; const used=rows.filter(r=>r.status==='approved').reduce((a,r)=>a+Number(r.days||0),0);
+  b.innerHTML=`<div class="btnrow" style="margin-bottom:14px"><button class="btn" onclick="attLeaveForm()"><span>${IC.plus}</span> Apply for leave</button></div>
+   <div class="card"><div class="card-h"><h3 class="sec-title">My leave requests</h3><span class="sub1">${used} day(s) approved</span></div>
+   <table class="tbl"><thead><tr><th>Type</th><th>From</th><th>To</th><th>Days</th><th>Reason</th><th>Status</th><th></th></tr></thead><tbody>
+   ${rows.map(r=>`<tr><td><b style="text-transform:capitalize">${esc(r.type)}</b></td><td>${fmtD(r.from_date)}</td><td>${fmtD(r.to_date)}</td><td>${r.days}</td><td>${esc(r.reason||'—')}</td><td><span class="status ${r.status==='approved'?'g':r.status==='rejected'?'r':'a'}">${r.status}</span></td><td>${r.status==='pending'?`<a class="linkg" onclick="attLeaveCancel('${r.id}')">Cancel</a>`:''}</td></tr>`).join('')||`<tr><td colspan="7" style="text-align:center;padding:26px" class="sub1">No leave requests yet.</td></tr>`}
+   </tbody></table></div>`;
+}
+function attLeaveForm(){ const today=attDateStr();
+  sheet("Apply for leave",`<div class="g2"><div class="fld2"><label>Type</label><select id="lv-type" class="inp"><option value="casual">Casual leave</option><option value="sick">Sick leave</option><option value="wfh">Work from home</option><option value="unpaid">Unpaid leave</option></select></div><div class="fld2"><label>Days</label><input id="lv-days" class="inp" type="number" value="1" step="0.5"/></div></div>
+   <div class="g2"><div class="fld2"><label>From</label><input id="lv-from" type="date" class="inp" value="${today}" onchange="lvDays()"/></div><div class="fld2"><label>To</label><input id="lv-to" type="date" class="inp" value="${today}" onchange="lvDays()"/></div></div>
+   <div class="fld2"><label>Reason</label><textarea id="lv-reason" class="inp" rows="3" placeholder="Brief reason"></textarea></div>
+   <button class="btn block" onclick="attLeaveSave()">Submit request</button>`,{icon:IC.attendance,subtitle:'Request time off or work-from-home.'});
+}
+function lvDays(){ const f=v('lv-from'),t=v('lv-to'); if(f&&t){const d=Math.round((new Date(t)-new Date(f))/864e5)+1; if(d>0){const el=document.getElementById('lv-days'); if(el)el.value=d;}} }
+async function attLeaveSave(){ const from=v('lv-from'),to=v('lv-to'); if(!from||!to){toast('Pick dates',true);return;}
+  const {error}=await sb.from('cr_leaves').insert({user_id:SESSION.user.id,user_name:ME.full_name||ME.email,type:v('lv-type'),from_date:from,to_date:to,days:Number(v('lv-days'))||1,reason:v('lv-reason')||null});
+  if(error){toast(error.message,true);return;} closeModal(); toast('Leave request submitted'); attLeaves(); }
+async function attLeaveCancel(id){ await sb.from('cr_leaves').delete().eq('id',id); toast('Request cancelled'); attLeaves(); }
+
+/* team roster + approvals */
+async function attTeam(){
+  const b=$("#att-body"); const today=attDateStr();
+  const [{data:profs},{data:att},{data:lv}]=await Promise.all([
+    sb.from('cr_profiles').select('id,full_name,role').neq('role','client'),
+    sb.from('cr_attendance').select('*').eq('work_date',today),
+    sb.from('cr_leaves').select('*').eq('status','pending').order('created_at')
+  ]);
+  const map={}; (att||[]).forEach(a=>map[a.user_id]=a); const inCount=(att||[]).filter(a=>a.check_in).length;
+  b.innerHTML=`<div class="stat-row att-stats">
+     <div class="stat"><div class="st-ic">${IC.clients}</div><div class="lbl">Team size</div><div class="val">${(profs||[]).length}</div></div>
+     <div class="stat"><div class="st-ic">${IC.attendance}</div><div class="lbl">Checked in today</div><div class="val">${inCount}</div></div>
+     <div class="stat"><div class="st-ic">${IC.approvals}</div><div class="lbl">Pending leaves</div><div class="val">${(lv||[]).length}</div></div></div>
+   <div class="g2" style="align-items:start">
+   <div class="card"><div class="card-h"><h3 class="sec-title">Today — ${new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short'})}</h3></div>
+    <table class="tbl ros-tbl"><thead><tr><th>Member</th><th>In</th><th>Out</th><th>Hours</th><th>Status</th></tr></thead><tbody>
+    ${(profs||[]).map(p=>{const a=map[p.id];return `<tr><td><div class="cell-lead"><span class="av2" style="background:${avatarColor(p.full_name||'')}">${initials(p.full_name||'?')}</span><div><b>${esc(p.full_name||'—')}</b><div class="sub1" style="text-transform:capitalize">${esc(p.role)}</div></div></div></td><td>${a&&a.check_in?attTimeStr(a.check_in):'<span class="outst">—</span>'}</td><td>${a&&a.check_out?attTimeStr(a.check_out):'<span class="outst">—</span>'}</td><td>${a&&a.work_minutes!=null?minsToHrs(a.work_minutes):'—'}</td><td>${a?`<span class="status ${a.check_out?'g':'b'}">${a.check_out?'Done':'Working'}</span>${a.late?' <span class="status r">Late</span>':''}`:'<span class="status n">Absent</span>'}</td></tr>`;}).join('')||'<tr><td colspan="5" class="sub1" style="text-align:center;padding:20px">No team members.</td></tr>'}
+    </tbody></table></div>
+   <div class="card"><div class="card-h"><h3 class="sec-title">Leave approvals</h3></div>
+    ${(lv||[]).map(r=>`<div class="appr-row"><div><b>${esc(r.user_name||'')}</b> <span class="status a" style="text-transform:capitalize">${esc(r.type)}</span><div class="sub1" style="margin-top:3px">${fmtD(r.from_date)} – ${fmtD(r.to_date)} · ${r.days}d</div>${r.reason?`<div class="sub1">${esc(r.reason)}</div>`:''}</div><div class="btnrow" style="margin:0"><button class="btn ghost sm" onclick="attLeaveDecide('${r.id}','rejected')">Reject</button><button class="btn sm" onclick="attLeaveDecide('${r.id}','approved')">Approve</button></div></div>`).join('')||'<div class="sub1" style="padding:16px">No pending requests.</div>'}
+   </div></div>`;
+}
+async function attLeaveDecide(id,status){ const {error}=await sb.from('cr_leaves').update({status,decided_by:SESSION.user.id,decided_by_name:ME.full_name||ME.email,decided_at:new Date().toISOString()}).eq('id',id); if(error){toast(error.message,true);return;} toast('Leave '+status); attTeam(); }
+
+/* reports */
+async function attReports(){
+  const b=$("#att-body"); const first=new Date(ATT.month.getFullYear(),ATT.month.getMonth(),1), last=new Date(ATT.month.getFullYear(),ATT.month.getMonth()+1,0);
+  const [{data:profs},{data:att},{data:lv}]=await Promise.all([
+    sb.from('cr_profiles').select('id,full_name,role').neq('role','client'),
+    sb.from('cr_attendance').select('*').gte('work_date',attDateStr(first)).lte('work_date',attDateStr(last)),
+    sb.from('cr_leaves').select('*').eq('status','approved').lte('from_date',attDateStr(last)).gte('to_date',attDateStr(first))
+  ]);
+  const byUser={}; (att||[]).forEach(a=>{(byUser[a.user_id]=byUser[a.user_id]||[]).push(a);});
+  const lvBy={}; (lv||[]).forEach(l=>{lvBy[l.user_id]=(lvBy[l.user_id]||0)+Number(l.days||0);});
+  window._ATT_REPORT={profs:profs||[],byUser,lvBy,month:ATT.month};
+  const rowsHtml=(profs||[]).map(p=>{const a=byUser[p.id]||[];const present=a.filter(r=>['present','wfh'].includes(r.status)).length;const half=a.filter(r=>r.status==='half-day').length;const late=a.filter(r=>r.late).length;const mins=a.reduce((s,r)=>s+(r.work_minutes||0),0);const avg=present?Math.round(mins/present):0;return `<tr><td><div class="cell-lead"><span class="av2" style="background:${avatarColor(p.full_name||'')}">${initials(p.full_name||'?')}</span><div><b>${esc(p.full_name||'—')}</b><div class="sub1" style="text-transform:capitalize">${esc(p.role)}</div></div></div></td><td>${present}</td><td>${half}</td><td>${late}</td><td>${lvBy[p.id]||0}</td><td>${minsToHrs(avg)}</td><td>${minsToHrs(mins)}</td></tr>`;}).join('');
+  b.innerHTML=`<div class="card-h" style="margin-bottom:12px"><div class="att-nav"><button onclick="attMonth(-1)">‹</button><b style="margin:0 10px;font-family:var(--font-head)">${attMonthLbl()}</b><button onclick="attMonth(1)">›</button></div><div class="btnrow" style="margin:0"><button class="btn ghost sm" onclick="attExportCSV()">↓ CSV</button><button class="btn ghost sm" onclick="attExportPDF()">↓ PDF</button></div></div>
+   <div class="card"><table class="tbl"><thead><tr><th>Member</th><th>Present</th><th>Half</th><th>Late</th><th>Leaves</th><th>Avg/day</th><th>Total hrs</th></tr></thead><tbody>${rowsHtml||'<tr><td colspan="7" class="sub1" style="text-align:center;padding:20px">No team members.</td></tr>'}</tbody></table></div>`;
+}
+function attExportCSV(){ const R=window._ATT_REPORT; if(!R)return; let csv='Member,Role,Present,Half-day,Late,Leaves,Avg min/day,Total min\n';
+  R.profs.forEach(p=>{const a=R.byUser[p.id]||[];const present=a.filter(r=>['present','wfh'].includes(r.status)).length;const half=a.filter(r=>r.status==='half-day').length;const late=a.filter(r=>r.late).length;const mins=a.reduce((s,r)=>s+(r.work_minutes||0),0);const avg=present?Math.round(mins/present):0;csv+=`"${(p.full_name||'').replace(/"/g,'')}",${p.role},${present},${half},${late},${R.lvBy[p.id]||0},${avg},${mins}\n`;});
+  const blob=new Blob([csv],{type:'text/csv'}); const u=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=u; a.download='attendance-'+attDateStr(R.month).slice(0,7)+'.csv'; a.click(); URL.revokeObjectURL(u); toast('CSV downloaded'); }
+function attExportPDF(){ const R=window._ATT_REPORT; if(!R)return; const {jsPDF}=window.jspdf; const doc=new jsPDF(); doc.setFillColor(37,99,235);doc.rect(0,0,210,22,'F');doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(14);doc.text('Stepstones Solutions — Attendance',14,11);doc.setFontSize(10);doc.text(R.month.toLocaleDateString('en-IN',{month:'long',year:'numeric'}),14,18);
+  const body=R.profs.map(p=>{const a=R.byUser[p.id]||[];const present=a.filter(r=>['present','wfh'].includes(r.status)).length;const half=a.filter(r=>r.status==='half-day').length;const late=a.filter(r=>r.late).length;const mins=a.reduce((s,r)=>s+(r.work_minutes||0),0);const avg=present?Math.round(mins/present):0;return [p.full_name||'—',p.role,present,half,late,R.lvBy[p.id]||0,minsToHrs(avg),minsToHrs(mins)];});
+  doc.autoTable({head:[['Member','Role','Present','Half','Late','Leaves','Avg/day','Total']],body,startY:28,styles:{fontSize:9},headStyles:{fillColor:[37,99,235]}}); doc.save('attendance-'+attDateStr(R.month).slice(0,7)+'.pdf'); toast('PDF downloaded'); }
 
 
 /* ============ INVOICE BUILDER ============ */
