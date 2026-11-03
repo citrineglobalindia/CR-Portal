@@ -624,7 +624,7 @@ function ovRenderClients(q){
 async function viewClients(c){
   const parts=routeParts();
   if(parts[1]) return viewClientWorkspace(c,parts[1]);
-  c.innerHTML=`<div class="ph"><div class="ph-ic">${IC.clients}</div><div><h1>Clients</h1><div class="psub">Every client company, contact and engagement in one place.</div></div><div class="ph-r">${canStaff()?`<button class="btn" onclick="toast('Client creation form — wiring in next phase')"><span>${IC.plus}</span> Add client</button>`:""}</div></div>
+  c.innerHTML=`<div class="ph"><div class="ph-ic">${IC.clients}</div><div><h1>Clients</h1><div class="psub">Every client company, contact and engagement in one place.</div></div><div class="ph-r">${canStaff()?`<button class="btn" onclick="clAddForm()"><span>${IC.plus}</span> Add client</button>`:""}</div></div>
    <div class="card pad"><div class="card-h"><h3 class="sec-title">All clients</h3><div style="position:relative"><span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--faint)">${IC.search}</span><input class="inp" style="padding-left:38px;height:40px;width:260px" placeholder="Search clients…" oninput="clFilter(this.value)"/></div></div><div class="tblwrap"><table class="tbl" id="cl-tbl"></table></div></div>`;
   const [cl,svc,staff]=await Promise.all([
     sb.from("cr_profiles").select("*").eq("role","client").order("company"),
@@ -874,7 +874,7 @@ function propDetailModal(p){ propPreview(); toast("Opened "+(p.title||"proposal"
 const CON_ST={draft:["Draft","n"],sent:["Awaiting signature","b"],signed:["Signed","g"],countersigned:["Active","g"],terminated:["Terminated","r"]};
 let CONS=[], CON_SEL=null, CON_TAB="all", CON_Q="";
 async function viewContracts(c){
-  c.innerHTML=`<div class="ph"><div class="ph-ic">${IC.contracts}</div><div><h1>Contracts</h1><div class="psub">Keep every agreement, signature and renewal in one place.</div></div><div class="ph-r"><button class="btn ghost">${IC.contracts} Templates</button>${canStaff()?`<button class="btn" onclick="toast('Contract editor — next pass')"><span>${IC.plus}</span> Create contract</button>`:""}</div></div><div id="con-body"><div class="psub">Loading…</div></div>`;
+  c.innerHTML=`<div class="ph"><div class="ph-ic">${IC.contracts}</div><div><h1>Contracts</h1><div class="psub">Keep every agreement, signature and renewal in one place.</div></div><div class="ph-r"><button class="btn ghost">${IC.contracts} Templates</button>${canStaff()?`<button class="btn" onclick="conForm()"><span>${IC.plus}</span> Create contract</button>`:""}</div></div><div id="con-body"><div class="psub">Loading…</div></div>`;
   if(!CLIENTS.length){ const {data}=await sb.from("cr_profiles").select("id,company,full_name,username,renewal_date").eq("role","client"); CLIENTS=data||[]; }
   const {data}=await sb.from("cr_contracts").select("*").order("created_at",{ascending:false});
   CONS=data||[]; if(!CON_SEL&&CONS.length)CON_SEL=CONS[0].id;
@@ -915,10 +915,10 @@ async function conPreview(){
    <div class="sigwf"><div class="sigrow"><span class="si ${agencySig?'ok':'pend'}">${agencySig?'✓':'…'}</span><div><b>Agency representative</b><span>${agencySig?esc(agencySig.signer_name):"Not signed"}</span></div><span class="when">${agencySig?fmtDT(agencySig.signed_at):""}</span></div>
    <div class="sigrow"><span class="si ${clientSig?'ok':'pend'}">${clientSig?'✓':'…'}</span><div><b>Client representative</b><span>${clientSig?esc(clientSig.signer_name):(c.status==='sent'?"Awaiting signature":"Not sent")}</span></div><span class="when">${clientSig?fmtDT(clientSig.signed_at):""}</span></div></div>
    <div class="sigbar"><i style="width:${prog}%"></i></div><div class="sub1" style="text-align:right">${done} of 2 signatures complete</div>
-   <div class="btnrow"><button class="btn ghost sm" onclick="conPDF('${c.id}')">Preview PDF</button>${c.status==='sent'?`<button class="btn ghost sm" onclick="toast('Reminder noted')">Send reminder</button>`:""}${ME.role==='client'&&!clientSig?`<button class="btn sm" onclick="conSign('${c.id}')">Review &amp; sign</button>`:`<button class="btn sm" onclick="toast('Signing link copied')">View signing link</button>`}</div>`;
+   <div class="btnrow">${canStaff()&&!["signed","countersigned"].includes(c.status)?`<button class="btn ghost sm" onclick="conForm('${c.id}')">Edit</button>`:""}<button class="btn ghost sm" onclick="conPDF('${c.id}')">Preview PDF</button>${c.status==='sent'?`<button class="btn ghost sm" onclick="toast('Reminder noted')">Send reminder</button>`:""}${ME.role==='client'&&!clientSig?`<button class="btn sm" onclick="conSign('${c.id}')">Review &amp; sign</button>`:`<button class="btn sm" onclick="toast('Signing link copied')">View signing link</button>`}</div>`;
 }
 async function conPDF(id){ const c=CONS.find(x=>x.id===id); const {data:sigs}=await sb.from("cr_signatures").select("*").eq("contract_id",id); const {jsPDF}=window.jspdf; const doc=new jsPDF(); doc.setFillColor(21,128,61);doc.rect(0,0,210,24,"F");doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(15);doc.text("Stepstones Solutions",14,12);doc.setFontSize(10);doc.text("CONTRACT",14,19);let y=36;doc.setTextColor(20,20,30);doc.setFontSize(15);doc.text(doc.splitTextToSize(c.title||"Agreement",180),14,y);y+=9;doc.setFontSize(11);doc.setFont("helvetica","normal");doc.text("Client: "+clientName(c.client_id),14,y);y+=8;[["Scope",c.scope],["Payment",c.payment_schedule],["Renewal",c.renewal],["Termination",c.termination],["Contract",c.body]].forEach(([h,t])=>{if(!t)return;doc.setFont("helvetica","bold");doc.text(h,14,y);y+=5;doc.setFont("helvetica","normal");const ls=doc.splitTextToSize(t,182);if(y+ls.length*5>275){doc.addPage();y=20;}doc.text(ls,14,y);y+=ls.length*5+5;});doc.setFont("helvetica","bold");doc.text("Signatures",14,y);y+=6;doc.setFont("helvetica","normal");doc.setFontSize(9);(sigs||[]).forEach(sgn=>{doc.text(`${sgn.signer_role.toUpperCase()}: ${sgn.signer_name} — ${sgn.method} — ${fmtDT(sgn.signed_at)}`,14,y);y+=5;});doc.save("contract-"+(c.title||"").replace(/[^\w]+/g,"_").slice(0,24)+".pdf"); }
-function conSign(id){ toast("Signing flow opens here — porting the consent+sign modal next."); }
+
 
 
 /* ============ CONTENT CALENDAR ============ */
@@ -1296,6 +1296,75 @@ async function crqScopeSave(id){ await sb.from("cr_requests").update({in_scope:d
 async function crqSend(id){ await sb.from("cr_requests").update({status:"Client Review",updated_at:new Date().toISOString()}).eq("id",id); toast("Sent for approval");viewChanges($("#content")); }
 async function crqApprove(id){ await sb.from("cr_requests").update({estimate_approved:true,status:"Approved",updated_at:new Date().toISOString()}).eq("id",id); toast("Estimate approved");viewChanges($("#content")); }
 
+
+
+/* ============ ADD CLIENT (new portal) ============ */
+async function clAddForm(){
+  await ensureStaff();
+  sheet("Create client",`
+   <div class="g2"><div class="fld2"><label>Contact full name *</label><input id="nc-name" class="inp"/></div><div class="fld2"><label>Company *</label><input id="nc-company" class="inp" oninput="ncCode()"/></div>
+   <div class="fld2"><label>Client code *</label><input id="nc-code" class="inp" placeholder="BHO"/></div><div class="fld2"><label>CR prefix</label><input id="nc-prefix" class="inp" placeholder="CR-BHO"/></div>
+   <div class="fld2"><label>Username *</label><input id="nc-user" class="inp"/></div><div class="fld2"><label>Password * <span class="sub1">(min 6)</span></label><input id="nc-pass" class="inp" type="text"/></div>
+   <div class="fld2"><label>Notification email(s) *</label><input id="nc-email" class="inp" placeholder="a@x.com, b@y.com"/></div><div class="fld2"><label>Phone / WhatsApp</label><input id="nc-phone" class="inp"/></div>
+   <div class="fld2"><label>Industry</label><input id="nc-industry" class="inp"/></div><div class="fld2"><label>Website</label><input id="nc-web" class="inp"/></div>
+   <div class="fld2"><label>GST / Tax</label><input id="nc-gst" class="inp"/></div><div class="fld2"><label>Account manager</label><select id="nc-am" class="inp"><option value="">—</option>${STAFF.filter(x=>["admin","super_admin","account_manager","manager"].includes(x.role)).map(a=>`<option value="${a.id}">${esc(a.full_name||a.email)}</option>`).join("")}</select></div>
+   <div class="fld2"><label>Service start</label><input id="nc-start" type="date" class="inp"/></div><div class="fld2"><label>Renewal date</label><input id="nc-renew" type="date" class="inp"/></div></div>
+   <div class="fld2"><label>Services</label><div style="display:flex;gap:14px"><label class="chk"><input type="checkbox" id="nc-sw"> 💻 Software</label><label class="chk"><input type="checkbox" id="nc-dm" checked> 📈 Digital marketing</label></div></div>
+   <div class="fld2"><label>Billing address</label><textarea id="nc-addr" class="inp" rows="2"></textarea></div>
+   <div class="fld2"><label>Internal notes <span class="sub1">🔒 not shown to client</span></label><textarea id="nc-notes" class="inp" rows="2"></textarea></div>
+   <button class="btn block" id="nc-btn" onclick="clAddSave()">Create client</button>`);
+}
+function ncCode(){ const c=document.getElementById("nc-code"); if(c&&!c.dataset.t){ c.value=(v("nc-company")||"").replace(/[^A-Za-z]/g,"").slice(0,3).toUpperCase(); const p=document.getElementById("nc-prefix"); if(p&&!p.dataset.t)p.value="CR-"+c.value; } }
+async function clAddSave(){
+  const name=v("nc-name"),company=v("nc-company"),code=v("nc-code"),user=v("nc-user"),pass=v("nc-pass"),emails=(v("nc-email")||"").split(",").map(x=>x.trim()).filter(Boolean);
+  if(!name||!company||!code||!user||pass.length<6||!emails.length){toast("Fill name, company, code, username, 6+ password and email",true);return;}
+  const st=[]; if(document.getElementById("nc-sw").checked)st.push("software"); if(document.getElementById("nc-dm").checked)st.push("digital"); if(!st.length)st.push("digital");
+  const btn=document.getElementById("nc-btn"); if(btn){btn.disabled=true;btn.textContent="Creating…";}
+  try{ await callFn("admin-create-client",{username:user,password:pass,email:emails[0],notify_emails:emails,full_name:name,company,client_code:code,cr_prefix:v("nc-prefix")||("CR-"+code),phone:v("nc-phone"),whatsapp:v("nc-phone"),industry:v("nc-industry")||null,website:v("nc-web")||null,gst_no:v("nc-gst")||null,billing_address:v("nc-addr")||null,address:v("nc-addr")||null,service_types:st,account_manager:v("nc-am")||null,service_start:v("nc-start")||null,renewal_date:v("nc-renew")||null,client_status:"active",internal_notes:v("nc-notes")||null});
+    closeModal();toast(`Client "${company}" created`);viewClients($("#content"));
+  }catch(e){toast(e.message||"Could not create",true);if(btn){btn.disabled=false;btn.textContent="Create client";}}
+}
+let STAFF_READY=false;
+async function ensureStaff(){ if(STAFF_READY)return; try{ const r=await callFn("admin-staff",{action:"list"}); STAFF=r.staff||[]; STAFF_READY=true; }catch(_){ STAFF=[]; } }
+
+/* ============ CREATE / SIGN CONTRACT (new portal) ============ */
+function conForm(id){
+  const existing=id?CONS.find(c=>c.id===id):null;
+  if(!CLIENTS.length){ sb.from("cr_profiles").select("id,company,full_name,username").eq("role","client").then(({data})=>{CLIENTS=data||[];conForm(id);}); return; }
+  const d=existing||{};
+  sheet(`${id?'Edit':'New'} contract`,`
+   <div class="fld2"><label>Client</label><select id="co-client" class="inp">${CLIENTS.map(c=>`<option value="${c.id}" ${d.client_id===c.id?'selected':''}>${esc(c.company||c.full_name)}</option>`).join("")}</select></div>
+   <div class="fld2"><label>Title</label><input id="co-title" class="inp" value="${esc(d.title||'Service agreement')}"/></div>
+   <div class="g2"><div class="fld2"><label>Service start</label><input id="co-start" type="date" class="inp" value="${d.service_start||''}"/></div><div class="fld2"><label>Service end</label><input id="co-end" type="date" class="inp" value="${d.service_end||''}"/></div></div>
+   <div class="fld2"><label>Scope &amp; deliverables</label><textarea id="co-scope" class="inp" rows="3">${esc(d.scope||'')}</textarea></div>
+   <div class="fld2"><label>Payment schedule</label><textarea id="co-pay" class="inp" rows="2">${esc(d.payment_schedule||'')}</textarea></div>
+   <div class="g2"><div class="fld2"><label>Renewal</label><input id="co-renew" class="inp" value="${esc(d.renewal||'')}"/></div><div class="fld2"><label>Termination</label><input id="co-term" class="inp" value="${esc(d.termination||'')}"/></div></div>
+   <div class="fld2"><label>Full contract text <span class="sub1">(this is what gets signed)</span></label><textarea id="co-body" class="inp" rows="4">${esc(d.body||'')}</textarea></div>
+   <div class="btnrow"><button class="btn ghost" onclick="conSave('${id||''}','draft')">Save draft</button><button class="btn" onclick="conSave('${id||''}','sent')">Save &amp; send to client</button></div>`);
+}
+async function conSave(id,status){
+  const patch={client_id:v("co-client"),title:v("co-title"),service_start:v("co-start")||null,service_end:v("co-end")||null,scope:v("co-scope")||null,payment_schedule:v("co-pay")||null,renewal:v("co-renew")||null,termination:v("co-term")||null,body:v("co-body")||null,status,updated_at:new Date().toISOString()};
+  let err;
+  if(id){ const ex=CONS.find(c=>c.id===id); if(ex&&["signed","countersigned"].includes(ex.status)){toast("Signed contracts are immutable — create a new version",true);return;} ({error:err}=await sb.from("cr_contracts").update(patch).eq("id",id)); }
+  else { patch.version=1; patch.created_by=SESSION.user.id; patch.created_by_name=ME.full_name||ME.email; ({error:err}=await sb.from("cr_contracts").insert(patch)); }
+  if(err){toast(err.message,true);return;} closeModal();toast("Contract saved");viewContracts($("#content"));
+}
+function conSign(id){
+  const c=CONS.find(x=>x.id===id)||{};
+  sheet("Sign contract",`<div class="sub1" style="margin-bottom:10px">${esc(c.title||'Agreement')}</div>
+   <div class="fld2"><label>Type your full legal name</label><input id="sg-name" class="inp" value="${esc(ME.full_name||'')}"/></div>
+   <label class="chk" style="align-items:flex-start;margin-bottom:12px"><input type="checkbox" id="sg-consent" style="margin-top:3px"> <span>I have read and agree to this contract, and consent to signing it electronically. I understand my name, the time, and the contract version are recorded.</span></label>
+   <button class="btn block" onclick="conSignSubmit('${id}','${ME.role==='client'?'client':'agency'}')">Sign now</button>
+   <div class="sub1" style="margin-top:8px">Basic electronic acceptance (typed name + consent). Certified provider signing can be enabled later.</div>`);
+}
+async function conSignSubmit(id,role){
+  const nm=v("sg-name"); if(!nm.trim()){toast("Type your name",true);return;} if(!document.getElementById("sg-consent").checked){toast("Tick the consent box",true);return;}
+  const c=CONS.find(x=>x.id===id)||{};
+  const {error}=await sb.from("cr_signatures").insert({contract_id:id,signer_id:SESSION.user.id,signer_name:nm,signer_role:role,method:"typed",consent:true,typed_name:nm,user_agent:navigator.userAgent,version:c.version||1,evidence:{at:new Date().toISOString(),ua:navigator.userAgent}});
+  if(error){toast(error.message,true);return;}
+  await sb.from("cr_contracts").update({status:role==="agency"?"countersigned":"signed",updated_at:new Date().toISOString()}).eq("id",id);
+  closeModal();toast("Signed — an immutable record was created");viewContracts($("#content"));
+}
 
 /* ================= GO ================= */
 try{ if('serviceWorker' in navigator){ navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister())); if(window.caches){caches.keys().then(ks=>ks.forEach(k=>caches.delete(k)));} } }catch(_){ }
