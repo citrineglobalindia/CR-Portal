@@ -31,6 +31,18 @@ button{font-family:inherit;cursor:pointer}
 .hide{display:none!important}
 ::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:#d6dbd3;border-radius:8px;border:3px solid var(--bg)}
 
+/* ---------- in-app Proposal Studio ---------- */
+.st-ov{position:fixed;inset:0;z-index:140;background:var(--bg);display:flex;flex-direction:column;animation:fadein .18s ease}
+.st-bar{flex:0 0 56px;display:flex;align-items:center;gap:14px;padding:0 16px;background:var(--side);color:#fff;border-bottom:1px solid rgba(255,255,255,.08)}
+.st-ti{font-family:var(--font-head);font-weight:700;font-size:15px;display:flex;align-items:center;gap:8px;color:#fff}
+.st-mk{color:#34d399}
+.st-back{background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.14);border-radius:10px;padding:8px 14px;font-family:var(--font-head);font-weight:600;font-size:13px}
+.st-back:hover{background:rgba(255,255,255,.14)}
+.st-rf{margin-left:auto;background:var(--green);color:#fff;border:0;border-radius:10px;padding:8px 14px;font-family:var(--font-head);font-weight:600;font-size:13px}
+.st-rf:hover{filter:brightness(1.08)}
+.st-if{flex:1;width:100%;border:0;background:#fff}
+
+
 /* ---------- LOGIN ---------- */
 .auth{display:grid;grid-template-columns:1fr 1fr;height:100vh}
 .auth-art{background:radial-gradient(120% 90% at 20% 10%,#12325f 0%,#0b1220 55%);color:#fff;padding:54px 60px;display:flex;flex-direction:column;justify-content:space-between;position:relative;overflow:hidden}
@@ -836,7 +848,7 @@ function clientName(id){ const c=CLIENTS.find(x=>x.id===id); return c?(c.company
 const PROP_ST={draft:["Draft","n"],sent:["Sent","b"],viewed:["Viewed","b"],accepted:["Accepted","g"],rejected:["Rejected","r"],expired:["Expired","a"],superseded:["Superseded","n"]};
 let PROPS=[], SP_PROPS=[], SP_EVENTS=[], PROP_SEL=null, PROP_TAB="all", PROP_Q="";
 async function viewProposals(c){
-  c.innerHTML=`<div class="ph"><div class="ph-ic">${IC.proposals}</div><div><h1>Proposals</h1><div class="psub">Turn your strategy into the next client partnership.</div></div><div class="ph-r"><button class="btn ghost" onclick="window.open('studio/','_blank')">✦ Proposal Studio</button>${canStaff()?`<button class="btn" onclick="propNew()"><span>${IC.plus}</span> New proposal</button>`:""}</div></div><div id="prop-body"><div class="psub">Loading…</div></div>`;
+  c.innerHTML=`<div class="ph"><div class="ph-ic">${IC.proposals}</div><div><h1>Proposals</h1><div class="psub">Turn your strategy into the next client partnership.</div></div><div class="ph-r"><button class="btn ghost" onclick="studioFrame('studio/')">✦ Proposal Studio</button>${canStaff()?`<button class="btn" onclick="propNew()"><span>${IC.plus}</span> New proposal</button>`:""}</div></div><div id="prop-body"><div class="psub">Loading…</div></div>`;
   if(!CLIENTS.length){ const {data}=await sb.from("cr_profiles").select("id,company,full_name,username").eq("role","client"); CLIENTS=data||[]; }
   const {data}=await sb.from("cr_proposals").select("*").order("created_at",{ascending:false});
   PROPS=data||[];
@@ -859,7 +871,7 @@ function propRender(){
      <table class="tbl"><thead><tr><th>Proposal</th><th>Client</th><th>Value</th><th>Status</th></tr></thead><tbody>${rows.map(p=>{const st=PROP_ST[p.status]||["Draft","n"];const val=p.total_recurring>0?money(p.total_recurring)+" / mo":(p.total_onetime>0?money(p.total_onetime)+" one-time":"—");return `<tr class="rowlink ${PROP_SEL===p.id?'sel':''}" onclick="PROP_SEL='${p.id}';propRender()"><td><div class="cell-lead"><span class="av2" style="width:30px;height:30px;border-radius:9px;background:var(--tint);color:var(--green)">${IC.proposals}</span><b>${esc(p.title||"Proposal")}</b></div></td><td>${esc(clientName(p.client_id))}</td><td>${val}</td><td><span class="status ${st[1]}">${st[0]}</span></td></tr>`;}).join("")||`<tr><td colspan="4" class="psub" style="text-align:center;padding:24px">No proposals.</td></tr>`}</tbody></table>
      <div class="card-h" style="margin:22px 0 0"><h3 class="sec-title" style="font-size:16px">Reusable templates</h3><span class="sub1">Create proposals faster with branded templates.</span></div>
      <div class="tplrow">${[["Digital Marketing",IC.reports],["Website Development",IC.projects],["Social Media",IC.assets]].map(t=>`<div class="tpl" onclick="propNew()"><span class="ti">${t[1]}</span><b>${t[0]}</b><span style="margin-left:auto;color:var(--faint)">›</span></div>`).join("")}</div>
-     ${SP_PROPS&&SP_PROPS.length?`<div class="card-h" style="margin:22px 0 0"><h3 class="sec-title" style="font-size:16px">✦ Proposal Studio — sent &amp; accepted</h3><a class="linkg" onclick="window.open('studio/','_blank')">Open studio ↗</a></div><table class="tbl"><thead><tr><th>Proposal</th><th>Client</th><th>Value</th><th>Status</th><th>Accepted</th><th></th></tr></thead><tbody>${SP_PROPS.map(p=>{const st=spStatus(p);const acc=spAcceptEv(p.id);return `<tr class="rowlink" onclick="spDetail('${p.id}')"><td><div class="cell-lead"><span class="av2" style="width:28px;height:28px;border-radius:8px;background:#fdf3d0;color:#b4740f">✦</span><b>${esc(p.title||p.pno||"Proposal")}</b></div></td><td>${esc(p.client_company||"—")}</td><td>${p.total?money(p.total,p.currency):"—"}</td><td><span class="status ${st[1]}">${st[0]}</span></td><td>${acc?esc(acc.signer_name||'Client')+' · '+fmtD(acc.created_at):'—'}</td><td style="text-align:right"><a class="linkg" onclick="event.stopPropagation();spDetail('${p.id}')">Details</a></td></tr>`;}).join("")}</tbody></table><div class="sub1" style="margin-top:8px">Click a proposal to see its timeline, download the accepted PDF, and raise an invoice.</div>`:""}
+     ${SP_PROPS&&SP_PROPS.length?`<div class="card-h" style="margin:22px 0 0"><h3 class="sec-title" style="font-size:16px">✦ Proposal Studio — sent &amp; accepted</h3><a class="linkg" onclick="studioFrame('studio/')">Open studio ↗</a></div><table class="tbl"><thead><tr><th>Proposal</th><th>Client</th><th>Value</th><th>Status</th><th>Accepted</th><th></th></tr></thead><tbody>${SP_PROPS.map(p=>{const st=spStatus(p);const acc=spAcceptEv(p.id);return `<tr class="rowlink" onclick="spDetail('${p.id}')"><td><div class="cell-lead"><span class="av2" style="width:28px;height:28px;border-radius:8px;background:#fdf3d0;color:#b4740f">✦</span><b>${esc(p.title||p.pno||"Proposal")}</b></div></td><td>${esc(p.client_company||"—")}</td><td>${p.total?money(p.total,p.currency):"—"}</td><td><span class="status ${st[1]}">${st[0]}</span></td><td>${acc?esc(acc.signer_name||'Client')+' · '+fmtD(acc.created_at):'—'}</td><td style="text-align:right"><a class="linkg" onclick="event.stopPropagation();spDetail('${p.id}')">Details</a></td></tr>`;}).join("")}</tbody></table><div class="sub1" style="margin-top:8px">Click a proposal to see its timeline, download the accepted PDF, and raise an invoice.</div>`:""}
      </div>
      <div class="card pad" id="prop-prev"></div></div>`;
   propPreview();
@@ -930,9 +942,18 @@ async function spInvoiceSave(id){
   closeModal();toast("Invoice "+(data.invoice_no||"")+" issued");
 }
 function propOpen(id){ const p=PROPS.find(x=>x.id===id); propDetailModal(p); }
-function propNew(){ window.open("studio/?new","_blank"); }
-function studioOpen(id){ window.open("studio/?id="+id,"_blank"); }
-function studioMicrosite(tok){ window.open("studio/#t="+tok,"_blank"); }
+function propNew(){ studioFrame("studio/?new"); }
+function studioOpen(id){ studioFrame("studio/?id="+id); }
+function studioMicrosite(tok){ studioFrame("studio/#t="+tok); }
+function studioFrame(path){
+  let o=document.getElementById("studioOverlay");
+  if(!o){ o=document.createElement("div"); o.id="studioOverlay"; document.body.appendChild(o); }
+  o.className="st-ov";
+  o.innerHTML=`<div class="st-bar"><button class="st-back" onclick="studioClose()">← Back to portal</button><div class="st-ti"><span class="st-mk">✦</span> Proposal Studio</div><button class="st-rf" onclick="studioReload()">↻ Refresh</button></div><iframe id="studioIframe" src="${path}" class="st-if" allow="clipboard-write"></iframe>`;
+  document.body.style.overflow="hidden";
+}
+function studioClose(){ const o=document.getElementById("studioOverlay"); if(o)o.remove(); document.body.style.overflow=""; try{ if((location.hash||"").indexOf("proposals")>=0) route(); }catch(_){ } }
+function studioReload(){ const f=document.getElementById("studioIframe"); if(f) f.src=f.src; }
 async function propPDF(id){
   const p=PROPS.find(x=>x.id===id); const {data:items}=await sb.from("cr_proposal_items").select("*").eq("proposal_id",id).order("sort");
   const {jsPDF}=window.jspdf; const doc=new jsPDF(); doc.setFillColor(21,128,61);doc.rect(0,0,210,24,"F");doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(15);doc.text("Stepstones Solutions",14,12);doc.setFontSize(10);doc.text("PROPOSAL",14,19);
