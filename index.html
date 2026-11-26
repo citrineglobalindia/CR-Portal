@@ -291,6 +291,32 @@ button{font-family:inherit;cursor:pointer}
 .card{transition:box-shadow .2s ease,transform .2s ease}
 .sec-title{letter-spacing:-.3px}
 .topbar{backdrop-filter:saturate(1.2) blur(6px)}
+/* ---------- leads ---------- */
+.lead-filt{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.ic-btn{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:8px;border:1px solid var(--line);text-decoration:none;font-size:14px}
+.ic-btn:hover{background:var(--tint);border-color:var(--green2)}
+.pipe{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(210px,1fr);gap:12px;overflow-x:auto;padding-bottom:8px}
+.pcol{background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:12px;min-height:120px}
+.pcol-h{display:flex;align-items:center;justify-content:space-between;font-family:var(--font-head)}
+.pcol-h .cnt{background:#fff;border:1px solid var(--line);border-radius:999px;font-size:11px;font-weight:800;min-width:20px;height:20px;display:grid;place-items:center;padding:0 6px}
+.pcol-sub{font-size:12px;color:var(--muted);margin:2px 0 10px}
+.pcard{background:#fff;border:1px solid var(--line);border-radius:11px;padding:11px 12px;margin-bottom:8px;cursor:pointer;transition:.15s}
+.pcard:hover{transform:translateY(-2px);box-shadow:var(--sh);border-color:var(--green2)}
+.pcard-f{display:flex;align-items:center;justify-content:space-between;margin-top:8px}
+.pval{font-weight:800;font-family:var(--font-head);font-size:12.5px}
+.pdrop{color:var(--faint);text-align:center;padding:14px;font-size:13px}
+.fu-row{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--line2);cursor:pointer}
+.fu-row:hover{background:var(--panel2)}
+.fu-date{font-weight:700;font-family:var(--font-head);font-size:13px;color:var(--muted)}
+.sec-title.red-t{color:var(--red)}
+.lead-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.kv{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px}.kv .k{display:block;font-size:11px;color:var(--muted)}.kv b{font-size:14px}
+.stage-pick{display:flex;gap:6px;flex-wrap:wrap}
+.stage-b{border:1px solid var(--line);background:#fff;border-radius:9px;padding:8px 12px;font-weight:700;font-size:12.5px;color:var(--muted);cursor:pointer;font-family:var(--font-head);transition:.15s}
+.stage-b:hover{border-color:var(--green2);color:var(--green)}
+.stage-b.on{background:var(--grad);color:#fff;border-color:transparent}
+.tl2-row{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--line2)}
+.tl2-ic{width:28px;height:28px;border-radius:8px;background:var(--tint);display:grid;place-items:center;flex:0 0 auto}
 @media(max-width:860px){.app{grid-template-columns:1fr}.side{position:fixed;left:0;top:0;bottom:0;width:252px;z-index:120;transform:translateX(-100%);transition:.25s}.side.open{transform:none}.search{display:none}.auth{grid-template-columns:1fr}.auth-art{display:none}.auth-form{padding:36px 22px}.ph h1{font-size:26px}}
 
 /* list + preview layout */
@@ -568,6 +594,7 @@ const IC={
  approvals:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>',
  projects:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="16" rx="1"/><rect x="14" y="4" width="7" height="10" rx="1"/></svg>',
  attendance:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+ leads:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 3H2l8 9.5V19l4 2v-8.5L22 3z"/></svg>',
  reports:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><rect x="5" y="11" width="3" height="7" rx="1"/><rect x="10.5" y="6" width="3" height="12" rx="1"/><rect x="16" y="9" width="3" height="9" rx="1"/></svg>',
  finance:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18v12H3z"/><path d="M3 11h18"/><circle cx="8" cy="15" r="1.3"/></svg>',
  assets:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 15l5-4 4 3 4-4 5 4"/><circle cx="8.5" cy="9" r="1.3"/></svg>',
@@ -579,7 +606,7 @@ reviews:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width
  search:'<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.2-3.2"/></svg>',
  plus:'<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>'
 };
-const NAV=[["overview","Overview"],["clients","Clients"],["proposals","Proposals"],["contracts","Contracts"],["calendar","Content Calendar"],["approvals","Approvals"],["projects","Projects"],["attendance","Attendance"],["reports","Reports"],["finance","Finance & Accounts"],["assets","Asset Library"],["reviews","Reviews"],["support","Support"],["changes","Change Requests"]];
+const NAV=[["overview","Overview"],["leads","Leads"],["clients","Clients"],["proposals","Proposals"],["contracts","Contracts"],["calendar","Content Calendar"],["approvals","Approvals"],["projects","Projects"],["attendance","Attendance"],["reports","Reports"],["finance","Finance & Accounts"],["assets","Asset Library"],["reviews","Reviews"],["support","Support"],["changes","Change Requests"]];
 
 /* ================= AUTH ================= */
 async function boot(){
@@ -689,7 +716,7 @@ function renderRoute(){
   const r=route(), c=$("#content"); if(!c)return;
   $("#crumb").innerHTML=`Workspace <span class="sep">/</span> <b>${esc(TITLES[r]||"")}</b>`;
   c.scrollTop=0;
-  const map={overview:viewOverview,clients:viewClients,proposals:viewProposals,contracts:viewContracts,calendar:viewCalendar,approvals:viewApprovals,projects:viewProjects,attendance:viewAttendance,reports:viewReports,finance:viewFinance,assets:viewAssets,reviews:viewReviews,support:viewSupport,changes:viewChanges,settings:viewSettings};
+  const map={overview:viewOverview,leads:viewLeads,clients:viewClients,proposals:viewProposals,contracts:viewContracts,calendar:viewCalendar,approvals:viewApprovals,projects:viewProjects,attendance:viewAttendance,reports:viewReports,finance:viewFinance,assets:viewAssets,reviews:viewReviews,support:viewSupport,changes:viewChanges,settings:viewSettings};
   (map[r]||soon)(c);
 }
 function soon(c){const r=route();c.innerHTML=`<div class="ph"><div class="ph-ic">${IC[r]||IC.overview}</div><div><h1>${esc(TITLES[r]||"")}</h1><div class="psub">This screen is being built in the new design.</div></div></div><div class="card pad empty"><div class="ei">${IC[r]||IC.settings}</div><div><b>Coming online next</b></div><div class="psub" style="margin-top:6px">The ${esc(TITLES[r])} module is next in the rollout.</div></div>`;}
@@ -1760,6 +1787,134 @@ async function conSignSubmit(id,role){
   await sb.from("cr_contracts").update({status:role==="agency"?"countersigned":"signed",updated_at:new Date().toISOString()}).eq("id",id);
   closeModal();toast("Signed — an immutable record was created");viewContracts($("#content"));
 }
+
+
+/* ============ LEADS & PIPELINE ============ */
+let LEAD={view:'list',q:'',stage:'',owner:'',temp:'',rows:[]};
+const LEAD_STAGES=[['new','New'],['contacted','Contacted'],['qualified','Qualified'],['proposal','Proposal'],['won','Won'],['lost','Lost']];
+function leadStageLbl(k){ const f=LEAD_STAGES.find(x=>x[0]===k); return f?f[1]:(k||'New'); }
+function leadStageCls(k){ return {new:'b',contacted:'p',qualified:'a',proposal:'b',won:'g',lost:'r'}[k]||'n'; }
+function tempCls(t){ return {hot:'r',warm:'a',cold:'b'}[t]||'n'; }
+function telLink(p){ return (p||'').replace(/[^0-9+]/g,''); }
+function waLink(p){ let n=(p||'').replace(/[^0-9]/g,''); if(n.length===10)n='91'+n; return 'https://wa.me/'+n; }
+
+async function viewLeads(c){
+  c=c||$("#content");
+  c.innerHTML=`<div class="ph"><div class="ph-ic">${IC.leads}</div><div><h1>Leads</h1><div class="psub">Capture, qualify and convert — your sales pipeline.</div></div>
+    <div class="ph-r"><button class="btn ghost" onclick="leadView('list')">☰ List</button><button class="btn ghost" onclick="leadView('pipeline')">▤ Pipeline</button><button class="btn ghost" onclick="leadView('followups')">⏰ Follow-ups</button><button class="btn" onclick="leadForm()"><span>${IC.plus}</span> Add lead</button></div></div>
+    <div id="lead-body"><div class="psub">Loading…</div></div>`;
+  await leadLoad(); leadRender();
+}
+function leadView(v){ LEAD.view=v; leadRender(); }
+async function leadLoad(){ const {data}=await sb.from('cr_leads').select('*').order('created_at',{ascending:false}); LEAD.rows=data||[]; }
+function leadFiltered(){
+  return LEAD.rows.filter(l=>{
+    if(LEAD.stage&&l.stage!==LEAD.stage)return false;
+    if(LEAD.temp&&l.temp!==LEAD.temp)return false;
+    if(LEAD.q){const q=LEAD.q.toLowerCase(); if(!((l.name||'')+' '+(l.phone||'')+' '+(l.email||'')+' '+(l.company||'')+' '+(l.city||'')).toLowerCase().includes(q))return false;}
+    return true;
+  });
+}
+function leadStats(){
+  const r=LEAD.rows; const open=r.filter(l=>!['won','lost'].includes(l.stage)).length;
+  const won=r.filter(l=>l.stage==='won').length; const hot=r.filter(l=>l.temp==='hot'&&!['won','lost'].includes(l.stage)).length;
+  const today=attDateStr(); const due=r.filter(l=>l.next_follow_up&&l.next_follow_up<=today&&!['won','lost'].includes(l.stage)).length;
+  return {open,won,hot,due,total:r.length};
+}
+function leadRender(){
+  const b=$("#lead-body"); if(!b)return; const st=leadStats();
+  const stats=`<div class="stat-row att-stats">
+    <div class="stat"><div class="st-ic">${IC.leads}</div><div class="lbl">Open leads</div><div class="val">${st.open}</div></div>
+    <div class="stat"><div class="st-ic">${IC.approvals}</div><div class="lbl">Won</div><div class="val">${st.won}</div></div>
+    <div class="stat"><div class="st-ic">${IC.reports}</div><div class="lbl">Hot</div><div class="val">${st.hot}</div></div>
+    <div class="stat"><div class="st-ic">${IC.calendar}</div><div class="lbl">Follow-ups due</div><div class="val">${st.due}</div></div></div>`;
+  const filters=`<div class="lead-filt"><input class="inp" style="max-width:280px" placeholder="Search name, phone, email, company…" value="${esc(LEAD.q)}" oninput="LEAD.q=this.value;leadRenderBody()">
+    <select class="inp" style="max-width:160px" onchange="LEAD.stage=this.value;leadRenderBody()"><option value="">All stages</option>${LEAD_STAGES.map(s=>`<option value="${s[0]}" ${LEAD.stage===s[0]?'selected':''}>${s[1]}</option>`).join('')}</select>
+    <select class="inp" style="max-width:150px" onchange="LEAD.temp=this.value;leadRenderBody()"><option value="">Any temp</option><option value="hot" ${LEAD.temp==='hot'?'selected':''}>Hot</option><option value="warm" ${LEAD.temp==='warm'?'selected':''}>Warm</option><option value="cold" ${LEAD.temp==='cold'?'selected':''}>Cold</option></select></div>`;
+  b.innerHTML=stats+(LEAD.view==='pipeline'?'':filters)+`<div id="lead-inner"></div>`;
+  leadRenderBody();
+}
+function leadRenderBody(){
+  const el=document.getElementById('lead-inner'); if(!el)return;
+  if(LEAD.view==='pipeline'){ el.innerHTML=leadPipeline(); return; }
+  if(LEAD.view==='followups'){ el.innerHTML=leadFollowups(); return; }
+  const rows=leadFiltered();
+  el.innerHTML=`<div class="card"><table class="tbl"><thead><tr><th>Lead</th><th>Company</th><th>Source</th><th>Stage</th><th>Temp</th><th>Owner</th><th>Follow-up</th><th style="text-align:right">Actions</th></tr></thead><tbody>
+   ${rows.map(l=>`<tr class="rowlink" onclick="leadDetail('${l.id}')"><td><div class="cell-lead"><span class="av2" style="background:${avatarColor(l.name||'')}">${initials(l.name||'?')}</span><div><b>${esc(l.name||'—')}</b><div class="sub1">${esc(l.phone||l.email||'')}</div></div></div></td>
+   <td>${esc(l.company||'—')}</td><td>${esc(l.source||'—')}</td><td><span class="status ${leadStageCls(l.stage)}">${leadStageLbl(l.stage)}</span></td><td><span class="status ${tempCls(l.temp)}">${esc(l.temp||'warm')}</span></td><td>${esc(l.owner_name||'—')}</td><td>${l.next_follow_up?fmtD(l.next_follow_up):'—'}</td>
+   <td style="text-align:right" onclick="event.stopPropagation()">${l.phone?`<a class="ic-btn" href="tel:${telLink(l.phone)}" title="Call">📞</a> <a class="ic-btn" href="${waLink(l.phone)}" target="_blank" title="WhatsApp">💬</a>`:''}</td></tr>`).join('')||`<tr><td colspan="8" style="text-align:center;padding:26px" class="sub1">No leads yet. Click “Add lead” to start.</td></tr>`}
+   </tbody></table></div>`;
+}
+function leadPipeline(){
+  const cols=LEAD_STAGES.map(([k,lbl])=>{
+    const items=LEAD.rows.filter(l=>l.stage===k);
+    const val=items.reduce((a,l)=>a+Number(l.value||0),0);
+    return `<div class="pcol"><div class="pcol-h"><b>${lbl}</b><span class="cnt">${items.length}</span></div><div class="pcol-sub">${val?money(val):'—'}</div>
+     ${items.map(l=>`<div class="pcard" onclick="leadDetail('${l.id}')"><b>${esc(l.name||'—')}</b>${l.company?`<div class="sub1">${esc(l.company)}</div>`:''}<div class="pcard-f"><span class="status ${tempCls(l.temp)}">${esc(l.temp||'warm')}</span>${l.value?`<span class="pval">${money(l.value)}</span>`:''}</div></div>`).join('')||'<div class="pdrop">—</div>'}
+    </div>`;
+  }).join('');
+  return `<div class="pipe">${cols}</div>`;
+}
+function leadFollowups(){
+  const today=attDateStr();
+  const due=LEAD.rows.filter(l=>l.next_follow_up&&!['won','lost'].includes(l.stage)).sort((a,b)=>(a.next_follow_up||'').localeCompare(b.next_follow_up||''));
+  const over=due.filter(l=>l.next_follow_up<today), tod=due.filter(l=>l.next_follow_up===today), up=due.filter(l=>l.next_follow_up>today);
+  const row=l=>`<div class="fu-row" onclick="leadDetail('${l.id}')"><div><b>${esc(l.name||'—')}</b> <span class="status ${leadStageCls(l.stage)}">${leadStageLbl(l.stage)}</span><div class="sub1">${esc(l.company||'')} ${l.phone?'· '+esc(l.phone):''}</div></div><div class="fu-date">${fmtD(l.next_follow_up)}</div></div>`;
+  const sec=(t,arr,cls)=>arr.length?`<div class="card"><div class="card-h"><h3 class="sec-title ${cls}">${t} (${arr.length})</h3></div>${arr.map(row).join('')}</div>`:'';
+  const out=sec('Overdue',over,'red-t')+sec('Today',tod,'')+sec('Upcoming',up,'');
+  return out||'<div class="card"><div class="sub1" style="padding:24px;text-align:center">No follow-ups scheduled.</div></div>';
+}
+function leadForm(id){
+  const d=id?LEAD.rows.find(x=>x.id===id)||{}:{};
+  const body=`<div class="sheet-sec">Contact</div>
+   <div class="g2"><div class="fld2"><label>Name *</label><input id="ld-name" class="inp" value="${esc(d.name||'')}"/></div><div class="fld2"><label>Phone</label><input id="ld-phone" class="inp" value="${esc(d.phone||'')}"/></div>
+   <div class="fld2"><label>Email</label><input id="ld-email" class="inp" value="${esc(d.email||'')}"/></div><div class="fld2"><label>City</label><input id="ld-city" class="inp" value="${esc(d.city||'')}"/></div>
+   <div class="fld2"><label>Company</label><input id="ld-company" class="inp" value="${esc(d.company||'')}"/></div><div class="fld2"><label>Service interested</label><input id="ld-service" class="inp" value="${esc(d.service||'')}"/></div></div>
+   <div class="sheet-sec">Qualification</div>
+   <div class="g3"><div class="fld2"><label>Stage</label><select id="ld-stage" class="inp">${LEAD_STAGES.map(st=>`<option value="${st[0]}" ${d.stage===st[0]?'selected':''}>${st[1]}</option>`).join('')}</select></div>
+   <div class="fld2"><label>Temperature</label><select id="ld-temp" class="inp"><option value="hot" ${d.temp==='hot'?'selected':''}>Hot</option><option value="warm" ${(d.temp||'warm')==='warm'?'selected':''}>Warm</option><option value="cold" ${d.temp==='cold'?'selected':''}>Cold</option></select></div>
+   <div class="fld2"><label>Est. value (Rs.)</label><input id="ld-value" type="number" class="inp" value="${d.value||0}"/></div></div>
+   <div class="g3"><div class="fld2"><label>Source</label><input id="ld-source" class="inp" value="${esc(d.source||'')}" placeholder="Referral, Meta, Google…"/></div>
+   <div class="fld2"><label>List</label><input id="ld-list" class="inp" value="${esc(d.list_name||'')}"/></div>
+   <div class="fld2"><label>Next follow-up</label><input id="ld-fu" type="date" class="inp" value="${d.next_follow_up||''}"/></div></div>
+   <div class="fld2"><label>Notes</label><textarea id="ld-notes" class="inp" rows="2">${esc(d.notes||'')}</textarea></div>`;
+  const foot=`<button class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn" onclick="leadSave('${id||''}')"><span>${IC.plus}</span> ${id?'Save':'Add lead'}</button>`;
+  sheet(`${id?'Edit':'New'} lead`, body, {icon:IC.leads, subtitle:'Capture a new prospect.', foot});
+}
+async function leadSave(id){
+  const name=v('ld-name'); if(!name){toast('Name is required',true);return;}
+  const patch={name,phone:v('ld-phone')||null,email:v('ld-email')||null,city:v('ld-city')||null,company:v('ld-company')||null,service:v('ld-service')||null,
+    stage:v('ld-stage'),temp:v('ld-temp'),value:Number(v('ld-value'))||0,source:v('ld-source')||null,list_name:v('ld-list')||null,
+    next_follow_up:v('ld-fu')||null,notes:v('ld-notes')||null,updated_at:new Date().toISOString()};
+  let err;
+  if(id){ ({error:err}=await sb.from('cr_leads').update(patch).eq('id',id)); }
+  else { patch.created_by=SESSION.user.id; patch.created_by_name=ME.full_name||ME.email; patch.owner=SESSION.user.id; patch.owner_name=ME.full_name||ME.email; ({error:err}=await sb.from('cr_leads').insert(patch)); }
+  if(err){toast(err.message,true);return;} closeModal(); toast('Lead saved'); await leadLoad(); leadRender();
+}
+async function leadDetail(id){
+  const l=LEAD.rows.find(x=>x.id===id); if(!l)return;
+  const {data:acts}=await sb.from('cr_lead_activities').select('*').eq('lead_id',id).order('created_at',{ascending:false});
+  const body=`<div class="lead-top"><div><div class="cell-lead"><span class="av2" style="background:${avatarColor(l.name||'')}">${initials(l.name||'?')}</span><div><b style="font-size:16px">${esc(l.name||'—')}</b><div class="sub1">${esc(l.company||'')} ${l.city?'· '+esc(l.city):''}</div></div></div></div>
+    <div class="btnrow" style="margin:0">${l.phone?`<a class="btn ghost sm" href="tel:${telLink(l.phone)}">📞 Call</a><a class="btn ghost sm" href="${waLink(l.phone)}" target="_blank">💬 WhatsApp</a>`:''}<button class="btn ghost sm" onclick="leadForm('${id}')">Edit</button></div></div>
+   <div class="g2" style="margin:12px 0"><div class="kv"><span class="k">Phone</span><b>${esc(l.phone||'—')}</b></div><div class="kv"><span class="k">Email</span><b>${esc(l.email||'—')}</b></div>
+    <div class="kv"><span class="k">Source</span><b>${esc(l.source||'—')}</b></div><div class="kv"><span class="k">Value</span><b>${l.value?money(l.value):'—'}</b></div></div>
+   <div class="sheet-sec">Stage</div>
+   <div class="stage-pick">${LEAD_STAGES.map(st=>`<button class="stage-b ${l.stage===st[0]?'on':''}" onclick="leadStage('${id}','${st[0]}')">${st[1]}</button>`).join('')}</div>
+   <div class="g2" style="margin-top:10px"><div class="fld2"><label>Next follow-up</label><input id="lddt-fu" type="date" class="inp" value="${l.next_follow_up||''}" onchange="leadSetFu('${id}',this.value)"/></div>
+    <div class="fld2"><label>Log activity</label><div style="display:flex;gap:6px"><select id="lddt-at" class="inp" style="max-width:120px"><option value="call">Call</option><option value="whatsapp">WhatsApp</option><option value="meeting">Meeting</option><option value="note">Note</option></select><input id="lddt-an" class="inp" placeholder="Outcome / note"><button class="btn sm" onclick="leadLogAct('${id}')">Log</button></div></div></div>
+   ${l.notes?`<div class="sheet-sec">Notes</div><div class="sub1">${esc(l.notes)}</div>`:''}
+   <div class="sheet-sec">Activity timeline</div>
+   <div class="tl2">${(acts||[]).map(a=>`<div class="tl2-row"><span class="tl2-ic">${({call:'📞',whatsapp:'💬',meeting:'🤝',note:'📝',stage:'→'})[a.type]||'•'}</span><div><b style="text-transform:capitalize">${esc(a.type)}</b> ${esc(a.note||'')}<div class="sub1">${esc(a.actor_name||'')} · ${fmtDT(a.created_at)}</div></div></div>`).join('')||'<div class="sub1">No activity yet.</div>'}</div>`;
+  sheet('Lead — '+esc(l.name||''), body, {icon:IC.leads});
+}
+async function leadStage(id,stage){ await sb.from('cr_leads').update({stage,updated_at:new Date().toISOString()}).eq('id',id);
+  await sb.from('cr_lead_activities').insert({lead_id:id,type:'stage',note:'Moved to '+leadStageLbl(stage),actor:SESSION.user.id,actor_name:ME.full_name||ME.email});
+  toast('Stage → '+leadStageLbl(stage)); await leadLoad(); leadDetail(id); }
+async function leadSetFu(id,val){ await sb.from('cr_leads').update({next_follow_up:val||null}).eq('id',id); await leadLoad(); toast('Follow-up set'); }
+async function leadLogAct(id){ const t=v('lddt-at'), n=v('lddt-an'); if(!n){toast('Add a note',true);return;}
+  await sb.from('cr_lead_activities').insert({lead_id:id,type:t,note:n,actor:SESSION.user.id,actor_name:ME.full_name||ME.email});
+  await sb.from('cr_leads').update({last_contact:new Date().toISOString()}).eq('id',id);
+  toast('Logged'); await leadLoad(); leadDetail(id); }
 
 
 /* ============ ATTENDANCE ============ */
