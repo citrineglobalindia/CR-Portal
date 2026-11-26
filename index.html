@@ -317,6 +317,11 @@ button{font-family:inherit;cursor:pointer}
 .stage-b.on{background:var(--grad);color:#fff;border-color:transparent}
 .tl2-row{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--line2)}
 .tl2-ic{width:28px;height:28px;border-radius:8px;background:var(--tint);display:grid;place-items:center;flex:0 0 auto}
+.ds-in{width:110px;text-align:right;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13.5px;outline:none;transition:.15s}
+.ds-in:focus{border-color:var(--green2);box-shadow:0 0 0 3px rgba(37,99,235,.14)}
+.ds-tbl td{vertical-align:middle}
+.att-nav-b{background:#fff;border:1px solid var(--line);border-radius:8px;width:32px;height:32px;cursor:pointer;font-size:16px;transition:.15s}
+.att-nav-b:hover{background:var(--tint);border-color:var(--green2);color:var(--green)}
 @media(max-width:860px){.app{grid-template-columns:1fr}.side{position:fixed;left:0;top:0;bottom:0;width:252px;z-index:120;transform:translateX(-100%);transition:.25s}.side.open{transform:none}.search{display:none}.auth{grid-template-columns:1fr}.auth-art{display:none}.auth-form{padding:36px 22px}.ph h1{font-size:26px}}
 
 /* list + preview layout */
@@ -1320,7 +1325,7 @@ function v(id){const e=document.getElementById(id);return e?e.value:"";}
 
 /* ============ FINANCE ============ */
 let FIN={tab:"overview"}, FD={acc:[],tx:[],exp:[],pay:[],inv:[]};
-const FIN_TABS=[["overview","Overview"],["ledger","General ledger"],["profit","Client profitability"],["payroll","Payroll"],["expenses","Expenses"],["accounts","Accounts"],["budgets","Ad budgets"],["recon","Reconciliation"]];
+const FIN_TABS=[["overview","Overview"],["ledger","General ledger"],["profit","Client profitability"],["payroll","Payroll"],["expenses","Expenses"],["accounts","Accounts"],["budgets","Ad budgets"],["dayspend","Daily spend"],["recon","Reconciliation"]];
 async function viewFinance(c){
   if(!cr_can_fin_client()){ c.innerHTML=`<div class="card pad empty"><div class="ei">${IC.finance}</div><div><b>Finance access required</b></div><div class="psub" style="margin-top:6px">Ask an admin to grant you financial access.</div></div>`; return; }
   c.innerHTML=`<div class="ph"><div><h1>Finance &amp; Accounts</h1><div class="psub">Your agency's finances, in one place.</div></div><div class="ph-r" id="fin-actions"></div></div><div class="subtabs" id="fin-tabs">${FIN_TABS.map(([k,l])=>`<button class="${FIN.tab===k?'on':''}" onclick="FIN.tab='${k}';finRender()">${l}</button>`).join("")}</div><div id="fin-body"><div class="psub">Loading…</div></div>`;
@@ -1341,7 +1346,7 @@ function mKey(){ return new Date().toISOString().slice(0,7); }
 function finRender(){
   document.querySelectorAll("#fin-tabs button").forEach(b=>b.classList.remove("on"));
   const idx=FIN_TABS.findIndex(t=>t[0]===FIN.tab); const btns=document.querySelectorAll("#fin-tabs button"); if(btns[idx])btns[idx].classList.add("on");
-  ({overview:finOverview,ledger:finLedger,profit:finProfit,payroll:finPayroll,expenses:finExpenses,accounts:finAccounts,budgets:finBudgets,recon:finRecon}[FIN.tab]||finOverview)();
+  ({overview:finOverview,ledger:finLedger,profit:finProfit,payroll:finPayroll,expenses:finExpenses,accounts:finAccounts,budgets:finBudgets,dayspend:finDaySpend,recon:finRecon}[FIN.tab]||finOverview)();
 }
 function finOverview(){
   const b=$("#fin-body"), act=$("#fin-actions"); if(!b)return;
@@ -1423,6 +1428,34 @@ function finRecon(){ const b=$("#fin-body"),act=$("#fin-actions"); act.innerHTML
 }
 /* ---- finance actions ---- */
 async function finReconToggle(id,val){ await sb.from("cr_fin_tx").update({reconciled:val}).eq("id",id); const t=FD.tx.find(x=>x.id===id);if(t)t.reconciled=val; }
+let DS={date:null};
+async function finDaySpend(){
+  const b=$("#fin-body"),act=$("#fin-actions"); if(act)act.innerHTML="";
+  if(!DS.date)DS.date=attDateStr();
+  // active clients
+  let CL=CLIENTS; if(!CL||!CL.length){ const {data}=await sb.from("cr_profiles").select("id,company,full_name,service_types").eq("role","client"); CL=data||[]; CLIENTS=CL; }
+  const {data:sp}=await sb.from("cr_ad_spend").select("*").eq("spend_date",DS.date);
+  const map={}; (sp||[]).forEach(r=>{ map[r.client_id+"|"+r.platform]=r.amount; });
+  const plats=[["meta","Meta Ads"],["google","Google Ads"]];
+  const running=CL.filter(c=>{const v=(map[c.id+"|meta"]||0)+(map[c.id+"|google"]||0); return v>0 || true;});
+  const dayTot=(sp||[]).reduce((a,r)=>a+Number(r.amount||0),0);
+  b.innerHTML=`<div class="card-h" style="margin-bottom:10px"><div><h3 class="sec-title" style="font-size:17px">Daily ad spend</h3><div class="sub1">One row per client, one column per platform \u2014 each box saves as you move on.</div></div>
+    <div style="display:flex;align-items:center;gap:10px"><div style="text-align:right"><div class="fv" style="font-size:20px;font-weight:800;color:var(--green)">${money(dayTot)}</div><div class="sub1">this day</div></div>
+    <button class="att-nav-b" onclick="dsMove(-1)">\u2039</button><input type="date" class="inp" style="max-width:170px" value="${DS.date}" onchange="DS.date=this.value;finDaySpend()"><button class="att-nav-b" onclick="dsMove(1)">\u203a</button></div></div>
+   <div class="card"><table class="tbl ds-tbl"><thead><tr><th>Client</th>${plats.map(p=>`<th style="text-align:right">${p[1]}</th>`).join("")}<th style="text-align:right">Row total</th></tr></thead><tbody>
+   ${CL.map(c=>{const m=Number(map[c.id+"|meta"]||0),g=Number(map[c.id+"|google"]||0);const rt=m+g;return `<tr><td><b>${esc(c.company||c.full_name||"\u2014")}</b></td>
+    <td style="text-align:right"><input class="ds-in" type="number" value="${m||''}" placeholder="0" onblur="dsSave('${c.id}','meta',this.value)"></td>
+    <td style="text-align:right"><input class="ds-in" type="number" value="${g||''}" placeholder="0" onblur="dsSave('${c.id}','google',this.value)"></td>
+    <td style="text-align:right"><b>${rt?money(rt):'\u2014'}</b></td></tr>`;}).join("")||`<tr><td colspan="4" class="sub1" style="text-align:center;padding:24px">No clients yet \u2014 add clients to track their daily ad spend.</td></tr>`}
+   </tbody></table></div>`;
+}
+function dsMove(d){ const dt=new Date(DS.date); dt.setDate(dt.getDate()+d); DS.date=dt.toISOString().slice(0,10); finDaySpend(); }
+async function dsSave(clientId,platform,val){
+  const amount=Number(val)||0;
+  const {error}=await sb.from("cr_ad_spend").upsert({client_id:clientId,spend_date:DS.date,platform,amount,created_by:SESSION.user.id,updated_at:new Date().toISOString()},{onConflict:"client_id,spend_date,platform"});
+  if(error){toast(error.message,true);return;}
+  finDaySpend();
+}
 function finAccountForm(){ sheet("Add account",`<div class="g2"><div class="fld2"><label>Account name</label><input id="fa-name" class="inp" placeholder="Operating"/></div><div class="fld2"><label>Bank</label><input id="fa-bank" class="inp" placeholder="HDFC"/></div><div class="fld2"><label>Type</label><select id="fa-type" class="inp"><option value="bank">Bank</option><option value="cash">Cash</option></select></div><div class="fld2"><label>Last 4 digits</label><input id="fa-last4" class="inp"/></div><div class="fld2"><label>Opening balance</label><input id="fa-open" class="inp" type="number" value="0"/></div></div><button class="btn block" onclick="finAccountSave()">Add account</button>`); }
 async function finAccountSave(){ const {error}=await sb.from("cr_fin_accounts").insert({name:v("fa-name")||"Account",bank:v("fa-bank")||null,type:v("fa-type"),last4:v("fa-last4")||null,opening_balance:Number(v("fa-open"))||0,created_by:SESSION.user.id}); if(error){toast(error.message,true);return;} closeModal();toast("Account added");viewFinance($("#content")); }
 function finTxForm(kind){ sheet(kind==='journal'?"Journal entry":"Record transaction",`<div class="fld2"><label>Account</label><select id="ft-acc" class="inp">${FD.acc.map(a=>`<option value="${a.id}">${esc(a.bank||a.name)}</option>`).join("")}</select></div><div class="g2"><div class="fld2"><label>Date</label><input id="ft-date" type="date" class="inp" value="${new Date().toISOString().slice(0,10)}"/></div><div class="fld2"><label>Direction</label><select id="ft-dir" class="inp"><option value="debit">Money in (debit)</option><option value="credit">Money out (credit)</option></select></div><div class="fld2"><label>Amount</label><input id="ft-amt" type="number" class="inp"/></div><div class="fld2"><label>Reference</label><input id="ft-ref" class="inp"/></div></div><div class="fld2"><label>Description</label><input id="ft-desc" class="inp"/></div><div class="fld2"><label>Client (optional)</label><select id="ft-client" class="inp"><option value="">—</option>${CLIENTS.map(c=>`<option value="${c.id}">${esc(c.company||c.full_name)}</option>`).join("")}</select></div><button class="btn block" onclick="finTxSave('${kind||'journal'}')">Save entry</button>`); }
