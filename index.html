@@ -334,6 +334,17 @@ button{font-family:inherit;cursor:pointer}
 .statsel{border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-weight:700;font-size:12px;cursor:pointer;background:var(--panel2)}
 .statsel.g{background:var(--tint);color:var(--green-ink)}.statsel.b{background:var(--blue-tint);color:var(--blue)}.statsel.a{background:var(--amber-tint);color:var(--amber)}.statsel.p{background:var(--purple-tint);color:var(--purple)}.statsel.r{background:var(--red-tint);color:var(--red)}
 .doc-li-wrap{display:flex;flex-direction:column;gap:3px}
+.lead-chips{display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.lchip{background:#fff;border:1px solid var(--line);border-radius:999px;padding:7px 14px;font-weight:700;font-size:12.5px;cursor:pointer;color:var(--muted);transition:.15s}
+.lchip:hover{border-color:var(--amber)}
+.lchip.on{background:var(--amber-tint);color:var(--amber);border-color:var(--amber)}
+.daychip{font-weight:800;font-size:11px;padding:3px 9px;border-radius:999px}
+.daychip.g{background:var(--tint);color:var(--green-ink)}.daychip.a{background:var(--amber-tint);color:var(--amber)}.daychip.r{background:var(--red-tint);color:var(--red)}
+.tbl .rowlink.attn td:first-child{box-shadow:inset 3px 0 0 var(--amber)}
+.an-row{display:flex;align-items:center;gap:12px;margin:7px 0;font-size:13px}
+.an-row span{width:110px;flex:0 0 auto;color:var(--ink2)}
+.an-bar{flex:1;height:8px;background:var(--panel2);border-radius:5px;overflow:hidden}.an-bar i{display:block;height:100%;background:var(--grad)}
+.an-row b{width:28px;text-align:right}
 @media(max-width:860px){.docs-wrap{grid-template-columns:1fr}}
 @media(max-width:860px){.app{grid-template-columns:1fr}.side{position:fixed;left:0;top:0;bottom:0;width:252px;z-index:120;transform:translateX(-100%);transition:.25s}.side.open{transform:none}.search{display:none}.auth{grid-template-columns:1fr}.auth-art{display:none}.auth-form{padding:36px 22px}.ph h1{font-size:26px}}
 
@@ -1968,7 +1979,12 @@ async function mtDel(id){ await sb.from('cr_meetings').delete().eq('id',id); clo
 
 
 /* ============ LEADS & PIPELINE ============ */
-let LEAD={view:'list',q:'',stage:'',owner:'',temp:'',rows:[]};
+let LEAD={view:'list',q:'',stage:'',source:'',temp:'',need:false,dupe:false,sort:'newest',rows:[]};
+function leadMask(p){ if(!p)return''; const d=(''+p).replace(/\D/g,''); return d.length>5?d.slice(0,2)+'••••'+d.slice(-4):p; }
+function leadDays(l){ const base=l.last_contact||l.created_at; if(!base)return null; return Math.floor((Date.now()-new Date(base))/864e5); }
+function leadDayChip(l){ const d=leadDays(l); if(d==null)return'<span class="sub1">—</span>'; const cls=d>=14?'r':d>=7?'a':'g'; return `<span class="daychip ${cls}">${d===0?'today':d+'d'}</span>`; }
+function leadNeedsAttn(l){ if(['won','lost'].includes(l.stage))return false; const d=leadDays(l); return (!l.owner)||(d!=null&&d>=14)||!l.next_follow_up; }
+function leadDupeIds(){ const seen={},dup=new Set(); LEAD.rows.forEach(l=>{['phone','email'].forEach(k=>{const val=(l[k]||'').replace(/\s/g,'').toLowerCase(); if(!val)return; if(seen[k+val]){dup.add(l.id);dup.add(seen[k+val]);}else seen[k+val]=l.id;});}); return dup; }
 const LEAD_STAGES=[['new','New'],['contacted','Contacted'],['qualified','Qualified'],['proposal','Proposal'],['won','Won'],['lost','Lost']];
 function leadStageLbl(k){ const f=LEAD_STAGES.find(x=>x[0]===k); return f?f[1]:(k||'New'); }
 function leadStageCls(k){ return {new:'b',contacted:'p',qualified:'a',proposal:'b',won:'g',lost:'r'}[k]||'n'; }
@@ -1978,20 +1994,29 @@ function waLink(p){ let n=(p||'').replace(/[^0-9]/g,''); if(n.length===10)n='91'
 
 async function viewLeads(c){
   c=c||$("#content");
-  c.innerHTML=`<div class="ph"><div class="ph-ic">${IC.leads}</div><div><h1>Leads</h1><div class="psub">Capture, qualify and convert — your sales pipeline.</div></div>
-    <div class="ph-r"><button class="btn ghost" onclick="leadView('list')">☰ List</button><button class="btn ghost" onclick="leadView('pipeline')">▤ Pipeline</button><button class="btn ghost" onclick="leadView('followups')">⏰ Follow-ups</button><button class="btn" onclick="leadForm()"><span>${IC.plus}</span> Add lead</button></div></div>
+  c.innerHTML=`<div class="ph"><div class="ph-ic">${IC.leads}</div><div><h1>Leads</h1><div class="psub">Lead management · import, organise & convert.</div></div>
+    <div class="ph-r"><button class="btn ghost" onclick="leadAnalytics()">📈 Analytics</button><label class="btn ghost" style="cursor:pointer">📥 Import<input type="file" accept=".csv" style="display:none" onchange="leadImport(this)"></label><button class="btn ghost" onclick="leadExport()">📤 Export</button><button class="btn" onclick="leadForm()"><span>${IC.plus}</span> Add lead</button></div></div>
+    <div class="subtabs" style="margin-top:4px"><button class="${LEAD.view==='list'?'on':''}" onclick="leadView('list')">List</button><button class="${LEAD.view==='pipeline'?'on':''}" onclick="leadView('pipeline')">Pipeline</button><button class="${LEAD.view==='followups'?'on':''}" onclick="leadView('followups')">Follow-ups</button></div>
     <div id="lead-body"><div class="psub">Loading…</div></div>`;
   await leadLoad(); leadRender();
 }
 function leadView(v){ LEAD.view=v; leadRender(); }
 async function leadLoad(){ const {data}=await sb.from('cr_leads').select('*').order('created_at',{ascending:false}); LEAD.rows=data||[]; }
 function leadFiltered(){
-  return LEAD.rows.filter(l=>{
+  const dupes=LEAD.dupe?leadDupeIds():null;
+  let rows=LEAD.rows.filter(l=>{
     if(LEAD.stage&&l.stage!==LEAD.stage)return false;
     if(LEAD.temp&&l.temp!==LEAD.temp)return false;
+    if(LEAD.source&&(l.source||'')!==LEAD.source)return false;
+    if(LEAD.need&&!leadNeedsAttn(l))return false;
+    if(dupes&&!dupes.has(l.id))return false;
     if(LEAD.q){const q=LEAD.q.toLowerCase(); if(!((l.name||'')+' '+(l.phone||'')+' '+(l.email||'')+' '+(l.company||'')+' '+(l.city||'')).toLowerCase().includes(q))return false;}
     return true;
   });
+  if(LEAD.sort==='oldest')rows=rows.slice().reverse();
+  else if(LEAD.sort==='name')rows=rows.slice().sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+  else if(LEAD.sort==='value')rows=rows.slice().sort((a,b)=>Number(b.value||0)-Number(a.value||0));
+  return rows;
 }
 function leadStats(){
   const r=LEAD.rows; const open=r.filter(l=>!['won','lost'].includes(l.stage)).length;
@@ -2006,9 +2031,12 @@ function leadRender(){
     <div class="stat"><div class="st-ic">${IC.approvals}</div><div class="lbl">Won</div><div class="val">${st.won}</div></div>
     <div class="stat"><div class="st-ic">${IC.reports}</div><div class="lbl">Hot</div><div class="val">${st.hot}</div></div>
     <div class="stat"><div class="st-ic">${IC.calendar}</div><div class="lbl">Follow-ups due</div><div class="val">${st.due}</div></div></div>`;
-  const filters=`<div class="lead-filt"><input class="inp" style="max-width:280px" placeholder="Search name, phone, email, company…" value="${esc(LEAD.q)}" oninput="LEAD.q=this.value;leadRenderBody()">
-    <select class="inp" style="max-width:160px" onchange="LEAD.stage=this.value;leadRenderBody()"><option value="">All stages</option>${LEAD_STAGES.map(s=>`<option value="${s[0]}" ${LEAD.stage===s[0]?'selected':''}>${s[1]}</option>`).join('')}</select>
-    <select class="inp" style="max-width:150px" onchange="LEAD.temp=this.value;leadRenderBody()"><option value="">Any temp</option><option value="hot" ${LEAD.temp==='hot'?'selected':''}>Hot</option><option value="warm" ${LEAD.temp==='warm'?'selected':''}>Warm</option><option value="cold" ${LEAD.temp==='cold'?'selected':''}>Cold</option></select></div>`;
+  const sources=[...new Set(LEAD.rows.map(l=>l.source).filter(Boolean))];
+  const filters=`<div class="lead-filt"><input class="inp" style="flex:1;min-width:220px" placeholder="Search name, phone, email, city…" value="${esc(LEAD.q)}" oninput="LEAD.q=this.value;leadRenderBody()">
+    <select class="inp" style="max-width:150px" onchange="LEAD.stage=this.value;leadRenderBody()"><option value="">All stages</option>${LEAD_STAGES.map(s=>`<option value="${s[0]}" ${LEAD.stage===s[0]?'selected':''}>${s[1]}</option>`).join('')}</select>
+    <select class="inp" style="max-width:140px" onchange="LEAD.source=this.value;leadRenderBody()"><option value="">All sources</option>${sources.map(s=>`<option ${LEAD.source===s?'selected':''}>${esc(s)}</option>`).join('')}</select>
+    <select class="inp" style="max-width:130px" onchange="LEAD.temp=this.value;leadRenderBody()"><option value="">Any temp</option><option value="hot" ${LEAD.temp==='hot'?'selected':''}>Hot</option><option value="warm" ${LEAD.temp==='warm'?'selected':''}>Warm</option><option value="cold" ${LEAD.temp==='cold'?'selected':''}>Cold</option></select>
+    <select class="inp" style="max-width:130px" onchange="LEAD.sort=this.value;leadRenderBody()"><option value="newest" ${LEAD.sort==='newest'?'selected':''}>Newest</option><option value="oldest" ${LEAD.sort==='oldest'?'selected':''}>Oldest</option><option value="name" ${LEAD.sort==='name'?'selected':''}>Name</option><option value="value" ${LEAD.sort==='value'?'selected':''}>Value</option></select></div>`;
   b.innerHTML=stats+(LEAD.view==='pipeline'?'':filters)+`<div id="lead-inner"></div>`;
   leadRenderBody();
 }
@@ -2017,10 +2045,12 @@ function leadRenderBody(){
   if(LEAD.view==='pipeline'){ el.innerHTML=leadPipeline(); return; }
   if(LEAD.view==='followups'){ el.innerHTML=leadFollowups(); return; }
   const rows=leadFiltered();
-  el.innerHTML=`<div class="card"><table class="tbl"><thead><tr><th>Lead</th><th>Company</th><th>Source</th><th>Stage</th><th>Temp</th><th>Owner</th><th>Follow-up</th><th style="text-align:right">Actions</th></tr></thead><tbody>
-   ${rows.map(l=>`<tr class="rowlink" onclick="leadDetail('${l.id}')"><td><div class="cell-lead"><span class="av2" style="background:${avatarColor(l.name||'')}">${initials(l.name||'?')}</span><div><b>${esc(l.name||'—')}</b><div class="sub1">${esc(l.phone||l.email||'')}</div></div></div></td>
-   <td>${esc(l.company||'—')}</td><td>${esc(l.source||'—')}</td><td><span class="status ${leadStageCls(l.stage)}">${leadStageLbl(l.stage)}</span></td><td><span class="status ${tempCls(l.temp)}">${esc(l.temp||'warm')}</span></td><td>${esc(l.owner_name||'—')}</td><td>${l.next_follow_up?fmtD(l.next_follow_up):'—'}</td>
-   <td style="text-align:right" onclick="event.stopPropagation()">${l.phone?`<a class="ic-btn" href="tel:${telLink(l.phone)}" title="Call">📞</a> <a class="ic-btn" href="${waLink(l.phone)}" target="_blank" title="WhatsApp">💬</a>`:''}</td></tr>`).join('')||`<tr><td colspan="8" style="text-align:center;padding:26px" class="sub1">No leads yet. Click “Add lead” to start.</td></tr>`}
+  const needN=LEAD.rows.filter(leadNeedsAttn).length, dupN=leadDupeIds().size;
+  const chips=`<div class="lead-chips"><button class="lchip ${LEAD.need?'on':''}" onclick="LEAD.need=!LEAD.need;LEAD.dupe=false;leadRenderBody()">⚠ Needs attention ${needN}</button><button class="lchip ${LEAD.dupe?'on':''}" onclick="LEAD.dupe=!LEAD.dupe;LEAD.need=false;leadRenderBody()">⧉ Duplicates ${dupN}</button><span class="sub1" style="margin-left:auto">${rows.length} of ${LEAD.rows.length} leads</span></div>`;
+  el.innerHTML=chips+`<div class="card"><table class="tbl"><thead><tr><th>Lead</th><th>Last contact</th><th>Company</th><th>Source</th><th>Stage</th><th>Owner</th><th>Follow-up</th><th style="text-align:right">Actions</th></tr></thead><tbody>
+   ${rows.map(l=>`<tr class="rowlink ${leadNeedsAttn(l)?'attn':''}" onclick="leadDetail('${l.id}')"><td><div class="cell-lead"><span class="av2" style="background:${avatarColor(l.name||'')}">${initials(l.name||'?')}</span><div><b>${esc(l.name||'—')}</b> <span class="status ${tempCls(l.temp)}" style="font-size:10px;padding:1px 6px">${esc(l.temp||'warm')}</span><div class="sub1">${esc(leadMask(l.phone)||l.email||'')}${l.city?' · '+esc(l.city):''}</div></div></div></td>
+   <td>${leadDayChip(l)}</td><td>${esc(l.company||'—')}</td><td>${esc(l.source||'—')}</td><td><span class="status ${leadStageCls(l.stage)}">${leadStageLbl(l.stage)}</span></td><td>${esc(l.owner_name||'—')}</td><td>${l.next_follow_up?fmtD(l.next_follow_up):'<span class="sub1">—</span>'}</td>
+   <td style="text-align:right" onclick="event.stopPropagation()">${l.phone?`<a class="ic-btn" href="tel:${telLink(l.phone)}" title="Call">📞</a> <a class="ic-btn" href="${waLink(l.phone)}" target="_blank" title="WhatsApp">💬</a>`:''} <a class="ic-btn" onclick="leadDetail('${l.id}')" title="Open">›</a></td></tr>`).join('')||`<tr><td colspan="8" style="text-align:center;padding:26px" class="sub1">No leads match. Add a lead or adjust filters.</td></tr>`}
    </tbody></table></div>`;
 }
 function leadPipeline(){
@@ -2042,6 +2072,13 @@ function leadFollowups(){
   const out=sec('Overdue',over,'red-t')+sec('Today',tod,'')+sec('Upcoming',up,'');
   return out||'<div class="card"><div class="sub1" style="padding:24px;text-align:center">No follow-ups scheduled.</div></div>';
 }
+function leadExport(){ const rows=leadFiltered(); const cols=['name','phone','email','city','company','source','stage','temp','owner_name','value','next_follow_up']; let csv=cols.join(',')+'\n'; rows.forEach(l=>{csv+=cols.map(c=>`"${((l[c]==null?'':l[c])+'').replace(/"/g,'""')}"`).join(',')+'\n';}); const u=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); const a=document.createElement('a');a.href=u;a.download='leads.csv';a.click();URL.revokeObjectURL(u); toast('Exported '+rows.length+' leads'); }
+async function leadImport(inp){ const f=inp.files&&inp.files[0]; if(!f)return; const text=await f.text(); const lines=text.split(/\r?\n/).filter(x=>x.trim()); if(!lines.length)return; const hdr=lines[0].split(',').map(h=>h.trim().toLowerCase().replace(/"/g,'')); const idx=n=>hdr.findIndex(h=>h===n||h.includes(n)); const iName=idx('name'),iPhone=idx('phone'),iEmail=idx('email'),iCity=idx('city'),iComp=idx('company'),iSrc=idx('source'); const recs=[]; for(let i=1;i<lines.length;i++){ const cols=lines[i].match(/("([^"]|"")*"|[^,]*)/g)||[]; const g=k=>k>=0&&cols[k]?cols[k].replace(/^"|"$/g,'').replace(/""/g,'"').trim():null; const name=g(iName); if(!name)continue; recs.push({name,phone:g(iPhone),email:g(iEmail),city:g(iCity),company:g(iComp),source:g(iSrc)||'Import',stage:'new',temp:'warm',created_by:SESSION.user.id,created_by_name:ME.full_name||ME.email,owner:SESSION.user.id,owner_name:ME.full_name||ME.email}); } if(!recs.length){toast('No valid rows found',true);return;} const {error}=await sb.from('cr_leads').insert(recs); if(error){toast(error.message,true);return;} toast('Imported '+recs.length+' leads'); inp.value=''; await leadLoad(); leadRender(); }
+function leadAnalytics(){ const r=LEAD.rows; const byStage=LEAD_STAGES.map(([k,l])=>[l,r.filter(x=>x.stage===k).length]); const bySrc={}; r.forEach(x=>{const s=x.source||'Unknown';bySrc[s]=(bySrc[s]||0)+1;}); const won=r.filter(x=>x.stage==='won').length; const conv=r.length?Math.round(won/r.length*100):0; const pipe=r.filter(x=>!['won','lost'].includes(x.stage)).reduce((a,x)=>a+Number(x.value||0),0);
+  const body=`<div class="stat-row" style="margin-bottom:14px"><div class="stat"><div class="lbl">Total leads</div><div class="val">${r.length}</div></div><div class="stat"><div class="lbl">Won</div><div class="val">${won}</div></div><div class="stat"><div class="lbl">Conversion</div><div class="val">${conv}%</div></div><div class="stat"><div class="lbl">Open pipeline</div><div class="val">${money(pipe)}</div></div></div>
+   <div class="sheet-sec">By stage</div>${byStage.map(([l,n])=>`<div class="an-row"><span>${l}</span><div class="an-bar"><i style="width:${r.length?Math.round(n/r.length*100):0}%"></i></div><b>${n}</b></div>`).join('')}
+   <div class="sheet-sec">By source</div>${Object.entries(bySrc).sort((a,b)=>b[1]-a[1]).map(([s,n])=>`<div class="an-row"><span>${esc(s)}</span><div class="an-bar"><i style="width:${r.length?Math.round(n/r.length*100):0}%"></i></div><b>${n}</b></div>`).join('')||'<div class="sub1">No data.</div>'}`;
+  sheet('Lead analytics', body, {icon:IC.reports}); }
 function leadForm(id){
   const d=id?LEAD.rows.find(x=>x.id===id)||{}:{};
   const body=`<div class="sheet-sec">Contact</div>
