@@ -322,6 +322,19 @@ button{font-family:inherit;cursor:pointer}
 .ds-tbl td{vertical-align:middle}
 .att-nav-b{background:#fff;border:1px solid var(--line);border-radius:8px;width:32px;height:32px;cursor:pointer;font-size:16px;transition:.15s}
 .att-nav-b:hover{background:var(--tint);border-color:var(--green2);color:var(--green)}
+.docs-wrap{display:grid;grid-template-columns:260px 1fr;gap:16px;align-items:start}
+.docs-side{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:10px;max-height:70vh;overflow:auto}
+.docs-fold{font-size:11px;font-weight:800;letter-spacing:.5px;color:var(--faint);text-transform:uppercase;margin:12px 6px 4px;font-family:var(--font-head)}
+.docs-item{padding:9px 10px;border-radius:9px;font-size:13.5px;cursor:pointer;color:var(--ink2);transition:.14s}
+.docs-item:hover{background:var(--panel2)}
+.docs-item.on{background:var(--tint);color:var(--green);font-weight:700}
+.docs-main{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;min-height:60vh}
+.doc-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.doc-title-in{border:0;font-size:22px;font-weight:800;font-family:var(--font-head);color:var(--ink);outline:none;width:100%;letter-spacing:-.4px}
+.statsel{border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-weight:700;font-size:12px;cursor:pointer;background:var(--panel2)}
+.statsel.g{background:var(--tint);color:var(--green-ink)}.statsel.b{background:var(--blue-tint);color:var(--blue)}.statsel.a{background:var(--amber-tint);color:var(--amber)}.statsel.p{background:var(--purple-tint);color:var(--purple)}.statsel.r{background:var(--red-tint);color:var(--red)}
+.doc-li-wrap{display:flex;flex-direction:column;gap:3px}
+@media(max-width:860px){.docs-wrap{grid-template-columns:1fr}}
 @media(max-width:860px){.app{grid-template-columns:1fr}.side{position:fixed;left:0;top:0;bottom:0;width:252px;z-index:120;transform:translateX(-100%);transition:.25s}.side.open{transform:none}.search{display:none}.auth{grid-template-columns:1fr}.auth-art{display:none}.auth-form{padding:36px 22px}.ph h1{font-size:26px}}
 
 /* list + preview layout */
@@ -600,6 +613,11 @@ const IC={
  projects:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="16" rx="1"/><rect x="14" y="4" width="7" height="10" rx="1"/></svg>',
  attendance:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
  leads:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 3H2l8 9.5V19l4 2v-8.5L22 3z"/></svg>',
+ ctasks:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h3"/></svg>',
+ todos:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>',
+ docs:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h6"/></svg>',
+ meetings:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+
  reports:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><rect x="5" y="11" width="3" height="7" rx="1"/><rect x="10.5" y="6" width="3" height="12" rx="1"/><rect x="16" y="9" width="3" height="9" rx="1"/></svg>',
  finance:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18v12H3z"/><path d="M3 11h18"/><circle cx="8" cy="15" r="1.3"/></svg>',
  assets:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 15l5-4 4 3 4-4 5 4"/><circle cx="8.5" cy="9" r="1.3"/></svg>',
@@ -611,7 +629,7 @@ reviews:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width
  search:'<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.2-3.2"/></svg>',
  plus:'<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>'
 };
-const NAV=[["overview","Overview"],["leads","Leads"],["clients","Clients"],["proposals","Proposals"],["contracts","Contracts"],["calendar","Content Calendar"],["approvals","Approvals"],["projects","Projects"],["attendance","Attendance"],["reports","Reports"],["finance","Finance & Accounts"],["assets","Asset Library"],["reviews","Reviews"],["support","Support"],["changes","Change Requests"]];
+const NAV=[["overview","Overview"],["leads","Leads"],["clients","Clients"],["proposals","Proposals"],["contracts","Contracts"],["calendar","Content Calendar"],["approvals","Approvals"],["projects","Projects"],["ctasks","Content Tasks"],["todos","To-dos"],["attendance","Attendance"],["reports","Reports"],["finance","Finance & Accounts"],["assets","Asset Library"],["reviews","Reviews"],["support","Support"],["changes","Change Requests"],["docs","Docs"],["meetings","Team Meetings"]];
 
 /* ================= AUTH ================= */
 async function boot(){
@@ -721,7 +739,7 @@ function renderRoute(){
   const r=route(), c=$("#content"); if(!c)return;
   $("#crumb").innerHTML=`Workspace <span class="sep">/</span> <b>${esc(TITLES[r]||"")}</b>`;
   c.scrollTop=0;
-  const map={overview:viewOverview,leads:viewLeads,clients:viewClients,proposals:viewProposals,contracts:viewContracts,calendar:viewCalendar,approvals:viewApprovals,projects:viewProjects,attendance:viewAttendance,reports:viewReports,finance:viewFinance,assets:viewAssets,reviews:viewReviews,support:viewSupport,changes:viewChanges,settings:viewSettings};
+  const map={overview:viewOverview,leads:viewLeads,clients:viewClients,proposals:viewProposals,contracts:viewContracts,calendar:viewCalendar,approvals:viewApprovals,projects:viewProjects,ctasks:viewCtasks,todos:viewTodos,attendance:viewAttendance,reports:viewReports,finance:viewFinance,assets:viewAssets,reviews:viewReviews,support:viewSupport,changes:viewChanges,docs:viewDocs,meetings:viewMeetings,settings:viewSettings};
   (map[r]||soon)(c);
 }
 function soon(c){const r=route();c.innerHTML=`<div class="ph"><div class="ph-ic">${IC[r]||IC.overview}</div><div><h1>${esc(TITLES[r]||"")}</h1><div class="psub">This screen is being built in the new design.</div></div></div><div class="card pad empty"><div class="ei">${IC[r]||IC.settings}</div><div><b>Coming online next</b></div><div class="psub" style="margin-top:6px">The ${esc(TITLES[r])} module is next in the rollout.</div></div>`;}
@@ -1820,6 +1838,133 @@ async function conSignSubmit(id,role){
   await sb.from("cr_contracts").update({status:role==="agency"?"countersigned":"signed",updated_at:new Date().toISOString()}).eq("id",id);
   closeModal();toast("Signed — an immutable record was created");viewContracts($("#content"));
 }
+
+
+/* ============ CONTENT TASKS ============ */
+let CT={view:'board',q:'',client:'',rows:[]};
+const CT_STAGES=[['pending','Pending'],['in_progress','In Progress'],['submitted','Submitted'],['revision','Revision'],['approved','Approved'],['posted','Posted'],['paused','Paused']];
+function ctLbl(k){const f=CT_STAGES.find(x=>x[0]===k);return f?f[1]:k;}
+function ctCls(k){return {pending:'n',in_progress:'b',submitted:'a',revision:'p',approved:'g',posted:'g',paused:'n'}[k]||'n';}
+async function ctEnsureClients(){ if(!CLIENTS||!CLIENTS.length){ const {data}=await sb.from('cr_profiles').select('id,company,full_name').eq('role','client'); CLIENTS=data||[]; } }
+async function viewCtasks(c){ c=c||$("#content"); await ctEnsureClients();
+  c.innerHTML=`<div class="ph"><div class="ph-ic">${IC.ctasks}</div><div><h1>Content Tasks</h1><div class="psub">Every brief in production — assign, track and review.</div></div>
+   <div class="ph-r"><button class="btn ghost" onclick="CT.view='list';ctRender()">☰ List</button><button class="btn ghost" onclick="CT.view='board';ctRender()">▤ Board</button><button class="btn" onclick="ctForm()"><span>${IC.plus}</span> New task</button></div></div>
+   <div id="ct-body"><div class="psub">Loading…</div></div>`;
+  const {data}=await sb.from('cr_content_tasks').select('*').eq('archived',false).order('target_date',{nullsFirst:false}); CT.rows=data||[]; ctRender();
+}
+function ctRender(){ const b=$("#ct-body"); if(!b)return;
+  if(CT.view==='list'){
+    b.innerHTML=`<div class="card"><table class="tbl"><thead><tr><th>Task</th><th>Client</th><th>Type</th><th>Assigned</th><th>Target</th><th>Status</th></tr></thead><tbody>
+    ${CT.rows.map(t=>`<tr class="rowlink" onclick="ctForm('${t.id}')"><td><b>${esc(t.title||'—')}</b></td><td>${esc(clientName(t.client_id))}</td><td>${esc(t.type||'—')}</td><td>${esc(t.assignee_name||'—')}</td><td>${t.target_date?fmtD(t.target_date):'—'}</td><td onclick="event.stopPropagation()"><select class="statsel ${ctCls(t.status)}" onchange="ctStatus('${t.id}',this.value)">${CT_STAGES.map(s=>`<option value="${s[0]}" ${t.status===s[0]?'selected':''}>${s[1]}</option>`).join('')}</select></td></tr>`).join('')||`<tr><td colspan="6" class="sub1" style="text-align:center;padding:24px">No content tasks yet.</td></tr>`}
+    </tbody></table></div>`; return;
+  }
+  b.innerHTML=`<div class="pipe">${CT_STAGES.map(([k,lbl])=>{const items=CT.rows.filter(t=>t.status===k);return `<div class="pcol"><div class="pcol-h"><b>${lbl}</b><span class="cnt">${items.length}</span></div>
+   ${items.map(t=>`<div class="pcard" onclick="ctForm('${t.id}')"><b>${esc(t.title||'—')}</b><div class="sub1">${esc(clientName(t.client_id))}${t.type?' · '+esc(t.type):''}</div><div class="pcard-f"><span class="sub1">${esc(t.assignee_name||'')}</span>${t.target_date?`<span class="pval" style="color:var(--muted)">${fmtD(t.target_date)}</span>`:''}</div></div>`).join('')||'<div class="pdrop">—</div>'}</div>`;}).join('')}</div>`;
+}
+function ctForm(id){ const d=id?CT.rows.find(x=>x.id===id)||{}:{};
+  const body=`<div class="g2"><div class="fld2"><label>Title *</label><input id="ct-title" class="inp" value="${esc(d.title||'')}"/></div><div class="fld2"><label>Client</label><select id="ct-client" class="inp"><option value="">—</option>${CLIENTS.map(c=>`<option value="${c.id}" ${d.client_id===c.id?'selected':''}>${esc(c.company||c.full_name)}</option>`).join('')}</select></div>
+   <div class="fld2"><label>Type</label><select id="ct-type" class="inp">${['Image','Video','Carousel','Reel','Story','Other'].map(t=>`<option ${d.type===t?'selected':''}>${t}</option>`).join('')}</select></div><div class="fld2"><label>Assignee</label><input id="ct-assignee" class="inp" value="${esc(d.assignee_name||'')}"/></div>
+   <div class="fld2"><label>Status</label><select id="ct-status" class="inp">${CT_STAGES.map(s=>`<option value="${s[0]}" ${(d.status||'pending')===s[0]?'selected':''}>${s[1]}</option>`).join('')}</select></div><div class="fld2"><label>Target date</label><input id="ct-target" type="date" class="inp" value="${d.target_date||''}"/></div></div>
+   <div class="fld2"><label>Brief</label><textarea id="ct-brief" class="inp" rows="3">${esc(d.brief||'')}</textarea></div>`;
+  const foot=`${id?`<button class="btn ghost" onclick="ctArchive('${id}')">Archive</button>`:'<span></span>'}<button class="btn" onclick="ctSave('${id||''}')">${id?'Save':'Create task'}</button>`;
+  sheet(`${id?'Edit':'New'} content task`, body, {icon:IC.ctasks, foot});
+}
+async function ctSave(id){ const title=v('ct-title'); if(!title){toast('Title required',true);return;}
+  const p={title,client_id:v('ct-client')||null,type:v('ct-type'),assignee_name:v('ct-assignee')||null,status:v('ct-status'),target_date:v('ct-target')||null,brief:v('ct-brief')||null,updated_at:new Date().toISOString()};
+  let err; if(id){({error:err}=await sb.from('cr_content_tasks').update(p).eq('id',id));}else{p.created_by=SESSION.user.id;p.created_by_name=ME.full_name||ME.email;({error:err}=await sb.from('cr_content_tasks').insert(p));}
+  if(err){toast(err.message,true);return;} closeModal(); toast('Saved'); viewCtasks(); }
+async function ctStatus(id,status){ await sb.from('cr_content_tasks').update({status,updated_at:new Date().toISOString()}).eq('id',id); const r=CT.rows.find(x=>x.id===id); if(r)r.status=status; toast('→ '+ctLbl(status)); }
+async function ctArchive(id){ await sb.from('cr_content_tasks').update({archived:true}).eq('id',id); closeModal(); toast('Archived'); viewCtasks(); }
+
+/* ============ TO-DOS ============ */
+let TD={rows:[]};
+const TD_COLS=[['todo','To Do'],['in_progress','In Progress'],['done','Done'],['blocked','Blocked']];
+async function viewTodos(c){ c=c||$("#content"); await ctEnsureClients();
+  c.innerHTML=`<div class="ph"><div class="ph-ic">${IC.todos}</div><div><h1>To-dos</h1><div class="psub">General work across the team — anything that needs doing.</div></div>
+   <div class="ph-r"><button class="btn" onclick="tdForm()"><span>${IC.plus}</span> New to-do</button></div></div><div id="td-body"><div class="psub">Loading…</div></div>`;
+  const {data}=await sb.from('cr_todos').select('*').eq('archived',false).order('created_at',{ascending:false}); TD.rows=data||[]; tdRender();
+}
+function tdRender(){ const b=$("#td-body"); if(!b)return;
+  b.innerHTML=`<div class="pipe">${TD_COLS.map(([k,lbl])=>{const items=TD.rows.filter(t=>t.status===k);return `<div class="pcol"><div class="pcol-h"><b>${lbl}</b><span class="cnt">${items.length}</span></div>
+   ${items.map(t=>`<div class="pcard" onclick="tdForm('${t.id}')"><b>${esc(t.title||'—')}</b>${t.is_private?' <span class="status p" style="font-size:10px">Private</span>':''}${t.priority==='high'?' <span class="status r" style="font-size:10px">High</span>':''}<div class="sub1">${esc(clientName(t.client_id)||t.assignee_name||'')}</div>${t.due_date?`<div class="pcard-f"><span class="pval" style="color:var(--muted)">${fmtD(t.due_date)}</span></div>`:''}</div>`).join('')||'<div class="pdrop">—</div>'}
+   <button class="btn ghost sm" style="width:100%;margin-top:6px" onclick="tdForm(null,'${k}')">+ Add</button></div>`;}).join('')}</div>`;
+}
+function tdForm(id,status){ const d=id?TD.rows.find(x=>x.id===id)||{}:{status:status||'todo'};
+  const body=`<div class="fld2"><label>What needs doing? *</label><input id="td-title" class="inp" value="${esc(d.title||'')}"/></div>
+   <div class="g2"><div class="fld2"><label>Status</label><select id="td-status" class="inp">${TD_COLS.map(s=>`<option value="${s[0]}" ${(d.status||'todo')===s[0]?'selected':''}>${s[1]}</option>`).join('')}</select></div><div class="fld2"><label>Priority</label><select id="td-pri" class="inp"><option value="">Normal</option><option value="high" ${d.priority==='high'?'selected':''}>High</option></select></div>
+   <div class="fld2"><label>Client (optional)</label><select id="td-client" class="inp"><option value="">—</option>${CLIENTS.map(c=>`<option value="${c.id}" ${d.client_id===c.id?'selected':''}>${esc(c.company||c.full_name)}</option>`).join('')}</select></div><div class="fld2"><label>Due date</label><input id="td-due" type="date" class="inp" value="${d.due_date||''}"/></div></div>
+   <label class="chk" style="margin:4px 0 10px"><input type="checkbox" id="td-priv" ${d.is_private?'checked':''}> Private (only you can see this)</label>
+   <div class="fld2"><label>Notes</label><textarea id="td-notes" class="inp" rows="2">${esc(d.notes||'')}</textarea></div>`;
+  const foot=`${id?`<button class="btn ghost" onclick="tdArchive('${id}')">Archive</button>`:'<span></span>'}<button class="btn" onclick="tdSave('${id||''}')">${id?'Save':'Add to-do'}</button>`;
+  sheet(`${id?'Edit':'New'} to-do`, body, {icon:IC.todos, foot});
+}
+async function tdSave(id){ const title=v('td-title'); if(!title){toast('Title required',true);return;}
+  const p={title,status:v('td-status'),priority:v('td-pri')||null,client_id:v('td-client')||null,due_date:v('td-due')||null,is_private:document.getElementById('td-priv').checked,notes:v('td-notes')||null,updated_at:new Date().toISOString()};
+  let err; if(id){({error:err}=await sb.from('cr_todos').update(p).eq('id',id));}else{p.created_by=SESSION.user.id;p.created_by_name=ME.full_name||ME.email;p.assignee=SESSION.user.id;p.assignee_name=ME.full_name||ME.email;({error:err}=await sb.from('cr_todos').insert(p));}
+  if(err){toast(err.message,true);return;} closeModal(); toast('Saved'); viewTodos(); }
+async function tdArchive(id){ await sb.from('cr_todos').update({archived:true}).eq('id',id); closeModal(); toast('Archived'); viewTodos(); }
+
+/* ============ DOCS ============ */
+let DOC={sel:null,folders:[],docs:[]};
+async function viewDocs(c){ c=c||$("#content");
+  const [{data:fo},{data:dc}]=await Promise.all([sb.from('cr_doc_folders').select('*').order('sort'),sb.from('cr_docs').select('id,title,folder_id,pinned,updated_at').order('updated_at',{ascending:false})]);
+  DOC.folders=fo||[]; DOC.docs=dc||[];
+  c.innerHTML=`<div class="ph"><div class="ph-ic">${IC.docs}</div><div><h1>Docs</h1><div class="psub">Notes, SOPs and references — saved as you type.</div></div>
+   <div class="ph-r"><button class="btn ghost" onclick="docFolderNew()">+ Folder</button><button class="btn" onclick="docNew()"><span>${IC.plus}</span> New doc</button></div></div>
+   <div class="docs-wrap"><div class="docs-side" id="docs-side"></div><div class="docs-main" id="docs-main"></div></div>`;
+  docSide(); if(DOC.docs.length){docOpen(DOC.docs[0].id);}else{document.getElementById('docs-main').innerHTML='<div class="empty"><div class="ei">'+IC.docs+'</div><div>Create your first doc</div></div>';}
+}
+function docSide(){ const el=document.getElementById('docs-side'); if(!el)return;
+  const byF={}; DOC.docs.forEach(d=>{(byF[d.folder_id||'none']=byF[d.folder_id||'none']||[]).push(d);});
+  let h='';
+  (byF['none']||[]).forEach(d=>{h+=docItem(d);});
+  DOC.folders.forEach(f=>{ h+=`<div class="docs-fold">${esc(f.name||'Folder')}</div>`; (byF[f.id]||[]).forEach(d=>{h+=docItem(d);}); });
+  el.innerHTML=h||'<div class="sub1" style="padding:10px">No docs yet.</div>';
+}
+function docItem(d){ return `<div class="docs-item ${DOC.sel===d.id?'on':''}" onclick="docOpen('${d.id}')">${d.pinned?'★ ':''}${esc(d.title||'Untitled')}</div>`; }
+async function docOpen(id){ DOC.sel=id; docSide(); const {data:d}=await sb.from('cr_docs').select('*').eq('id',id).single(); if(!d)return;
+  const m=document.getElementById('docs-main');
+  m.innerHTML=`<div class="doc-head"><input id="doc-title" class="doc-title-in" value="${esc(d.title||'')}" onblur="docSaveMeta('${id}')"><div class="sub1" id="doc-saved">Saved</div></div>
+   ${richEditorHTML('doc-body', d.body||'')}
+   <div style="margin-top:10px;display:flex;gap:8px"><button class="btn sm" onclick="docSaveBody('${id}')">Save</button><button class="btn ghost sm" onclick="docDelete('${id}')">Delete</button><label class="chk" style="margin-left:auto"><input type="checkbox" ${d.pinned?'checked':''} onchange="docPin('${id}',this.checked)"> Pin</label></div>`;
+  const ed=document.getElementById('doc-body'); if(ed)ed.addEventListener('blur',()=>docSaveBody(id));
+}
+async function docNew(){ const {data}=await sb.from('cr_docs').insert({title:'Untitled',body:'<p></p>',created_by:SESSION.user.id,created_by_name:ME.full_name||ME.email}).select('id').single(); toast('Doc created'); await viewDocs(); if(data)docOpen(data.id); }
+async function docFolderNew(){ const name=prompt('Folder name'); if(!name)return; await sb.from('cr_doc_folders').insert({name,created_by:SESSION.user.id}); toast('Folder added'); viewDocs(); }
+async function docSaveMeta(id){ await sb.from('cr_docs').update({title:v('doc-title')||'Untitled',updated_at:new Date().toISOString()}).eq('id',id); const s=document.getElementById('doc-saved'); if(s)s.textContent='Saved'; docLoadList(); }
+async function docSaveBody(id){ const ed=document.getElementById('doc-body'); if(!ed)return; await sb.from('cr_docs').update({body:ed.innerHTML,updated_at:new Date().toISOString()}).eq('id',id); const s=document.getElementById('doc-saved'); if(s)s.textContent='Saved ✓'; }
+async function docPin(id,on){ await sb.from('cr_docs').update({pinned:on}).eq('id',id); docLoadList(); }
+async function docDelete(id){ await sb.from('cr_docs').delete().eq('id',id); toast('Deleted'); viewDocs(); }
+async function docLoadList(){ const {data}=await sb.from('cr_docs').select('id,title,folder_id,pinned,updated_at').order('updated_at',{ascending:false}); DOC.docs=data||[]; docSide(); }
+
+/* ============ TEAM MEETINGS ============ */
+let MT={rows:[]};
+async function viewMeetings(c){ c=c||$("#content"); await ctEnsureClients();
+  c.innerHTML=`<div class="ph"><div class="ph-ic">${IC.meetings}</div><div><h1>Team Meetings</h1><div class="psub">Syncs and client reviews — with minutes and action items.</div></div>
+   <div class="ph-r"><button class="btn" onclick="mtForm()"><span>${IC.plus}</span> Schedule</button></div></div><div id="mt-body"><div class="psub">Loading…</div></div>`;
+  const {data}=await sb.from('cr_meetings').select('*').order('scheduled_at',{ascending:false}); MT.rows=data||[]; mtRender();
+}
+function mtRender(){ const b=$("#mt-body"); if(!b)return;
+  b.innerHTML=MT.rows.map(m=>`<div class="card" style="margin-bottom:12px"><div class="card-h"><div><h3 class="sec-title" style="font-size:16px">${esc(m.title||'Meeting')}</h3><div class="sub1">${m.scheduled_at?fmtDT(m.scheduled_at):''} · ${esc(m.kind||'team')}${m.client_id?' · '+esc(clientName(m.client_id)):''}</div></div><a class="linkg" onclick="mtForm('${m.id}')">Edit</a></div>
+   ${m.attendees?`<div class="sub1" style="margin-bottom:6px">👥 ${esc(m.attendees)}</div>`:''}
+   ${m.minutes?`<div class="doc-li-wrap">${m.minutes.split('\n').filter(Boolean).map(l=>`<div class="doc-li">${esc(l)}</div>`).join('')}</div>`:'<div class="sub1">No minutes yet.</div>'}
+   ${m.action_items?`<div class="sheet-sec">Action items</div><div class="sub1">${esc(m.action_items)}</div>`:''}</div>`).join('')||'<div class="card"><div class="sub1" style="padding:24px;text-align:center">No meetings scheduled.</div></div>';
+}
+function mtForm(id){ const d=id?MT.rows.find(x=>x.id===id)||{}:{};
+  const dt=d.scheduled_at?new Date(d.scheduled_at).toISOString().slice(0,16):'';
+  const body=`<div class="g2"><div class="fld2"><label>Title *</label><input id="mt-title" class="inp" value="${esc(d.title||'')}"/></div><div class="fld2"><label>Type</label><select id="mt-kind" class="inp">${['team','client','internal'].map(k=>`<option ${d.kind===k?'selected':''}>${k}</option>`).join('')}</select></div>
+   <div class="fld2"><label>Client (optional)</label><select id="mt-client" class="inp"><option value="">—</option>${CLIENTS.map(c=>`<option value="${c.id}" ${d.client_id===c.id?'selected':''}>${esc(c.company||c.full_name)}</option>`).join('')}</select></div><div class="fld2"><label>Date &amp; time</label><input id="mt-when" type="datetime-local" class="inp" value="${dt}"/></div></div>
+   <div class="fld2"><label>Attendees</label><input id="mt-att" class="inp" value="${esc(d.attendees||'')}" placeholder="Names, comma separated"/></div>
+   <div class="fld2"><label>Minutes <span class="sub1">(one point per line)</span></label><textarea id="mt-min" class="inp" rows="5">${esc(d.minutes||'')}</textarea></div>
+   <div class="fld2"><label>Action items</label><textarea id="mt-act" class="inp" rows="2">${esc(d.action_items||'')}</textarea></div>`;
+  const foot=`${id?`<button class="btn ghost" onclick="mtडel('${id}')">Delete</button>`:'<span></span>'}<button class="btn" onclick="mtSave('${id||''}')">${id?'Save':'Schedule'}</button>`.replace('mtडel','mtDel');
+  sheet(`${id?'Edit':'New'} meeting`, body, {icon:IC.meetings, foot});
+}
+async function mtSave(id){ const title=v('mt-title'); if(!title){toast('Title required',true);return;}
+  const p={title,kind:v('mt-kind'),client_id:v('mt-client')||null,scheduled_at:v('mt-when')?new Date(v('mt-when')).toISOString():null,attendees:v('mt-att')||null,minutes:v('mt-min')||null,action_items:v('mt-act')||null,updated_at:new Date().toISOString()};
+  let err; if(id){({error:err}=await sb.from('cr_meetings').update(p).eq('id',id));}else{p.created_by=SESSION.user.id;p.created_by_name=ME.full_name||ME.email;({error:err}=await sb.from('cr_meetings').insert(p));}
+  if(err){toast(err.message,true);return;} closeModal(); toast('Saved'); viewMeetings(); }
+async function mtDel(id){ await sb.from('cr_meetings').delete().eq('id',id); closeModal(); toast('Deleted'); viewMeetings(); }
 
 
 /* ============ LEADS & PIPELINE ============ */
