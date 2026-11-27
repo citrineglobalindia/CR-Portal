@@ -458,6 +458,10 @@ button{font-family:inherit;cursor:pointer}
 .adv-chev-sp{display:inline-block;width:26px;margin-right:6px}
 .adv-chart-btn{background:var(--tint);border:1px solid var(--tint2);border-radius:8px;width:30px;height:28px;cursor:pointer;font-size:14px;line-height:1;transition:.14s}
 .adv-chart-btn:hover{background:var(--green);border-color:var(--green);filter:none}
+.ag-leg{display:flex;gap:18px;flex-wrap:wrap;margin:2px 0 10px;font-size:12.5px;color:var(--ink2)}
+.ag-leg span{display:flex;align-items:center;gap:6px}
+.ag-leg i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.ag-leg b{font-weight:800}
 @media(max-width:860px){.docs-wrap{grid-template-columns:1fr}}
 @media(max-width:860px){.app{grid-template-columns:1fr}.side{position:fixed;left:0;top:0;bottom:0;width:252px;z-index:120;transform:translateX(-100%);transition:.25s}.side.open{transform:none}.search{display:none}.auth{grid-template-columns:1fr}.auth-art{display:none}.auth-form{padding:36px 22px}.ph h1{font-size:26px}}
 
@@ -1161,17 +1165,30 @@ function advRender(id){ const el=document.getElementById("cw-body"); if(!el)retu
 }
 async function advChart(id){
   const item=(ADV._map&&ADV._map[id])||{name:'Ad entity'};
-  let d=[]; try{ toast('Loading chart\u2026'); const r=await callFn('meta-insights',{action:'entity_daily',id:id,from:ADV.from,until:ADV.until}); d=r.data||[]; }catch(e){ toast(e.message||'Could not load chart',true); return; }
+  let res; try{ toast('Loading charts\u2026'); res=await callFn('meta-insights',{action:'entity_charts',id:id,from:ADV.from,until:ADV.until}); }catch(e){ toast(e.message||'Could not load charts',true); return; }
+  const d=res.daily||[], ag=res.agegender||[], plat=res.platform||[];
   const labels=d.map(x=>x.date_start?fmtD(x.date_start):''); const spendL=d.map(x=>Number(x.spend||0)); const resL=d.map(x=>metaResult(x)); const imprL=d.map(x=>Number(x.impressions||0));
   const tSpend=spendL.reduce((a,b)=>a+b,0), tRes=resL.reduce((a,b)=>a+b,0), tImpr=imprL.reduce((a,b)=>a+b,0);
+  const AGES=['13-17','18-24','25-34','35-44','45-54','55-64','65+'];
+  const sumAG=(a,g)=>ag.filter(x=>x.age===a&&(g==='unknown'?(x.gender==='unknown'||!x.gender):x.gender===g)).reduce((s,x)=>s+metaResult(x),0);
+  const men=AGES.map(a=>sumAG(a,'male')), women=AGES.map(a=>sumAG(a,'female')), unk=AGES.map(a=>sumAG(a,'unknown'));
+  const tMen=men.reduce((a,b)=>a+b,0), tWomen=women.reduce((a,b)=>a+b,0), tUnk=unk.reduce((a,b)=>a+b,0), tAll=tMen+tWomen+tUnk||1;
+  const platMap={}; plat.forEach(x=>{const k=(x.publisher_platform||'other');platMap[k]=(platMap[k]||0)+metaResult(x);});
+  const pLabels=Object.keys(platMap), pData=pLabels.map(k=>platMap[k]);
+  const pct=n=>Math.round(n/tAll*100);
   const body=`<div class="stat-row" style="margin-bottom:14px"><div class="stat"><div class="lbl">Spend</div><div class="val">${money(tSpend)}</div></div><div class="stat"><div class="lbl">Results</div><div class="val">${tRes}</div></div><div class="stat"><div class="lbl">Cost/result</div><div class="val">${tRes?money(tSpend/tRes):'\u2014'}</div></div><div class="stat"><div class="lbl">Impressions</div><div class="val">${tImpr.toLocaleString('en-IN')}</div></div></div>
-   <div class="sheet-sec">Spend &amp; results over time</div><div style="height:240px"><canvas id="adv-ch-1"></canvas></div>
-   <div class="sheet-sec">Impressions</div><div style="height:160px"><canvas id="adv-ch-2"></canvas></div>`;
+   <div class="sheet-sec">Spend &amp; results over time</div><div style="height:230px"><canvas id="adv-ch-1"></canvas></div>
+   <div class="sheet-sec">Age &amp; gender</div>
+   <div class="ag-leg"><span><i style="background:#7c3aed"></i>Men <b>${pct(tMen)}%</b> (${tMen})</span><span><i style="background:#22d3ee"></i>Women <b>${pct(tWomen)}%</b> (${tWomen})</span>${tUnk?`<span><i style="background:#94a3b8"></i>Uncategorised <b>${pct(tUnk)}%</b> (${tUnk})</span>`:''}</div>
+   <div style="height:210px"><canvas id="adv-ch-ag"></canvas></div>
+   ${pLabels.length?`<div class="sheet-sec">By platform</div><div style="height:200px;max-width:300px;margin:0 auto"><canvas id="adv-ch-plat"></canvas></div>`:''}`;
   sheet('Performance \u2014 '+esc(item.name),body,{icon:IC.adanalytics,subtitle:ADV.from+' to '+ADV.until});
-  if(d.length){
-    chart("adv-ch-1",{type:'line',data:{labels,datasets:[{label:'Spend',...areaDS(spendL,"#2563eb","#2563eb22","#2563eb02"),yAxisID:'y'},{label:'Results',...areaDS(resL,"#22d3ee","#22d3ee33","#22d3ee03"),yAxisID:'y1'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,align:'end'}},scales:{x:{grid:{display:false}},y:{position:'left'},y1:{position:'right',grid:{display:false}}}}});
-    barChart("adv-ch-2",labels,imprL,"#7c3aed");
-  } else { const el=document.getElementById('adv-ch-1'); if(el)el.parentElement.innerHTML='<div class="sub1" style="text-align:center;padding:30px">No daily data in this range.</div>'; }
+  const AX={ticks:{color:'#9aa4b2',font:{size:11}},grid:{display:false},border:{display:false}};
+  const AY={ticks:{color:'#9aa4b2',font:{size:11}},grid:{color:'#eef1f5'},border:{display:false}};
+  const LEG={display:true,position:'bottom',labels:{usePointStyle:true,pointStyle:'circle',boxWidth:8,font:{size:12},padding:14,color:'#6a7686'}};
+  if(d.length){ chart("adv-ch-1",{type:'line',data:{labels,datasets:[{label:'Spend',...areaDS(spendL,"#2563eb","#2563eb22","#2563eb01"),yAxisID:'y',pointRadius:0,borderWidth:2.5},{label:'Results',...areaDS(resL,"#22d3ee","#22d3ee2e","#22d3ee01"),yAxisID:'y1',pointRadius:0,borderWidth:2.5}]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:LEG,tooltip:{padding:10,cornerRadius:8}},scales:{x:AX,y:{...AY,position:'left'},y1:{...AY,position:'right',grid:{display:false}}}}}); }
+  chart("adv-ch-ag",{type:'bar',data:{labels:AGES,datasets:[{label:'Men',data:men,backgroundColor:'#7c3aed',borderRadius:6,borderSkipped:false,maxBarThickness:22},{label:'Women',data:women,backgroundColor:'#22d3ee',borderRadius:6,borderSkipped:false,maxBarThickness:22}].concat(tUnk?[{label:'Uncategorised',data:unk,backgroundColor:'#94a3b8',borderRadius:6,borderSkipped:false,maxBarThickness:22}]:[])},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:LEG,tooltip:{padding:10,cornerRadius:8}},scales:{x:AX,y:AY}}});
+  if(pLabels.length){ const PC=['#2563eb','#7c3aed','#22d3ee','#b4740f','#db2777']; doughnut("adv-ch-plat",pLabels,pData,PC); }
 }
 async function advLoad(id){ ADV.loading=true; ADV.tree=ADV.tree||[]; advRender(id); try{ const r=await callFn("meta-insights",{action:"campaigns",client_id:id,from:ADV.from,until:ADV.until,active_only:ADV.active}); ADV.tree=(r.items||[]).map(x=>({...x,_open:false,_adsets:null})); }catch(e){ ADV.tree=[]; toast(e.message||"Could not load campaigns",true); } ADV.loading=false; advRender(id); }
 function advPreset(id,p){ const t=new Date(); ADV.until=t.toISOString().slice(0,10); if(p==="month")ADV.from=new Date(t.getFullYear(),t.getMonth(),1).toISOString().slice(0,10); else ADV.from=new Date(Date.now()-p*864e5).toISOString().slice(0,10); advLoad(id); }
