@@ -624,6 +624,7 @@ const IC={
  projects:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="16" rx="1"/><rect x="14" y="4" width="7" height="10" rx="1"/></svg>',
  attendance:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
  leads:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 3H2l8 9.5V19l4 2v-8.5L22 3z"/></svg>',
+ invoices:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1z"/><path d="M8 7h8M8 11h8M8 15h5"/></svg>',
  ctasks:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h3"/></svg>',
  todos:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>',
  docs:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h6"/></svg>',
@@ -737,20 +738,20 @@ function renderApp(){
 }
 function renderNav(){
   const r=route();
-  $("#nav").innerHTML=NAV.map(([k,l])=>{
-    // hide finance/clients for client role
-    if(ME.role==="client"&&["clients","finance"].includes(k))return"";
-    return `<a href="#/${k}" class="${r===k?'on':''}">${IC[k]}<span>${l}</span></a>`;
-  }).join("");
+  const list = ME.role==="client" ? CLIENT_NAV : NAV;
+  $("#nav").innerHTML=list.map(([k,l])=>`<a href="#/${k}" class="${r===k?'on':''}">${IC[k]||IC.overview}<span>${l}</span></a>`).join("");
   $("#nv-settings").className=r==="settings"?"on":"";
 }
-const TITLES={overview:"Overview",clients:"Clients",proposals:"Proposals",contracts:"Contracts",calendar:"Content Calendar",approvals:"Approvals",projects:"Projects",reports:"Reports",finance:"Finance",assets:"Asset Library",reviews:"Reviews",support:"Support",changes:"Change Requests",settings:"Settings"};
+const CLIENT_NAV=[["overview","Home"],["approvals","Approvals"],["calendar","Content"],["reports","Reports"],["contracts","Agreements"],["invoices","Billing"],["meetings","Meetings"],["support","Support"],["reviews","Feedback"]];
+const CLIENT_ROUTES=new Set(["overview","approvals","calendar","reports","contracts","invoices","meetings","support","reviews","settings"]);
+const TITLES={overview:"Overview",invoices:"Billing",clients:"Clients",proposals:"Proposals",contracts:"Contracts",calendar:"Content Calendar",approvals:"Approvals",projects:"Projects",reports:"Reports",finance:"Finance",assets:"Asset Library",reviews:"Reviews",support:"Support",changes:"Change Requests",settings:"Settings"};
 function renderRoute(){
   renderNav();
-  const r=route(), c=$("#content"); if(!c)return;
+  let r=route(); const c=$("#content"); if(!c)return;
+  if(ME.role==="client" && !CLIENT_ROUTES.has(r)){ location.hash="#/overview"; return; }
   $("#crumb").innerHTML=`Workspace <span class="sep">/</span> <b>${esc(TITLES[r]||"")}</b>`;
   c.scrollTop=0;
-  const map={overview:viewOverview,leads:viewLeads,clients:viewClients,proposals:viewProposals,contracts:viewContracts,calendar:viewCalendar,approvals:viewApprovals,projects:viewProjects,ctasks:viewCtasks,todos:viewTodos,attendance:viewAttendance,reports:viewReports,finance:viewFinance,assets:viewAssets,reviews:viewReviews,support:viewSupport,changes:viewChanges,docs:viewDocs,meetings:viewMeetings,settings:viewSettings};
+  const map={overview:viewOverview,leads:viewLeads,clients:viewClients,proposals:viewProposals,contracts:viewContracts,calendar:viewCalendar,approvals:viewApprovals,projects:viewProjects,ctasks:viewCtasks,todos:viewTodos,attendance:viewAttendance,reports:viewReports,finance:viewFinance,assets:viewAssets,reviews:viewReviews,support:viewSupport,changes:viewChanges,docs:viewDocs,meetings:viewMeetings,invoices:viewClientInvoices,settings:viewSettings};
   (map[r]||soon)(c);
 }
 function soon(c){const r=route();c.innerHTML=`<div class="ph"><div class="ph-ic">${IC[r]||IC.overview}</div><div><h1>${esc(TITLES[r]||"")}</h1><div class="psub">This screen is being built in the new design.</div></div></div><div class="card pad empty"><div class="ei">${IC[r]||IC.settings}</div><div><b>Coming online next</b></div><div class="psub" style="margin-top:6px">The ${esc(TITLES[r])} module is next in the rollout.</div></div>`;}
@@ -765,7 +766,53 @@ function daysBack(n){const a=[];for(let i=n-1;i>=0;i--){const d=new Date();d.set
 
 /* ================= OVERVIEW ================= */
 let OVF="30";
+async function clientHome(c){
+  c=c||$("#content"); const uid=SESSION.user.id;
+  const [{data:content},{data:reports},{data:invs},{data:meets},{data:contracts}]=await Promise.all([
+    sb.from("cr_content_items").select("id,caption,platform,status,planned_at").eq("client_id",uid).order("planned_at",{ascending:true}),
+    sb.from("cr_reports").select("id,title,period_start,period_end,shared_at,status").eq("client_id",uid).order("created_at",{ascending:false}).limit(5),
+    sb.from("cr_invoices").select("id,invoice_no,total,paid,status,due_date").eq("client_id",uid).order("created_at",{ascending:false}),
+    sb.from("cr_meetings").select("id,title,scheduled_at").eq("client_id",uid).order("scheduled_at",{ascending:true}),
+    sb.from("cr_contracts").select("id,title,status").eq("client_id",uid)
+  ]);
+  const now=Date.now();
+  const pend=(content||[]).filter(x=>/approval|submitted/i.test(x.status||""));
+  const upcoming=(content||[]).filter(x=>x.planned_at&&new Date(x.planned_at)>=now).slice(0,5);
+  const outstanding=(invs||[]).filter(i=>i.status!=="paid"&&i.status!=="cancelled").reduce((a,i)=>a+(Number(i.total||0)-Number(i.paid||0)),0);
+  const nextMeet=(meets||[]).filter(m=>m.scheduled_at&&new Date(m.scheduled_at)>=now)[0];
+  const unsigned=(contracts||[]).filter(x=>x.status==="sent").length;
+  const sharedRep=(reports||[]).filter(r=>r.shared_at||r.status==="shared")[0]||reports&&reports[0];
+  c.innerHTML=`<div class="ph"><div class="ph-ic">${IC.overview}</div><div><h1>Welcome, ${esc(ME.company||ME.full_name||"")}</h1><div class="psub">Your campaigns, content and billing — all in one place.</div></div></div>
+   <div class="stat-row att-stats">
+    <div class="stat rowlink" onclick="location.hash='#/approvals'"><div class="st-ic">${IC.approvals}</div><div class="lbl">Awaiting your approval</div><div class="val">${pend.length}</div></div>
+    <div class="stat rowlink" onclick="location.hash='#/calendar'"><div class="st-ic">${IC.calendar}</div><div class="lbl">Upcoming posts</div><div class="val">${upcoming.length}</div></div>
+    <div class="stat rowlink" onclick="location.hash='#/invoices'"><div class="st-ic">${IC.invoices}</div><div class="lbl">Outstanding</div><div class="val">${money(outstanding)}</div></div>
+    <div class="stat rowlink" onclick="location.hash='#/meetings'"><div class="st-ic">${IC.meetings}</div><div class="lbl">Next meeting</div><div class="val" style="font-size:16px">${nextMeet?fmtD(nextMeet.scheduled_at):'—'}</div></div></div>
+   <div class="two">
+    <div class="card pad"><div class="card-h"><h3 class="sec-title" style="font-size:16px">Needs your approval</h3><a class="linkg" onclick="location.hash='#/approvals'">Open ↗</a></div>
+     ${pend.slice(0,5).map(x=>`<div class="upc" style="padding:10px 0;border-bottom:1px solid var(--line2)"><div style="flex:1"><b>${esc((x.caption||'Content').slice(0,60))}</b><div class="sub1">${esc(x.platform||'')} ${x.planned_at?'· '+fmtD(x.planned_at):''}</div></div><span class="status a">Review</span></div>`).join('')||'<div class="sub1" style="padding:12px 0">Nothing waiting on you. ✓</div>'}</div>
+    <div class="card pad"><div class="card-h"><h3 class="sec-title" style="font-size:16px">Latest report</h3><a class="linkg" onclick="location.hash='#/reports'">All reports ↗</a></div>
+     ${sharedRep?`<div class="upc" style="padding:10px 0"><div style="flex:1"><b>${esc(sharedRep.title||'Performance report')}</b><div class="sub1">${sharedRep.period_start?fmtD(sharedRep.period_start):''} – ${sharedRep.period_end?fmtD(sharedRep.period_end):''}</div></div></div>`:'<div class="sub1" style="padding:12px 0">No reports shared yet.</div>'}
+     <div class="card-h" style="margin-top:14px"><h3 class="sec-title" style="font-size:16px">Billing</h3><a class="linkg" onclick="location.hash='#/invoices'">View ↗</a></div>
+     <div class="fv" style="font-size:22px;font-weight:800;color:${outstanding>0?'var(--red)':'var(--green)'}">${money(outstanding)}</div><div class="sub1">${outstanding>0?'Outstanding balance':'All settled ✓'}</div>
+     ${unsigned?`<div class="btnrow"><button class="btn sm" onclick="location.hash='#/contracts'">${unsigned} agreement(s) to sign</button></div>`:''}</div>
+   </div>`;
+}
+async function viewClientInvoices(c){
+  c=c||$("#content");
+  if(ME.role!=='client'){ FIN.tab='overview'; return viewFinance(c); }
+  const uid=SESSION.user.id;
+  const {data:invs}=await sb.from("cr_invoices").select("*").eq("client_id",uid).order("created_at",{ascending:false});
+  const rows=invs||[]; const out=rows.filter(i=>i.status!=="paid"&&i.status!=="cancelled").reduce((a,i)=>a+(Number(i.total||0)-Number(i.paid||0)),0);
+  const paid=rows.filter(i=>i.status==="paid").reduce((a,i)=>a+Number(i.total||0),0);
+  c.innerHTML=`<div class="ph"><div class="ph-ic">${IC.invoices}</div><div><h1>Billing</h1><div class="psub">Your invoices and payments.</div></div></div>
+   <div class="stat-row att-stats"><div class="stat"><div class="lbl">Outstanding</div><div class="val" style="color:${out>0?'var(--red)':'var(--green)'}">${money(out)}</div></div><div class="stat"><div class="lbl">Paid to date</div><div class="val">${money(paid)}</div></div><div class="stat"><div class="lbl">Invoices</div><div class="val">${rows.length}</div></div></div>
+   <div class="card"><table class="tbl"><thead><tr><th>Invoice</th><th>Issued</th><th>Due</th><th>Total</th><th>Balance</th><th>Status</th></tr></thead><tbody>
+   ${rows.map(i=>{const bal=Number(i.total||0)-Number(i.paid||0);return `<tr><td><b>${esc(i.invoice_no||i.id.slice(0,8))}</b><div class="sub1">${esc(i.kind||'')}</div></td><td>${i.issue_date?fmtD(i.issue_date):'—'}</td><td>${i.due_date?fmtD(i.due_date):'—'}</td><td>${money(i.total)}</td><td>${money(bal)}</td><td><span class="status ${i.status==='paid'?'g':i.status==='cancelled'?'n':bal>0?'a':'g'}">${esc(i.status||'draft')}</span></td></tr>`;}).join('')||`<tr><td colspan="6" class="sub1" style="text-align:center;padding:24px">No invoices yet.</td></tr>`}
+   </tbody></table></div>`;
+}
 async function viewOverview(c){
+  if(ME.role==='client'){ return clientHome(c); }
   c.innerHTML=`<div class="ph"><div><h1>Your agency, at a glance</h1><div class="psub">Keep clients, campaigns and your team moving forward.</div></div>
     <div class="ph-r"><span class="selectbox">${monthLabel()} <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></span>${isAdmin()||canStaff()?`<button class="btn" onclick="location.hash='#/clients'"><span>${IC.plus}</span> Add client</button>`:""}</div></div>
     <div class="stat-row" id="ov-stats">${[0,0,0,0].map(()=>`<div class="stat"><div class="st-ic skel" style="background:#eef1ea"></div><div class="skel" style="height:14px;width:60%;margin-bottom:8px"></div><div class="skel" style="height:26px;width:40%"></div></div>`).join("")}</div>
