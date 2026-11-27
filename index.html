@@ -414,6 +414,11 @@ button{font-family:inherit;cursor:pointer}
 .c5{left:188px;height:98px;animation-delay:.53s}
 @media (prefers-reduced-motion:reduce){.cyl{animation:none}}
 @keyframes grow{from{transform:scaleY(0)}to{transform:scaleY(1)}}to{height:var(--h)}}34%{height:var(--h)}84%{height:var(--h)}100%{height:6px}}
+.cw-head{align-items:center;gap:14px}
+.cw-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-left:auto}
+.cw-am{flex:0 0 auto}
+.cw-right .btn{white-space:nowrap}
+@media(max-width:760px){.cw-right{margin-left:0;width:100%}}
 @media(max-width:860px){.docs-wrap{grid-template-columns:1fr}}
 @media(max-width:860px){.app{grid-template-columns:1fr}.side{position:fixed;left:0;top:0;bottom:0;width:252px;z-index:120;transform:translateX(-100%);transition:.25s}.side.open{transform:none}.search{display:none}.auth{grid-template-columns:1fr}.auth-art{display:none}.auth-form{padding:36px 22px}.ph h1{font-size:26px}}
 
@@ -1102,9 +1107,8 @@ async function viewClientWorkspace(c,id){
   const amn=am?(am.full_name||am.email):"Unassigned";
   $("#crumb")&&($("#crumb").innerHTML=`Workspace <span class="sep">/</span> Clients <span class="sep">/</span> <b>${esc(cli.company||cli.full_name)}</b>`);
   c.innerHTML=`<div class="cw-head"><div class="cw-logo" style="background:linear-gradient(135deg,${avatarColor(cli.company||cli.full_name)})">${esc(initials(cli.company||cli.full_name)).toUpperCase()}</div>
-   <div><h1>${esc(cli.company||cli.full_name)} <span class="status g" style="vertical-align:middle">${esc(cli.client_status||'active')}</span></h1><div class="psub">${esc(cli.industry||'')}${cli.website?' · '+esc(cli.website):''}</div></div>
-   <div class="cw-am"><div class="a" style="background:linear-gradient(135deg,${avatarColor(amn)})">${esc(initials(amn)).toUpperCase()}</div><div><div class="sub1" style="font-size:11px">Account manager</div><b style="font-size:13.5px">${esc(amn)}</b></div></div>
-   <div class="ph-r"><a class="btn ghost" onclick="location.hash='#/clients'">← All clients</a>${canStaff()?`<button class="btn" onclick="toast('Quick create')"><span>${IC.plus}</span> Create new</button>`:""}</div></div>
+   <div style="flex:1 1 240px;min-width:200px"><h1>${esc(cli.company||cli.full_name)} <span class="status g" style="vertical-align:middle;font-size:12px">${esc(cli.client_status||'active')}</span></h1><div class="psub">${esc(cli.industry||'')}${cli.website?' · '+esc(cli.website):''}</div></div>
+   <div class="cw-right"><div class="cw-am"><div class="a" style="background:linear-gradient(135deg,${avatarColor(amn)})">${esc(initials(amn)).toUpperCase()}</div><div><div class="sub1" style="font-size:11px">Account manager</div><b style="font-size:13.5px">${esc(amn)}</b></div></div><a class="btn ghost" onclick="location.hash='#/clients'">← All clients</a>${canStaff()?`<button class="btn" onclick="clEditForm('${id}')"><span>${IC.plus}</span> Edit client</button>`:""}</div></div>
    <div class="cw-tabs" id="cw-tabs">${CW_TABS.map(([k,l])=>`<button class="${CW_TAB===k?'on':''}" onclick="CW_TAB='${k}';viewClientWorkspace(document.getElementById('content'),'${id}')">${l}</button>`).join("")}</div>
    <div id="cw-body"><div class="psub">Loading…</div></div>`;
   cwTab(id,amn);
