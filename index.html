@@ -486,6 +486,22 @@ button{font-family:inherit;cursor:pointer}
 .ag-list .r .dot{width:11px;height:11px;border-radius:3px}
 .ag-list .r b{margin-left:auto;font-family:var(--font-head)}
 @media(max-width:980px){.advf-grid{grid-template-columns:1fr}.advf-cards{grid-template-columns:1fr 1fr}}
+.advf-shell{display:flex;align-items:stretch;min-height:100%}
+.advf-shell>.advf-wrap{flex:1 1 auto;max-width:none;margin:0}
+.advf-nav{flex:0 0 274px;background:var(--panel,#fff);border-left:1px solid var(--line,#e7eaf0);padding:20px 15px 40px;overflow:auto;position:sticky;top:0;align-self:flex-start;max-height:100vh}
+.advf-nav h4{font-size:11.5px;letter-spacing:.5px;text-transform:uppercase;color:#93a0b3;margin:2px 0 12px;font-weight:800}
+.advf-nav .nv{display:flex;align-items:center;gap:8px;width:100%;text-align:left;border:none;background:transparent;padding:8px 10px;border-radius:9px;cursor:pointer;font-size:13px;color:#33415a;line-height:1.3;margin-bottom:2px;transition:background .13s,color .13s;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.advf-nav .nv:hover{background:#f1f5fb}
+.advf-nav .nv.on{background:linear-gradient(135deg,#2563eb,#0ea5e9);color:#fff;font-weight:700}
+.advf-nav .nv .nvdot{width:7px;height:7px;border-radius:50%;background:#2563eb;flex:0 0 auto}
+.advf-nav .nv.on .nvdot{background:#fff}
+.advf-nav .nv.camp{font-weight:700;color:#0b1220;margin-top:6px}
+.advf-nav .nv.set{padding-left:24px;font-size:12.5px;color:#475569}
+.advf-nav .nv.set::before{content:"";width:5px;height:5px;border-radius:50%;background:#94a3b8;margin-right:7px;flex:0 0 auto}
+.advf-nav .nv.ad{padding-left:40px;font-size:12px;color:#64748b}
+.advf-nav .nv.ad::before{content:"";width:4px;height:4px;border-radius:1px;background:#cbd5e1;margin-right:7px;flex:0 0 auto}
+.advf-nav .nv.set.on,.advf-nav .nv.ad.on{color:#fff}
+@media(max-width:980px){.advf-shell{flex-direction:column}.advf-nav{flex:1 1 auto;border-left:none;border-top:1px solid var(--line,#e7eaf0);position:static;max-height:none}}
 @media(max-width:860px){.docs-wrap{grid-template-columns:1fr}}
 @media(max-width:860px){.app{grid-template-columns:1fr}.side{position:fixed;left:0;top:0;bottom:0;width:252px;z-index:120;transform:translateX(-100%);transition:.25s}.side.open{transform:none}.search{display:none}.auth{grid-template-columns:1fr}.auth-art{display:none}.auth-form{padding:36px 22px}.ph h1{font-size:26px}}
 
@@ -1188,25 +1204,46 @@ function advRender(id){ const el=document.getElementById("cw-body"); if(!el)retu
    <div class="card"><div class="tblwrap adv-scroll"><table class="tbl adv-tbl"><thead><tr><th>Campaign / Ad set / Ad</th><th>Status</th><th>Spend</th><th>Results</th><th>Cost/res</th><th>Impr.</th><th>Reach</th><th style="text-align:center">Charts</th></tr></thead><tbody>${ADV.loading?`<tr><td colspan="8" class="sub1" style="padding:22px;text-align:center">Loading from Meta\u2026</td></tr>`:(rows||`<tr><td colspan="8" class="sub1" style="padding:22px;text-align:center">No ${ADV.active?"active ":""}campaigns in this date range.</td></tr>`)}</tbody></table></div></div>`;
 }
 function advCloseFull(){ const el=document.getElementById("adv-full"); if(el)el.remove(); document.body.style.overflow=""; }
+async function advNavHtml(id){
+  const tree=ADV.tree||[];
+  if(!tree.length) return '<h4>Entities</h4><div class="sub1" style="padding:4px 2px">Open the drill-down table to list campaigns, ad sets and ads here.</div>';
+  let h='<h4>Jump to entity</h4>';
+  tree.forEach(c=>{
+    h+=`<button class="nv camp ${c.id===id?'on':''}" onclick="advChart('${c.id}')"><span class="nvdot"></span>${esc(c.name||'Campaign')}</button>`;
+    (c._adsets||[]).forEach(as=>{
+      h+=`<button class="nv set ${as.id===id?'on':''}" onclick="advChart('${as.id}')">${esc(as.name||'Ad set')}</button>`;
+      (as._ads||[]).forEach(ad=>{ h+=`<button class="nv ad ${ad.id===id?'on':''}" onclick="advChart('${ad.id}')">${esc(ad.name||'Ad')}</button>`; });
+    });
+  });
+  return h;
+}
 async function advChart(id){
   const item=(ADV._map&&ADV._map[id])||{name:"Ad entity"};
   let res; try{ toast("Loading charts\u2026"); res=await callFn("meta-insights",{action:"entity_charts",id:id,from:ADV.from,until:ADV.until}); }catch(e){ toast(e.message||"Could not load charts",true); return; }
-  const d=res.daily||[], ag=res.agegender||[], plat=res.platform||[];
+  const ov=(res.overview&&res.overview[0])||{}, d=res.daily||[], ag=res.agegender||[], plat=res.platform||[];
+  // Accurate totals come from the aggregate (no time_increment) — matches the drill table and Meta exactly.
+  const tSpend=Number(ov.spend||0), tRes=metaResult(ov), tImpr=Number(ov.impressions||0);
+  // Pick the same result metric metaResult uses, for consistent per-row breakdown sums.
   const PRIORITY=["onsite_conversion.messaging_conversation_started","onsite_conversion.total_messaging_connection","lead","offsite_conversion.fb_pixel_lead","purchase","omni_purchase","onsite_conversion.purchase","link_click","landing_page_view"];
-  const _tt={}; d.concat(ag,plat).forEach(x=>(x.actions||[]).forEach(a=>{_tt[a.action_type]=(_tt[a.action_type]||0)+Number(a.value||0);}));
-  let primaryType=PRIORITY.find(t=>_tt[t]); if(!primaryType)primaryType=Object.keys(_tt).sort((a,b)=>_tt[b]-_tt[a])[0];
+  let primaryType=PRIORITY.find(t=>(ov.actions||[]).some(a=>a.action_type===t));
+  if(!primaryType){ const _tt={}; ag.concat(plat).forEach(x=>(x.actions||[]).forEach(a=>{_tt[a.action_type]=(_tt[a.action_type]||0)+Number(a.value||0);})); primaryType=Object.keys(_tt).sort((a,b)=>_tt[b]-_tt[a])[0]; }
   const resultOf=row=>primaryType?((row.actions||[]).filter(a=>a.action_type===primaryType).reduce((s,a)=>s+Number(a.value||0),0)):metaResult(row);
+  // Daily series drive the chart SHAPE only (attribution can make daily sums differ from the lifetime aggregate).
   const labels=d.map(x=>x.date_start?fmtD(x.date_start):""); const spendL=d.map(x=>Number(x.spend||0)); const resL=d.map(x=>resultOf(x)); const imprL=d.map(x=>Number(x.impressions||0));
-  const tSpend=spendL.reduce((a,b)=>a+b,0), tRes=resL.reduce((a,b)=>a+b,0), tImpr=imprL.reduce((a,b)=>a+b,0);
   const AGES=["13-17","18-24","25-34","35-44","45-54","55-64","65+"];
-  const sumAG=(a,g)=>ag.filter(x=>x.age===a&&(g==="unknown"?(x.gender==="unknown"||!x.gender):x.gender===g)).reduce((s,x)=>s+resultOf(x),0);
-  const men=AGES.map(a=>sumAG(a,"male")), women=AGES.map(a=>sumAG(a,"female")), unk=AGES.map(a=>sumAG(a,"unknown"));
-  const tMen=men.reduce((a,b)=>a+b,0), tWomen=women.reduce((a,b)=>a+b,0), tUnk=unk.reduce((a,b)=>a+b,0), tAll=tMen+tWomen+tUnk||1;
+  const isM=g=>g==="male", isF=g=>g==="female";
+  const sumAG=(a,f)=>ag.filter(x=>x.age===a&&f(x.gender)).reduce((s,x)=>s+resultOf(x),0);
+  const men=AGES.map(a=>sumAG(a,isM)), women=AGES.map(a=>sumAG(a,isF));
+  const tMen=men.reduce((a,b)=>a+b,0), tWomen=women.reduce((a,b)=>a+b,0);
+  // Uncategorised captures unknown gender / unknown age so Men+Women+Uncat == accurate total (matches Meta).
+  const tUnk=Math.max(0, tRes - tMen - tWomen);
+  const tAll=tRes||1;
   const platMap={}; plat.forEach(x=>{const k=(x.publisher_platform||"other");platMap[k]=(platMap[k]||0)+resultOf(x);});
   const pLabels=Object.keys(platMap), pData=pLabels.map(k=>platMap[k]);
   const pc=n=>Math.round(n/tAll*100);
+  const navHtml=await advNavHtml(id);
   let o=document.getElementById("adv-full"); if(!o){o=document.createElement("div");o.id="adv-full";document.body.appendChild(o);} o.className="adv-full";
-  o.innerHTML=`<div class="advf-wrap">
+  o.innerHTML=`<div class="advf-shell"><div class="advf-wrap">
    <div class="advf-head"><div><div class="advf-kick">Campaign performance</div><h1>${esc(item.name)}</h1><div class="advf-sub">${fmtD(ADV.from)} \u2013 ${fmtD(ADV.until)}</div></div>
      <div class="advf-actions"><div class="advf-dates"><input type="date" class="inp" value="${ADV.from}" onchange="ADV.from=this.value"><input type="date" class="inp" value="${ADV.until}" onchange="ADV.until=this.value"><button class="btn sm" onclick="advChart('${id}')">Apply</button></div><button class="advf-x" onclick="advCloseFull()">\u00d7</button></div></div>
    <div class="advf-cards">
@@ -1223,13 +1260,13 @@ async function advChart(id){
        <h3 class="sec-title" style="font-size:15px;margin:18px 0 8px">By age group</h3><div style="height:190px"><canvas id="advf-ag"></canvas></div>
        ${pLabels.length?`<h3 class="sec-title" style="font-size:15px;margin:18px 0 8px">By platform</h3><div style="height:180px;max-width:240px;margin:0 auto"><canvas id="advf-plat"></canvas></div>`:""}
      </div>
-   </div></div>`;
+   </div></div><aside class="advf-nav">${navHtml}</aside></div>`;
   document.body.style.overflow="hidden";
   const AX={ticks:{color:"#9aa4b2",font:{size:11}},grid:{display:false},border:{display:false}};
   const AY={ticks:{color:"#9aa4b2",font:{size:11}},grid:{color:"#eef1f5"},border:{display:false}};
   const LEG={display:true,position:"top",align:"end",labels:{usePointStyle:true,pointStyle:"circle",boxWidth:8,font:{size:12},padding:14,color:"#6a7686"}};
   if(d.length){ chart("advf-line",{type:"line",data:{labels,datasets:[{label:"Spend",...areaDS(spendL,"#2563eb","#2563eb22","#2563eb01"),yAxisID:"y",pointRadius:0,borderWidth:2.5,tension:.4},{label:"Results",...areaDS(resL,"#22d3ee","#22d3ee2e","#22d3ee01"),yAxisID:"y1",pointRadius:0,borderWidth:2.5,tension:.4}]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},plugins:{legend:LEG,tooltip:{padding:11,cornerRadius:10,titleFont:{size:13},bodyFont:{size:12.5}}},scales:{x:AX,y:{...AY,position:"left"},y1:{...AY,position:"right",grid:{display:false}}}}}); }
-  chart("advf-ag",{type:"bar",data:{labels:AGES,datasets:[{label:"Men",data:men,backgroundColor:"#7c3aed",borderRadius:5,borderSkipped:false,maxBarThickness:16},{label:"Women",data:women,backgroundColor:"#22d3ee",borderRadius:5,borderSkipped:false,maxBarThickness:16}].concat(tUnk?[{label:"Uncategorised",data:unk,backgroundColor:"#94a3b8",borderRadius:5,borderSkipped:false,maxBarThickness:16}]:[])},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:LEG,tooltip:{padding:10,cornerRadius:8}},scales:{x:AX,y:AY}}});
+  chart("advf-ag",{type:"bar",data:{labels:AGES,datasets:[{label:"Men",data:men,backgroundColor:"#7c3aed",borderRadius:5,borderSkipped:false,maxBarThickness:16},{label:"Women",data:women,backgroundColor:"#22d3ee",borderRadius:5,borderSkipped:false,maxBarThickness:16}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:LEG,tooltip:{padding:10,cornerRadius:8}},scales:{x:AX,y:AY}}});
   if(pLabels.length){ doughnut("advf-plat",pLabels,pData,["#2563eb","#7c3aed","#22d3ee","#b4740f","#db2777"]); }
 }
 async function advLoad(id){ ADV.loading=true; ADV.tree=ADV.tree||[]; advRender(id); try{ const r=await callFn("meta-insights",{action:"campaigns",client_id:id,from:ADV.from,until:ADV.until,active_only:ADV.active}); ADV.tree=(r.items||[]).map(x=>({...x,_open:false,_adsets:null})); }catch(e){ ADV.tree=[]; toast(e.message||"Could not load campaigns",true); } ADV.loading=false; advRender(id); }
