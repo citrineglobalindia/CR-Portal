@@ -449,10 +449,13 @@ button{font-family:inherit;cursor:pointer}
 .adv-presets{display:flex;gap:6px;margin-left:4px}
 .adv-presets a{font-size:12px;font-weight:700;color:var(--green);background:var(--tint);border-radius:7px;padding:5px 10px;cursor:pointer}
 .adv-presets a:hover{filter:brightness(.97)}
-.adv-chev{display:inline-block;width:15px;cursor:pointer;color:var(--muted);user-select:none}
 .adv-tbl td{white-space:nowrap}.adv-tbl td:first-child{white-space:normal}
 .adv-r.lvl1{background:var(--panel2)}.adv-r.lvl2 td:first-child{color:var(--muted)}
 .adv-r.lvl2{background:#fbfcfe}
+.adv-scroll{max-height:calc(100vh - 340px);overflow:auto}
+.adv-chev{display:inline-grid;place-items:center;width:26px;height:26px;border:1px solid var(--line);background:#fff;border-radius:8px;cursor:pointer;color:var(--green);font-size:15px;line-height:1;vertical-align:middle;margin-right:6px;transition:.14s}
+.adv-chev:hover{background:var(--tint);border-color:var(--green2)}
+.adv-chev-sp{display:inline-block;width:26px;margin-right:6px}
 @media(max-width:860px){.docs-wrap{grid-template-columns:1fr}}
 @media(max-width:860px){.app{grid-template-columns:1fr}.side{position:fixed;left:0;top:0;bottom:0;width:252px;z-index:120;transform:translateX(-100%);transition:.25s}.side.open{transform:none}.search{display:none}.auth{grid-template-columns:1fr}.auth-art{display:none}.auth-form{padding:36px 22px}.ph h1{font-size:26px}}
 
@@ -1143,7 +1146,7 @@ function metaResult(row){ const a=row.actions||[]; const pri=a.find(x=>/messagin
 let ADV={from:"",until:"",active:true,tree:null,loading:false};
 function advBadge(st){ const m={ACTIVE:'g',PAUSED:'a'}; return `<span class="status ${m[st]||'n'}">${esc((st||'').replace(/_/g,' ').toLowerCase())}</span>`; }
 function advMsg(t,lvl){ return `<tr><td colspan="7" class="sub1" style="padding:8px 0 8px ${12+lvl*22+20}px">${t}</td></tr>`; }
-function advRow(level,item,onToggle,hasChildren){ const pad=12+level*22; const res=metaResult(item); const chev=hasChildren?`<span class="adv-chev" onclick="${onToggle}">${item._open?'\u25BE':'\u25B8'}</span>`:'<span style="display:inline-block;width:15px"></span>'; return `<tr class="adv-r lvl${level}"><td style="padding-left:${pad}px">${chev} <b style="font-weight:${level===0?700:500}">${esc(item.name||'\u2014')}</b></td><td>${advBadge(item.status)}</td><td>${money(item.spend)}</td><td>${res}</td><td>${item.spend&&res?money(item.spend/res):'\u2014'}</td><td>${(item.impressions||0).toLocaleString('en-IN')}</td><td>${(item.reach||0).toLocaleString('en-IN')}</td></tr>`; }
+function advRow(level,item,onToggle,hasChildren){ const pad=12+level*22; const res=metaResult(item); const chev=hasChildren?`<button class="adv-chev" onclick="${onToggle}">${item._open?'\u25BE':'\u25B8'}</button>`:'<span class="adv-chev-sp"></span>'; return `<tr class="adv-r lvl${level}"><td style="padding-left:${pad}px">${chev} <b style="font-weight:${level===0?700:500}">${esc(item.name||'\u2014')}</b></td><td>${advBadge(item.status)}</td><td>${money(item.spend)}</td><td>${res}</td><td>${item.spend&&res?money(item.spend/res):'\u2014'}</td><td>${(item.impressions||0).toLocaleString('en-IN')}</td><td>${(item.reach||0).toLocaleString('en-IN')}</td></tr>`; }
 function advRender(id){ const el=document.getElementById("cw-body"); if(!el)return; const tree=ADV.tree||[];
   const tSpend=tree.reduce((a,c)=>a+Number(c.spend||0),0),tImpr=tree.reduce((a,c)=>a+Number(c.impressions||0),0),tReach=tree.reduce((a,c)=>a+Number(c.reach||0),0),tRes=tree.reduce((a,c)=>a+metaResult(c),0);
   let rows="";
@@ -1152,7 +1155,7 @@ function advRender(id){ const el=document.getElementById("cw-body"); if(!el)retu
   });
   el.innerHTML=`<div class="adv-bar"><div class="adv-dates"><input type="date" class="inp" value="${ADV.from}" onchange="ADV.from=this.value"><span class="sub1">to</span><input type="date" class="inp" value="${ADV.until}" onchange="ADV.until=this.value"><button class="btn sm" onclick="advLoad('${id}')">Apply</button><span class="adv-presets"><a onclick="advPreset('${id}',7)">7d</a><a onclick="advPreset('${id}',30)">30d</a><a onclick="advPreset('${id}','month')">This month</a></span></div><label class="chk" style="margin:0"><input type="checkbox" ${ADV.active?'checked':''} onchange="ADV.active=this.checked;advLoad('${id}')"> Active only</label></div>
    <div class="stat-row att-stats"><div class="stat"><div class="lbl">Spend</div><div class="val">${money(tSpend)}</div></div><div class="stat"><div class="lbl">Results</div><div class="val">${tRes}</div></div><div class="stat"><div class="lbl">Impressions</div><div class="val">${tImpr.toLocaleString('en-IN')}</div></div><div class="stat"><div class="lbl">Reach</div><div class="val">${tReach.toLocaleString('en-IN')}</div></div></div>
-   <div class="card"><div class="tblwrap"><table class="tbl adv-tbl"><thead><tr><th>Campaign / Ad set / Ad</th><th>Status</th><th>Spend</th><th>Results</th><th>Cost/res</th><th>Impr.</th><th>Reach</th></tr></thead><tbody>${ADV.loading?`<tr><td colspan="7" class="sub1" style="padding:22px;text-align:center">Loading from Meta\u2026</td></tr>`:(rows||`<tr><td colspan="7" class="sub1" style="padding:22px;text-align:center">No ${ADV.active?"active ":""}campaigns in this date range.</td></tr>`)}</tbody></table></div></div>`;
+   <div class="card"><div class="tblwrap adv-scroll"><table class="tbl adv-tbl"><thead><tr><th>Campaign / Ad set / Ad</th><th>Status</th><th>Spend</th><th>Results</th><th>Cost/res</th><th>Impr.</th><th>Reach</th></tr></thead><tbody>${ADV.loading?`<tr><td colspan="7" class="sub1" style="padding:22px;text-align:center">Loading from Meta\u2026</td></tr>`:(rows||`<tr><td colspan="7" class="sub1" style="padding:22px;text-align:center">No ${ADV.active?"active ":""}campaigns in this date range.</td></tr>`)}</tbody></table></div></div>`;
 }
 async function advLoad(id){ ADV.loading=true; ADV.tree=ADV.tree||[]; advRender(id); try{ const r=await callFn("meta-insights",{action:"campaigns",client_id:id,from:ADV.from,until:ADV.until,active_only:ADV.active}); ADV.tree=(r.items||[]).map(x=>({...x,_open:false,_adsets:null})); }catch(e){ ADV.tree=[]; toast(e.message||"Could not load campaigns",true); } ADV.loading=false; advRender(id); }
 function advPreset(id,p){ const t=new Date(); ADV.until=t.toISOString().slice(0,10); if(p==="month")ADV.from=new Date(t.getFullYear(),t.getMonth(),1).toISOString().slice(0,10); else ADV.from=new Date(Date.now()-p*864e5).toISOString().slice(0,10); advLoad(id); }
