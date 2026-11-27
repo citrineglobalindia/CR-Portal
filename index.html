@@ -1079,7 +1079,11 @@ function clRender(q){
 }
 function clLogoUpload(id){ const inp=document.createElement('input'); inp.type='file'; inp.accept='image/*'; inp.onchange=async()=>{ const f=inp.files&&inp.files[0]; if(!f)return; toast('Uploading logo\u2026'); try{ const path=`logos/${id}/${Date.now()}_${f.name.replace(/[^\w.\-]/g,'_')}`; await sb.storage.from('cr-logos').upload(path,f,{upsert:true}); await sb.from('cr_profiles').update({logo_path:path}).eq('id',id); const c=CLIENTS.find(x=>x.id===id); if(c)c.logo_path=path; toast('Logo updated'); clRender(); }catch(e){ toast(e.message||'Upload failed',true); } }; inp.click(); }
 async function clEditForm(id){
-  await ensureStaff(); const c=CLIENTS.find(x=>x.id===id)||{}; const has=t=>(c.service_types||[]).includes(t);
+  await ensureStaff();
+  let c=CLIENTS.find(x=>x.id===id); if(!c && CW_CLIENT && CW_CLIENT.id===id)c=CW_CLIENT;
+  if(!c){ const {data}=await sb.from("cr_profiles").select("*").eq("id",id).maybeSingle(); c=data||{}; }
+  if(!CL_SVC.some(x=>x.client_id===id)){ const {data:_sv}=await sb.from("cr_client_services").select("client_id,name,fee,base,gst,tax_rate,recurring,status").eq("client_id",id); CL_SVC=[...CL_SVC.filter(x=>x.client_id!==id),...(_sv||[])]; }
+  const has=t=>(c.service_types||[]).includes(t);
   const amOpts=STAFF.filter(x=>["admin","super_admin","account_manager","manager"].includes(x.role)).map(a=>`<option value="${a.id}" ${c.account_manager===a.id?'selected':''}>${esc(a.full_name||a.email)}</option>`).join("");
   const body=`<div class="sheet-sec">Company</div>
    <div class="g2"><div class="fld2"><label>Company</label><input id="ce-company" class="inp" value="${esc(c.company||'')}"/></div><div class="fld2"><label>Contact name</label><input id="ce-name" class="inp" value="${esc(c.full_name||'')}"/></div>
