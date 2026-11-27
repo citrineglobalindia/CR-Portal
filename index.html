@@ -54,18 +54,18 @@ button{font-family:inherit;cursor:pointer}
 .ssl-stairs{position:absolute;left:0;bottom:0;width:280px;height:130px;overflow:visible;filter:drop-shadow(0 10px 20px rgba(37,99,235,.3))}
 .ssl-man{position:absolute;width:122px;height:168px;left:-7px;bottom:17px;filter:drop-shadow(0 9px 13px rgba(34,211,238,.45));animation:sslman 3.6s cubic-bezier(.33,0,.3,1) infinite}
 .ssl-man svg{width:100%;height:100%;display:block;overflow:visible}
-.ssl-mann{transform-box:view-box;transform-origin:32px 88px;animation:sslBob .56s ease-in-out infinite}
+.ssl-mann{transform-box:view-box;transform-origin:32px 88px;animation:sslBob 3.6s ease-in-out infinite}
 .ssl-legA,.ssl-legB{transform-box:view-box;transform-origin:30px 50px}
 .ssl-armA,.ssl-armB{transform-box:view-box;transform-origin:31px 25px}
-.ssl-legA{animation:sslLegA .56s ease-in-out infinite}
-.ssl-legB{animation:sslLegB .56s ease-in-out infinite}
-.ssl-armA{animation:sslArmA .56s ease-in-out infinite}
-.ssl-armB{animation:sslArmB .56s ease-in-out infinite}
-@keyframes sslLegA{0%,100%{transform:rotate(26deg)}50%{transform:rotate(-24deg)}}
-@keyframes sslLegB{0%,100%{transform:rotate(-24deg)}50%{transform:rotate(26deg)}}
-@keyframes sslArmA{0%,100%{transform:rotate(-18deg)}50%{transform:rotate(14deg)}}
-@keyframes sslArmB{0%,100%{transform:rotate(22deg)}50%{transform:rotate(-18deg)}}
-@keyframes sslBob{0%,100%{transform:translateY(0)}25%,75%{transform:translateY(-2.5px)}50%{transform:translateY(1px)}}
+.ssl-legA{animation:sslLegA 3.6s ease-in-out infinite}
+.ssl-legB{animation:sslLegB 3.6s ease-in-out infinite}
+.ssl-armA{animation:sslArmA 3.6s ease-in-out infinite}
+.ssl-armB{animation:sslArmB 3.6s ease-in-out infinite}
+@keyframes sslLegA{0%,12%{transform:rotate(22deg)}17.5%{transform:rotate(0deg)}23%,33%{transform:rotate(-22deg)}38.5%{transform:rotate(0deg)}44%,54%{transform:rotate(22deg)}59.5%{transform:rotate(0deg)}65%,75%{transform:rotate(-22deg)}80.5%{transform:rotate(0deg)}86%,100%{transform:rotate(22deg)}}
+@keyframes sslLegB{0%,12%{transform:rotate(-22deg)}17.5%{transform:rotate(0deg)}23%,33%{transform:rotate(22deg)}38.5%{transform:rotate(0deg)}44%,54%{transform:rotate(-22deg)}59.5%{transform:rotate(0deg)}65%,75%{transform:rotate(22deg)}80.5%{transform:rotate(0deg)}86%,100%{transform:rotate(-22deg)}}
+@keyframes sslArmA{0%,12%{transform:rotate(-14deg)}17.5%{transform:rotate(0deg)}23%,33%{transform:rotate(14deg)}38.5%{transform:rotate(0deg)}44%,54%{transform:rotate(-14deg)}59.5%{transform:rotate(0deg)}65%,75%{transform:rotate(14deg)}80.5%{transform:rotate(0deg)}86%,100%{transform:rotate(-14deg)}}
+@keyframes sslArmB{0%,12%{transform:rotate(16deg)}17.5%{transform:rotate(0deg)}23%,33%{transform:rotate(-16deg)}38.5%{transform:rotate(0deg)}44%,54%{transform:rotate(16deg)}59.5%{transform:rotate(0deg)}65%,75%{transform:rotate(-16deg)}80.5%{transform:rotate(0deg)}86%,100%{transform:rotate(16deg)}}
+@keyframes sslBob{0%,12%{transform:translateY(0)}17.5%{transform:translateY(-5px)}23%,33%{transform:translateY(0)}38.5%{transform:translateY(-5px)}44%,54%{transform:translateY(0)}59.5%{transform:translateY(-5px)}65%,75%{transform:translateY(0)}80.5%{transform:translateY(-5px)}86%,100%{transform:translateY(0)}}
 @keyframes sslman{0%{left:-8px;bottom:17px;opacity:0}4%{opacity:1}12%{left:-8px;bottom:17px}17%{left:11px;bottom:46px}23%{left:30px;bottom:39px}33%{left:30px;bottom:39px}38%{left:49px;bottom:68px}44%{left:68px;bottom:61px}54%{left:68px;bottom:61px}59%{left:87px;bottom:90px}65%{left:106px;bottom:83px}75%{left:106px;bottom:83px}80%{left:125px;bottom:112px}86%{left:144px;bottom:105px}93%{left:144px;bottom:105px;opacity:1}97%{left:144px;bottom:127px;opacity:0}100%{left:-8px;bottom:17px;opacity:0}}
 .ssl-word{font-family:var(--font-head);font-weight:800;font-size:26px;letter-spacing:-.4px}
 .ssl-word span{background:linear-gradient(90deg,#2563eb,#22d3ee);-webkit-background-clip:text;background-clip:text;color:transparent}
