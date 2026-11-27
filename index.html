@@ -1192,13 +1192,17 @@ async function advChart(id){
   const item=(ADV._map&&ADV._map[id])||{name:"Ad entity"};
   let res; try{ toast("Loading charts\u2026"); res=await callFn("meta-insights",{action:"entity_charts",id:id,from:ADV.from,until:ADV.until}); }catch(e){ toast(e.message||"Could not load charts",true); return; }
   const d=res.daily||[], ag=res.agegender||[], plat=res.platform||[];
-  const labels=d.map(x=>x.date_start?fmtD(x.date_start):""); const spendL=d.map(x=>Number(x.spend||0)); const resL=d.map(x=>metaResult(x)); const imprL=d.map(x=>Number(x.impressions||0));
+  const PRIORITY=["onsite_conversion.messaging_conversation_started","onsite_conversion.total_messaging_connection","lead","offsite_conversion.fb_pixel_lead","purchase","omni_purchase","onsite_conversion.purchase","link_click","landing_page_view"];
+  const _tt={}; d.concat(ag,plat).forEach(x=>(x.actions||[]).forEach(a=>{_tt[a.action_type]=(_tt[a.action_type]||0)+Number(a.value||0);}));
+  let primaryType=PRIORITY.find(t=>_tt[t]); if(!primaryType)primaryType=Object.keys(_tt).sort((a,b)=>_tt[b]-_tt[a])[0];
+  const resultOf=row=>primaryType?((row.actions||[]).filter(a=>a.action_type===primaryType).reduce((s,a)=>s+Number(a.value||0),0)):metaResult(row);
+  const labels=d.map(x=>x.date_start?fmtD(x.date_start):""); const spendL=d.map(x=>Number(x.spend||0)); const resL=d.map(x=>resultOf(x)); const imprL=d.map(x=>Number(x.impressions||0));
   const tSpend=spendL.reduce((a,b)=>a+b,0), tRes=resL.reduce((a,b)=>a+b,0), tImpr=imprL.reduce((a,b)=>a+b,0);
   const AGES=["13-17","18-24","25-34","35-44","45-54","55-64","65+"];
-  const sumAG=(a,g)=>ag.filter(x=>x.age===a&&(g==="unknown"?(x.gender==="unknown"||!x.gender):x.gender===g)).reduce((s,x)=>s+metaResult(x),0);
+  const sumAG=(a,g)=>ag.filter(x=>x.age===a&&(g==="unknown"?(x.gender==="unknown"||!x.gender):x.gender===g)).reduce((s,x)=>s+resultOf(x),0);
   const men=AGES.map(a=>sumAG(a,"male")), women=AGES.map(a=>sumAG(a,"female")), unk=AGES.map(a=>sumAG(a,"unknown"));
   const tMen=men.reduce((a,b)=>a+b,0), tWomen=women.reduce((a,b)=>a+b,0), tUnk=unk.reduce((a,b)=>a+b,0), tAll=tMen+tWomen+tUnk||1;
-  const platMap={}; plat.forEach(x=>{const k=(x.publisher_platform||"other");platMap[k]=(platMap[k]||0)+metaResult(x);});
+  const platMap={}; plat.forEach(x=>{const k=(x.publisher_platform||"other");platMap[k]=(platMap[k]||0)+resultOf(x);});
   const pLabels=Object.keys(platMap), pData=pLabels.map(k=>platMap[k]);
   const pc=n=>Math.round(n/tAll*100);
   let o=document.getElementById("adv-full"); if(!o){o=document.createElement("div");o.id="adv-full";document.body.appendChild(o);} o.className="adv-full";
