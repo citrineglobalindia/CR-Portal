@@ -42,6 +42,32 @@ button{font-family:inherit;cursor:pointer}
 .st-rf{margin-left:auto;background:var(--green);color:#fff;border:0;border-radius:10px;padding:8px 14px;font-family:var(--font-head);font-weight:600;font-size:13px}
 .st-rf:hover{filter:brightness(1.08)}
 .st-if{flex:1;width:100%;border:0;background:#fff}
+/* ---- StepStones rising-steps loader ---- */
+.ssl{position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;background:radial-gradient(130% 100% at 50% 8%,#13325f 0%,#0b1220 62%);color:#fff;animation:sslin .3s ease}
+.ssl.out{animation:sslout .45s ease forwards}
+@keyframes sslin{from{opacity:0}to{opacity:1}}
+@keyframes sslout{to{opacity:0;visibility:hidden}}
+.ssl-logo{width:62px;height:62px;animation:sslfloat 2.4s ease-in-out infinite}
+.ssl-logo svg{width:100%;height:100%;filter:drop-shadow(0 10px 24px rgba(34,211,238,.4))}
+@keyframes sslfloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+.ssl-stage{position:relative;width:240px;height:150px}
+.ssl-steps{position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:center;gap:10px}
+.ssl-steps i{width:34px;border-radius:9px 9px 5px 5px;background:linear-gradient(180deg,#22d3ee,#2563eb);opacity:.22;transform:translateY(14px);animation:sslstep 1.9s ease-in-out infinite}
+.ssl-steps i:nth-child(1){height:34px;animation-delay:0s}
+.ssl-steps i:nth-child(2){height:58px;animation-delay:.13s}
+.ssl-steps i:nth-child(3){height:82px;animation-delay:.26s}
+.ssl-steps i:nth-child(4){height:106px;animation-delay:.39s}
+.ssl-steps i:nth-child(5){height:130px;animation-delay:.52s}
+@keyframes sslstep{0%,72%,100%{opacity:.22;transform:translateY(14px);box-shadow:none}22%,48%{opacity:1;transform:translateY(0);box-shadow:0 10px 22px rgba(34,211,238,.45)}}
+.ssl-dot{position:absolute;width:16px;height:16px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#eafcff,#22d3ee 55%,#2563eb);box-shadow:0 0 18px rgba(34,211,238,.9);left:24px;bottom:34px;animation:ssldot 1.9s cubic-bezier(.45,.05,.5,1) infinite}
+@keyframes ssldot{0%{left:24px;bottom:34px;opacity:0}6%{opacity:1}20%{left:68px;bottom:58px}40%{left:112px;bottom:82px}60%{left:156px;bottom:106px}80%{left:200px;bottom:130px;opacity:1}92%{left:200px;bottom:148px;opacity:0}100%{left:24px;bottom:34px;opacity:0}}
+.ssl-word{font-family:var(--font-head);font-weight:800;font-size:26px;letter-spacing:-.4px}
+.ssl-word span{background:linear-gradient(90deg,#2563eb,#22d3ee);-webkit-background-clip:text;background-clip:text;color:transparent}
+.ssl-tag{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:#9fc4e8;margin-top:-12px}
+.ssl-bar{width:200px;height:4px;border-radius:4px;background:rgba(255,255,255,.12);overflow:hidden}
+.ssl-bar span{display:block;height:100%;width:38%;border-radius:4px;background:linear-gradient(90deg,#2563eb,#22d3ee);animation:sslbar 1.25s ease-in-out infinite}
+@keyframes sslbar{0%{transform:translateX(-120%)}100%{transform:translateX(330%)}}
+@media(max-width:860px){.ssl-stage{transform:scale(.85)}}
 
 
 /* ---------- LOGIN ---------- */
@@ -805,13 +831,16 @@ reviews:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width
 const NAV=[["overview","Overview"],["leads","Leads"],["clients","Clients"],["proposals","Proposals"],["contracts","Contracts"],["calendar","Content Calendar"],["approvals","Approvals"],["projects","Projects"],["ctasks","Content Tasks"],["todos","To-dos"],["attendance","Attendance"],["reports","Reports"],["adanalytics","Ad Analytics"],["finance","Finance & Accounts"],["assets","Asset Library"],["reviews","Reviews"],["support","Support"],["changes","Change Requests"],["docs","Docs"],["meetings","Team Meetings"]];
 
 /* ================= AUTH ================= */
+const SSL_LOGO=`<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="sslg" x1="2" y1="2" x2="46" y2="46" gradientUnits="userSpaceOnUse"><stop stop-color="#2563eb"/><stop offset=".5" stop-color="#0ea5e9"/><stop offset="1" stop-color="#22d3ee"/></linearGradient></defs><rect x="1" y="1" width="46" height="46" rx="13" fill="url(#sslg)"/><g fill="#fff"><rect x="13" y="11" width="17" height="6" rx="3"/><rect x="13" y="11" width="6" height="13" rx="3"/><rect x="18.5" y="21" width="17" height="6" rx="3"/><rect x="29.5" y="27" width="6" height="10" rx="3"/><rect x="18.5" y="31" width="17" height="6" rx="3"/></g></svg>`;
+function showLoader(){ if(document.getElementById("ss-loader"))return; const o=document.createElement("div"); o.id="ss-loader"; o.className="ssl"; o.innerHTML=`<div class="ssl-logo">${SSL_LOGO}</div><div class="ssl-stage"><div class="ssl-steps"><i></i><i></i><i></i><i></i><i></i></div><div class="ssl-dot"></div></div><div class="ssl-word">Step<span>Stones</span></div><div class="ssl-tag">Every Click. A Step Forward.</div><div class="ssl-bar"><span></span></div>`; document.body.appendChild(o); }
+function hideLoader(){ const o=document.getElementById("ss-loader"); if(!o)return; o.classList.add("out"); setTimeout(()=>{ if(o.parentNode)o.remove(); },450); }
 async function boot(){
-  try{ const {data}=await sb.auth.getSession(); SESSION=data.session; }catch(_){}
-  if(SESSION&&SESSION.user){
-    const {data:p}=await sb.from("cr_profiles").select("*").eq("id",SESSION.user.id).maybeSingle();
-    if(p){ ME=p; return renderApp(); }
-  }
-  renderLogin();
+  const _t0=Date.now(); showLoader(); let rendered=false;
+  try{ const {data}=await sb.auth.getSession(); SESSION=data.session;
+    if(SESSION&&SESSION.user){ const {data:p}=await sb.from("cr_profiles").select("*").eq("id",SESSION.user.id).maybeSingle(); if(p){ ME=p; renderApp(); rendered=true; } }
+  }catch(_){}
+  if(!rendered) renderLogin();
+  setTimeout(hideLoader, Math.max(0, 750-(Date.now()-_t0)));
 }
 function renderLogin(){
   root().innerHTML=`
