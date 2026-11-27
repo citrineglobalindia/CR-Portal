@@ -110,7 +110,7 @@ button{font-family:inherit;cursor:pointer}
 .side-user span{color:var(--side-faint);font-size:12px}
 .side-user .cv{margin-left:auto;color:var(--side-faint)}
 
-.main{display:flex;flex-direction:column;overflow:hidden;background:var(--bg)}
+.main{display:flex;flex-direction:column;overflow:hidden;background:var(--bg);position:relative}
 .topbar{height:68px;flex:0 0 auto;display:flex;align-items:center;gap:16px;padding:0 30px;border-bottom:1px solid var(--line);background:rgba(244,246,243,.86);backdrop-filter:blur(8px)}
 .crumb{color:var(--muted);font-weight:600;font-size:14px}.crumb b{color:var(--ink)}.crumb .sep{margin:0 8px;color:var(--faint)}
 .search{margin-left:auto;position:relative;width:min(420px,38vw)}
@@ -462,7 +462,7 @@ button{font-family:inherit;cursor:pointer}
 .ag-leg span{display:flex;align-items:center;gap:6px}
 .ag-leg i{width:10px;height:10px;border-radius:3px;display:inline-block}
 .ag-leg b{font-weight:800}
-.adv-full{position:fixed;inset:0;z-index:150;background:var(--bg);overflow:auto;animation:fadein .18s ease}
+.adv-full{position:absolute;inset:0;z-index:90;background:var(--bg);overflow:auto;animation:fadein .18s ease}
 .advf-wrap{max-width:1360px;margin:0 auto;padding:24px 28px 40px}
 .advf-head{background:linear-gradient(120deg,#0b1220 0%,#13233f 70%,#17406e 100%);color:#fff;border-radius:16px;padding:22px 26px;display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
 .advf-kick{font-size:11px;font-weight:800;letter-spacing:1.2px;color:#8fb0de;text-transform:uppercase;font-family:var(--font-head)}
@@ -1242,7 +1242,7 @@ async function advChart(id){
   const pLabels=Object.keys(platMap), pData=pLabels.map(k=>platMap[k]);
   const pc=n=>Math.round(n/tAll*100);
   const navHtml=await advNavHtml(id);
-  let o=document.getElementById("adv-full"); if(!o){o=document.createElement("div");o.id="adv-full";document.body.appendChild(o);} o.className="adv-full";
+  let o=document.getElementById("adv-full"); if(!o){o=document.createElement("div");o.id="adv-full";(document.querySelector(".main")||document.body).appendChild(o);} o.className="adv-full";
   o.innerHTML=`<div class="advf-shell"><div class="advf-wrap">
    <div class="advf-head"><div><div class="advf-kick">Campaign performance</div><h1>${esc(item.name)}</h1><div class="advf-sub">${fmtD(ADV.from)} \u2013 ${fmtD(ADV.until)}</div></div>
      <div class="advf-actions"><div class="advf-dates"><input type="date" class="inp" value="${ADV.from}" onchange="ADV.from=this.value"><input type="date" class="inp" value="${ADV.until}" onchange="ADV.until=this.value"><button class="btn sm" onclick="advChart('${id}')">Apply</button></div><button class="advf-x" onclick="advCloseFull()">\u00d7</button></div></div>
