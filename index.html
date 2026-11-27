@@ -1368,7 +1368,7 @@ async function cwTab(id,amn){
   else if(CW_TAB==="reports"){ const {data}=await sb.from("cr_reports").select("*").eq("client_id",id); b.innerHTML=cwList(data||[],["Report","Period","Status"],r=>`<td><b>${esc(r.title||'Report')}</b></td><td>${r.period_start?fmtD(r.period_start):'—'}</td><td>${cwStatus(r.status)}</td>`); }
   else if(CW_TAB==="analytics"){
     if(!CW_CLIENT.meta_ad_account){ b.innerHTML=`<div class="empty"><div class="ei">${IC.adanalytics}</div><div>No Meta ad account linked</div><div class="sub1" style="margin:6px 0">Map this client to their ad account in Ad Analytics, then it will show live campaigns here.</div>${isAdmin()?`<button class="btn" onclick="location.hash='#/adanalytics'">Open Ad Analytics</button>`:''}</div>`; return; }
-    const _t=new Date(); ADV={from:new Date(Date.now()-30*864e5).toISOString().slice(0,10), until:_t.toISOString().slice(0,10), active:true, tree:null, loading:true};
+    const _t=new Date(); ADV={from:new Date(_t.getFullYear(),_t.getMonth(),1).toISOString().slice(0,10), until:_t.toISOString().slice(0,10), active:true, tree:null, loading:true};
     advLoad(id);
   }
   else if(CW_TAB==="billing"){ const {data}=await sb.from("cr_invoices").select("*").eq("client_id",id).order("issue_date",{ascending:false}); b.innerHTML=(canStaff()?`<div style="margin-bottom:12px"><button class="btn" onclick="invForm('${id}')"><span>${IC.plus}</span> New invoice</button></div>`:"")+cwList(data||[],["Invoice","Total","Balance","Status"],r=>`<td><b>${esc(r.invoice_no||'(draft)')}</b></td><td>${money(r.total)}</td><td>${money((Number(r.total)||0)-(Number(r.paid)||0))}</td><td>${cwStatus(invStatusLabel(r))}</td>`); }
