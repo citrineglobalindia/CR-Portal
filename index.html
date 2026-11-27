@@ -429,6 +429,20 @@ button{font-family:inherit;cursor:pointer}
 .cwt-item b{font-size:13px}
 .cwt-edit{font-size:11px;font-weight:700;color:var(--green);background:var(--tint);border-radius:7px;padding:4px 9px}
 @media(max-width:760px){.cw-team{width:100%}}
+/* assign picker dropdown */
+.pick-menu{background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 20px 50px -16px rgba(16,26,42,.34);min-width:240px;max-width:300px;overflow:hidden;animation:popin .14s ease}
+.pick-h{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);padding:12px 14px 8px;font-family:var(--font-head)}
+.pick-dot{width:10px;height:10px;border-radius:50%;flex:0 0 auto}
+.pick-list{max-height:300px;overflow:auto;padding:4px}
+.pick-i{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:10px;cursor:pointer;transition:.12s}
+.pick-i:hover{background:var(--panel2)}
+.pick-i.sel{background:var(--tint)}
+.pick-av{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:800;font-size:11px;flex:0 0 auto}
+.pick-av.none{background:#eef1ea;color:var(--faint);font-weight:700}
+.pick-nm{display:flex;flex-direction:column;line-height:1.25;flex:1;min-width:0}
+.pick-nm b{font-size:13.5px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pick-role{font-size:10.5px;color:var(--faint);text-transform:capitalize}
+.pick-ck{color:var(--green);font-weight:800;margin-left:auto}
 @media(max-width:860px){.docs-wrap{grid-template-columns:1fr}}
 @media(max-width:860px){.app{grid-template-columns:1fr}.side{position:fixed;left:0;top:0;bottom:0;width:252px;z-index:120;transform:translateX(-100%);transition:.25s}.side.open{transform:none}.search{display:none}.auth{grid-template-columns:1fr}.auth-art{display:none}.auth-form{padding:36px 22px}.ph h1{font-size:26px}}
 
@@ -1116,11 +1130,13 @@ async function cwPick(el,id,role){
   const r=el.getBoundingClientRect(); await ensureStaff(); closeCwMenu();
   const items=STAFF.filter(x=>["admin","super_admin","account_manager","manager","team_member"].includes(x.role));
   const cur=(CW_CLIENT||{})[role]; const lbl={account_manager:"Account manager",designer:"Designer",spoc:"SPOC"}[role];
-  const m=document.createElement("div"); m.className="kebab-menu open"; m.style.cssText="position:fixed;z-index:300;min-width:200px;max-height:320px;overflow:auto";
-  m.innerHTML=`<div class="km-h">${lbl}</div><a onclick="cwSetRole('${id}','${role}','')" class="${!cur?'on':''}">— Unassigned —</a>`+
-    (items.map(a=>`<a onclick="cwSetRole('${id}','${role}','${a.id}')" class="${cur===a.id?'on':''}">${esc(a.full_name||a.email)}</a>`).join("")||'<div class="sub1" style="padding:10px">No team members yet. Add them in Settings.</div>');
+  const m=document.createElement("div"); m.className="pick-menu"; m.style.cssText="position:fixed;z-index:300";
+  const roleCol={account_manager:"linear-gradient(135deg,#2563eb,#0ea5e9)",designer:"linear-gradient(135deg,#7c3aed,#c026d3)",spoc:"linear-gradient(135deg,#0d9488,#22d3ee)"}[role];
+  m.innerHTML=`<div class="pick-h"><span class="pick-dot" style="background:${roleCol}"></span>${lbl}</div>`+
+    `<div class="pick-list"><a class="pick-i ${!cur?'sel':''}" onclick="cwSetRole('${id}','${role}','')"><span class="pick-av none">\u2014</span><span class="pick-nm">Unassigned</span>${!cur?'<span class="pick-ck">\u2713</span>':''}</a>`+
+    (items.map(a=>{const nm=a.full_name||a.email;return `<a class="pick-i ${cur===a.id?'sel':''}" onclick="cwSetRole('${id}','${role}','${a.id}')"><span class="pick-av" style="background:linear-gradient(135deg,${avatarColor(nm)})">${esc(initials(nm)).toUpperCase()}</span><span class="pick-nm"><b>${esc(nm)}</b><span class="pick-role">${esc((a.role||'').replace('_',' '))}</span></span>${cur===a.id?'<span class="pick-ck">\u2713</span>':''}</a>`;}).join("")||'<div class="sub1" style="padding:14px;text-align:center">No team members yet.<br>Add them in Settings \u2192 Invite user.</div>')+`</div>`;
   document.body.appendChild(m); _cwMenu=m;
-  let top=r.bottom+6, left=r.left; if(left+210>window.innerWidth)left=window.innerWidth-220; m.style.top=top+"px"; m.style.left=Math.max(10,left)+"px";
+  let top=r.bottom+6, left=r.left; if(left+250>window.innerWidth)left=window.innerWidth-260; m.style.top=top+"px"; m.style.left=Math.max(10,left)+"px";
   setTimeout(()=>document.addEventListener("click",closeCwMenu,{once:true}),0);
 }
 async function cwSetRole(id,role,uid){ closeCwMenu(); const patch={}; patch[role]=uid||null; const {error}=await sb.from("cr_profiles").update(patch).eq("id",id); if(error){toast(error.message,true);return;} if(CW_CLIENT)CW_CLIENT[role]=uid||null; toast(uid?"Assigned":"Cleared"); viewClientWorkspace($("#content"),id); }
