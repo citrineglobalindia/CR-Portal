@@ -419,6 +419,15 @@ button{font-family:inherit;cursor:pointer}
 .cw-am{flex:0 0 auto}
 .cw-right .btn{white-space:nowrap}
 @media(max-width:760px){.cw-right{margin-left:0;width:100%}}
+.cw-team{display:flex;align-items:center;gap:16px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:8px 14px;cursor:pointer;transition:.15s;position:relative;flex-wrap:wrap}
+.cw-team:hover{border-color:var(--green2);box-shadow:0 6px 18px -10px rgba(16,26,42,.22)}
+.cwt-item{display:flex;align-items:center;gap:8px}
+.cwt-a{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:800;font-size:10.5px;flex:0 0 auto}
+.cwt-a.am{background:linear-gradient(135deg,#2563eb,#0ea5e9)}.cwt-a.de{background:linear-gradient(135deg,#7c3aed,#c026d3)}.cwt-a.sp{background:linear-gradient(135deg,#0d9488,#22d3ee)}
+.cwt-k{display:block;font-size:10px;color:var(--faint);line-height:1}
+.cwt-item b{font-size:13px}
+.cwt-edit{font-size:11px;font-weight:700;color:var(--green);background:var(--tint);border-radius:7px;padding:4px 9px}
+@media(max-width:760px){.cw-team{width:100%}}
 @media(max-width:860px){.docs-wrap{grid-template-columns:1fr}}
 @media(max-width:860px){.app{grid-template-columns:1fr}.side{position:fixed;left:0;top:0;bottom:0;width:252px;z-index:120;transform:translateX(-100%);transition:.25s}.side.open{transform:none}.search{display:none}.auth{grid-template-columns:1fr}.auth-art{display:none}.auth-form{padding:36px 22px}.ph h1{font-size:26px}}
 
@@ -1100,15 +1109,38 @@ async function clFeeSave(id){
   if(g.base>0){ await sb.from('cr_client_services').insert({client_id:id,name:st.map(svcLabel).join(' + ')||'Retainer',base:g.base,fee:g.total,gst:g.gst,tax_rate:g.rate,recurring:true,status:'active'}); }
   closeModal(); toast('Saved'); viewClients($("#content"));
 }
+async function cwAssignForm(id){
+  await ensureStaff(); const c=CW_CLIENT||{};
+  const opts=sel=>`<option value="">— unassigned —</option>`+STAFF.filter(x=>["admin","super_admin","account_manager","manager","team_member"].includes(x.role)).map(a=>`<option value="${a.id}" ${sel===a.id?'selected':''}>${esc(a.full_name||a.email)}</option>`).join("");
+  sheet("Assign team",`<div class="sub1" style="margin-bottom:12px">${esc(c.company||c.full_name||'')}</div>
+   <div class="fld2"><label>Account manager</label><select id="as-am" class="inp">${opts(c.account_manager)}</select></div>
+   <div class="fld2"><label>Designer</label><select id="as-designer" class="inp">${opts(c.designer)}</select></div>
+   <div class="fld2"><label>SPOC <span class="sub1">single point of contact</span></label><select id="as-spoc" class="inp">${opts(c.spoc)}</select></div>
+   <button class="btn block" onclick="cwAssignSave('${id}')">Save team</button>`,{icon:IC.clients,subtitle:'Assign the people responsible for this client.'});
+}
+async function cwAssignSave(id){
+  const {error}=await sb.from("cr_profiles").update({account_manager:v("as-am")||null,designer:v("as-designer")||null,spoc:v("as-spoc")||null}).eq("id",id);
+  if(error){toast(error.message,true);return;}
+  if(CW_CLIENT){CW_CLIENT.account_manager=v("as-am")||null;CW_CLIENT.designer=v("as-designer")||null;CW_CLIENT.spoc=v("as-spoc")||null;}
+  closeModal(); toast("Team assigned"); viewClientWorkspace($("#content"),id);
+}
 async function viewClientWorkspace(c,id){
   const {data:cli}=await sb.from("cr_profiles").select("*").eq("id",id).maybeSingle();
   if(!cli){c.innerHTML=`<div class="empty">Client not found.</div>`;return;}
-  CW_CLIENT=cli; const am=(await sb.from("cr_profiles").select("full_name,email").eq("id",cli.account_manager||"00000000-0000-0000-0000-000000000000").maybeSingle()).data;
-  const amn=am?(am.full_name||am.email):"Unassigned";
+  CW_CLIENT=cli;
+  const _tids=[cli.account_manager,cli.designer,cli.spoc].filter(Boolean);
+  let _tmap={}; if(_tids.length){ const {data:_tp}=await sb.from("cr_profiles").select("id,full_name,email").in("id",_tids); (_tp||[]).forEach(p=>_tmap[p.id]=p.full_name||p.email); }
+  const amn=cli.account_manager?(_tmap[cli.account_manager]||"Unassigned"):"Unassigned";
+  const dn=cli.designer?(_tmap[cli.designer]||"—"):"—";
+  const sn=cli.spoc?(_tmap[cli.spoc]||"—"):"—";
   $("#crumb")&&($("#crumb").innerHTML=`Workspace <span class="sep">/</span> Clients <span class="sep">/</span> <b>${esc(cli.company||cli.full_name)}</b>`);
   c.innerHTML=`<div class="cw-head"><div class="cw-logo" style="background:linear-gradient(135deg,${avatarColor(cli.company||cli.full_name)})">${esc(initials(cli.company||cli.full_name)).toUpperCase()}</div>
    <div style="flex:1 1 240px;min-width:200px"><h1>${esc(cli.company||cli.full_name)} <span class="status g" style="vertical-align:middle;font-size:12px">${esc(cli.client_status||'active')}</span></h1><div class="psub">${esc(cli.industry||'')}${cli.website?' · '+esc(cli.website):''}</div></div>
-   <div class="cw-right"><div class="cw-am"><div class="a" style="background:linear-gradient(135deg,${avatarColor(amn)})">${esc(initials(amn)).toUpperCase()}</div><div><div class="sub1" style="font-size:11px">Account manager</div><b style="font-size:13.5px">${esc(amn)}</b></div></div><a class="btn ghost" onclick="location.hash='#/clients'">← All clients</a>${canStaff()?`<button class="btn" onclick="clEditForm('${id}')"><span>${IC.plus}</span> Edit client</button>`:""}</div></div>
+   <div class="cw-right"><div class="cw-team" onclick="cwAssignForm('${id}')" title="Assign team">
+     <div class="cwt-item"><span class="cwt-a am">${amn==='Unassigned'?'?':esc(initials(amn)).toUpperCase()}</span><div><span class="cwt-k">Account mgr</span><b>${esc(amn)}</b></div></div>
+     <div class="cwt-item"><span class="cwt-a de">${dn==='—'?'?':esc(initials(dn)).toUpperCase()}</span><div><span class="cwt-k">Designer</span><b>${esc(dn)}</b></div></div>
+     <div class="cwt-item"><span class="cwt-a sp">${sn==='—'?'?':esc(initials(sn)).toUpperCase()}</span><div><span class="cwt-k">SPOC</span><b>${esc(sn)}</b></div></div>
+     <span class="cwt-edit">✎ Assign</span></div><a class="btn ghost" onclick="location.hash='#/clients'">← All clients</a>${canStaff()?`<button class="btn" onclick="clEditForm('${id}')"><span>${IC.plus}</span> Edit client</button>`:""}</div></div>
    <div class="cw-tabs" id="cw-tabs">${CW_TABS.map(([k,l])=>`<button class="${CW_TAB===k?'on':''}" onclick="CW_TAB='${k}';viewClientWorkspace(document.getElementById('content'),'${id}')">${l}</button>`).join("")}</div>
    <div id="cw-body"><div class="psub">Loading…</div></div>`;
   cwTab(id,amn);
