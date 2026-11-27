@@ -905,6 +905,8 @@ const CLIENT_ROUTES=new Set(["overview","approvals","calendar","reports","contra
 const TITLES={overview:"Overview",invoices:"Billing",clients:"Clients",proposals:"Proposals",contracts:"Contracts",calendar:"Content Calendar",approvals:"Approvals",projects:"Projects",reports:"Reports",finance:"Finance",assets:"Asset Library",reviews:"Reviews",support:"Support",changes:"Change Requests",settings:"Settings"};
 function renderRoute(){
   renderNav();
+  // self-heal: clear any leftover chart overlay / scroll lock from a previous view
+  document.body.style.overflow=""; const _af=document.getElementById("adv-full"); if(_af)_af.remove();
   let r=route(); const c=$("#content"); if(!c)return;
   if(ME.role==="client" && !CLIENT_ROUTES.has(r)){ location.hash="#/overview"; return; }
   $("#crumb").innerHTML=`Workspace <span class="sep">/</span> <b>${esc(TITLES[r]||"")}</b>`;
