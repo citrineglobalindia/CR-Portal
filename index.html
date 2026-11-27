@@ -722,6 +722,7 @@ const IC={
  projects:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="16" rx="1"/><rect x="14" y="4" width="7" height="10" rx="1"/></svg>',
  attendance:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
  leads:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 3H2l8 9.5V19l4 2v-8.5L22 3z"/></svg>',
+ adanalytics:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="11" width="3" height="6"/><rect x="12" y="7" width="3" height="10"/><rect x="17" y="13" width="3" height="4"/></svg>',
  invoices:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1z"/><path d="M8 7h8M8 11h8M8 15h5"/></svg>',
  ctasks:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h3"/></svg>',
  todos:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>',
@@ -739,7 +740,7 @@ reviews:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width
  search:'<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.2-3.2"/></svg>',
  plus:'<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>'
 };
-const NAV=[["overview","Overview"],["leads","Leads"],["clients","Clients"],["proposals","Proposals"],["contracts","Contracts"],["calendar","Content Calendar"],["approvals","Approvals"],["projects","Projects"],["ctasks","Content Tasks"],["todos","To-dos"],["attendance","Attendance"],["reports","Reports"],["finance","Finance & Accounts"],["assets","Asset Library"],["reviews","Reviews"],["support","Support"],["changes","Change Requests"],["docs","Docs"],["meetings","Team Meetings"]];
+const NAV=[["overview","Overview"],["leads","Leads"],["clients","Clients"],["proposals","Proposals"],["contracts","Contracts"],["calendar","Content Calendar"],["approvals","Approvals"],["projects","Projects"],["ctasks","Content Tasks"],["todos","To-dos"],["attendance","Attendance"],["reports","Reports"],["adanalytics","Ad Analytics"],["finance","Finance & Accounts"],["assets","Asset Library"],["reviews","Reviews"],["support","Support"],["changes","Change Requests"],["docs","Docs"],["meetings","Team Meetings"]];
 
 /* ================= AUTH ================= */
 async function boot(){
@@ -849,7 +850,7 @@ function renderRoute(){
   if(ME.role==="client" && !CLIENT_ROUTES.has(r)){ location.hash="#/overview"; return; }
   $("#crumb").innerHTML=`Workspace <span class="sep">/</span> <b>${esc(TITLES[r]||"")}</b>`;
   c.scrollTop=0;
-  const map={overview:viewOverview,leads:viewLeads,clients:viewClients,proposals:viewProposals,contracts:viewContracts,calendar:viewCalendar,approvals:viewApprovals,projects:viewProjects,ctasks:viewCtasks,todos:viewTodos,attendance:viewAttendance,reports:viewReports,finance:viewFinance,assets:viewAssets,reviews:viewReviews,support:viewSupport,changes:viewChanges,docs:viewDocs,meetings:viewMeetings,invoices:viewClientInvoices,settings:viewSettings};
+  const map={overview:viewOverview,leads:viewLeads,clients:viewClients,proposals:viewProposals,contracts:viewContracts,calendar:viewCalendar,approvals:viewApprovals,projects:viewProjects,ctasks:viewCtasks,todos:viewTodos,attendance:viewAttendance,reports:viewReports,adanalytics:viewAdAnalytics,finance:viewFinance,assets:viewAssets,reviews:viewReviews,support:viewSupport,changes:viewChanges,docs:viewDocs,meetings:viewMeetings,invoices:viewClientInvoices,settings:viewSettings};
   (map[r]||soon)(c);
 }
 function soon(c){const r=route();c.innerHTML=`<div class="ph"><div class="ph-ic">${IC[r]||IC.overview}</div><div><h1>${esc(TITLES[r]||"")}</h1><div class="psub">This screen is being built in the new design.</div></div></div><div class="card pad empty"><div class="ei">${IC[r]||IC.settings}</div><div><b>Coming online next</b></div><div class="psub" style="margin-top:6px">The ${esc(TITLES[r])} module is next in the rollout.</div></div>`;}
@@ -1128,6 +1129,43 @@ async function clFeeSave(id){
   if(g.base>0){ await sb.from('cr_client_services').insert({client_id:id,name:st.map(svcLabel).join(' + ')||'Retainer',base:g.base,fee:g.total,gst:g.gst,tax_rate:g.rate,recurring:true,status:'active'}); }
   closeModal(); toast('Saved'); viewClients($("#content"));
 }
+function metaResult(row){ const a=row.actions||[]; const pri=a.find(x=>/messaging_conversation_started/.test(x.action_type))||a.find(x=>x.action_type==="lead")||a.find(x=>x.action_type==="purchase")||a.find(x=>/link_click/.test(x.action_type)); if(pri)return Number(pri.value||0); return a.reduce((t,x)=>t+Number(x.value||0),0); }
+async function metaRefreshClient(id){ toast("Syncing from Meta\u2026"); try{ const r=await callFn("meta-insights",{action:"refresh",client_id:id}); if(r.errors&&r.errors.length)toast(r.errors[0],true); else toast("Synced"); viewClientWorkspace($("#content"),id); }catch(e){ toast(e.message||"Sync failed",true); } }
+let META_CONNECTED=false;
+async function viewAdAnalytics(c){
+  c=c||$("#content");
+  if(!isAdmin()){ c.innerHTML=`<div class="empty"><div class="ei">${IC.adanalytics}</div><div>Ad Analytics is for admins.</div></div>`; return; }
+  c.innerHTML=`<div class="ph"><div class="ph-ic">${IC.adanalytics}</div><div><h1>Ad Analytics</h1><div class="psub">Live Meta campaign data across all your clients.</div></div><div class="ph-r"><button class="btn ghost" onclick="metaMapForm()">\uD83D\uDD17 Map accounts</button><button class="btn" onclick="metaRefreshAll()">\u21BB Refresh all</button></div></div>
+   <div id="meta-setup"></div><div id="ada-body"><div class="psub">Loading\u2026</div></div>`;
+  let st={connected:false}; try{ st=await callFn("meta-insights",{action:"status"}); }catch(_){}
+  META_CONNECTED=st.connected;
+  document.getElementById("meta-setup").innerHTML=`<div class="card pad" style="margin-bottom:16px"><div class="card-h"><h3 class="sec-title" style="font-size:16px">Meta connection ${st.connected?'<span class="status g" style="margin-left:8px">Connected</span>':'<span class="status a" style="margin-left:8px">Not connected</span>'}</h3>${st.connected?`<a class="linkg" onclick="metaTest()">Test connection</a>`:''}</div>
+     <div class="g2" style="align-items:end"><div class="fld2"><label>Meta System User access token <span class="sub1">stored securely, read only server-side</span></label><input id="meta-tok" class="inp" type="password" placeholder="${st.connected?'\u2022\u2022\u2022\u2022 saved \u2014 paste to replace':'paste token (ads_read)'}"/></div><div style="display:flex;gap:8px"><button class="btn" onclick="metaSaveToken()">Save token</button></div></div>
+     <div class="sub1" style="margin-top:8px">Create a System User in your Business Manager, give it access to all client ad accounts, and generate a long-lived token with the <b>ads_read</b> permission.</div></div>`;
+  const {data:clients}=await sb.from("cr_profiles").select("id,company,full_name,meta_ad_account").eq("role","client").order("company");
+  const {data:ins}=await sb.from("cr_meta_insights").select("client_id,data,fetched_at").eq("scope","overview");
+  const byC={}; (ins||[]).forEach(r=>byC[r.client_id]=r);
+  const b=document.getElementById("ada-body");
+  const rows=(clients||[]).map(cl=>{ const r=byC[cl.id]; const ov=r&&r.data&&r.data[0]; const spend=ov?Number(ov.spend||0):0,res=ov?metaResult(ov):0,impr=ov?Number(ov.impressions||0):0,reach=ov?Number(ov.reach||0):0; const cpr=res?spend/res:0;
+    return `<tr class="rowlink" onclick="location.hash='#/clients/${cl.id}'"><td><b>${esc(cl.company||cl.full_name||'\u2014')}</b></td><td>${cl.meta_ad_account?`<span class="mini-date">${esc(cl.meta_ad_account)}</span>`:`<a class="linkg" onclick="event.stopPropagation();metaMapForm()">+ Map</a>`}</td><td>${ov?money(spend):'\u2014'}</td><td>${ov?res:'\u2014'}</td><td>${ov&&res?money(cpr):'\u2014'}</td><td>${ov?impr.toLocaleString('en-IN'):'\u2014'}</td><td>${ov?reach.toLocaleString('en-IN'):'\u2014'}</td><td class="sub1">${r?fmtD(r.fetched_at):'\u2014'}</td></tr>`; }).join("");
+  const totSpend=(clients||[]).reduce((t,cl)=>{const ov=byC[cl.id]&&byC[cl.id].data&&byC[cl.id].data[0];return t+(ov?Number(ov.spend||0):0);},0);
+  const totRes=(clients||[]).reduce((t,cl)=>{const ov=byC[cl.id]&&byC[cl.id].data&&byC[cl.id].data[0];return t+(ov?metaResult(ov):0);},0);
+  const linked=(clients||[]).filter(cl=>cl.meta_ad_account).length;
+  b.innerHTML=`<div class="stat-row att-stats"><div class="stat"><div class="lbl">Clients linked</div><div class="val">${linked}/${(clients||[]).length}</div></div><div class="stat"><div class="lbl">Total spend (30d)</div><div class="val">${money(totSpend)}</div></div><div class="stat"><div class="lbl">Total results</div><div class="val">${totRes}</div></div><div class="stat"><div class="lbl">Blended cost/result</div><div class="val">${totRes?money(totSpend/totRes):'\u2014'}</div></div></div>
+   <div class="card"><table class="tbl"><thead><tr><th>Client</th><th>Ad account</th><th>Spend</th><th>Results</th><th>Cost/result</th><th>Impressions</th><th>Reach</th><th>Synced</th></tr></thead><tbody>${rows||`<tr><td colspan="8" class="sub1" style="text-align:center;padding:24px">No clients.</td></tr>`}</tbody></table></div>`;
+}
+async function metaSaveToken(){ const t=v("meta-tok"); if(!t){toast("Paste a token",true);return;} try{ await callFn("meta-insights",{action:"save_token",token:t}); toast("Token saved"); viewAdAnalytics($("#content")); }catch(e){ toast(e.message||"Failed",true); } }
+async function metaTest(){ try{ const r=await callFn("meta-insights",{action:"test"}); toast("Connected as "+(r.name||"Meta")); }catch(e){ toast(e.message||"Test failed",true); } }
+async function metaRefreshAll(){ toast("Syncing all clients\u2026 this can take a moment"); try{ const r=await callFn("meta-insights",{action:"refresh"}); toast("Synced "+r.refreshed+" client(s)"+(r.errors&&r.errors.length?" \u00b7 "+r.errors.length+" error(s)":"")); viewAdAnalytics($("#content")); }catch(e){ toast(e.message||"Sync failed",true); } }
+async function metaMapForm(){
+  let accts=[]; try{ const r=await callFn("meta-insights",{action:"list_accounts"}); accts=r.accounts||[]; }catch(e){ toast(e.message||"Could not list accounts \u2014 save a token first",true); return; }
+  const {data:clients}=await sb.from("cr_profiles").select("id,company,full_name,meta_ad_account").eq("role","client").order("company");
+  const opts=sel=>`<option value="">\u2014 unassigned \u2014</option>`+(accts.map(a=>`<option value="act_${a.account_id}" ${sel==='act_'+a.account_id||sel===a.account_id?'selected':''}>${esc(a.name)} (act_${a.account_id})</option>`).join(""));
+  const body=`<div class="sub1" style="margin-bottom:10px">${accts.length} ad account(s) visible to your token. Assign each client to their account.</div>`+
+    (clients||[]).map(cl=>`<div class="g2" style="align-items:center;margin-bottom:8px"><div class="fld2" style="margin:0"><b>${esc(cl.company||cl.full_name)}</b></div><div class="fld2" style="margin:0"><select class="inp" onchange="metaMapSet('${cl.id}',this.value)">${opts(cl.meta_ad_account)}</select></div></div>`).join("");
+  sheet("Map Meta ad accounts",body,{icon:IC.adanalytics,subtitle:"Link each client to their Meta ad account."});
+}
+async function metaMapSet(clientId,acct){ await sb.from("cr_profiles").update({meta_ad_account:acct||null}).eq("id",clientId); toast("Mapped"); }
 let _cwMenu=null;
 function closeCwMenu(){ if(_cwMenu){_cwMenu.remove();_cwMenu=null;} }
 async function cwPick(el,id,role){
@@ -1181,7 +1219,7 @@ async function viewClientWorkspace(c,id){
   cwTab(id,amn);
 }
 let CW_CLIENT=null, CW_TAB="overview";
-const CW_TABS=[["overview","Overview"],["calendar","Content"],["approvals","Approvals"],["contracts","Contracts"],["assets","Assets"],["reports","Reports"],["billing","Billing"]];
+const CW_TABS=[["overview","Overview"],["calendar","Content"],["approvals","Approvals"],["contracts","Contracts"],["assets","Assets"],["reports","Reports"],["analytics","Ad Analytics"],["billing","Billing"]];
 async function cwTab(id,amn){
   const b=$("#cw-body"); if(!b)return; const m=mKey();
   if(CW_TAB==="overview"){
@@ -1222,6 +1260,19 @@ async function cwTab(id,amn){
   else if(CW_TAB==="contracts"){ const {data}=await sb.from("cr_contracts").select("*").eq("client_id",id); b.innerHTML=cwList(data||[],["Agreement","Period","Status"],r=>`<td><b>${esc(r.title||'Agreement')}</b></td><td>${r.service_start?fmtD(r.service_start):'—'}</td><td>${cwStatus(r.status)}</td>`); }
   else if(CW_TAB==="assets"){ const {data}=await sb.from("cr_assets").select("*").eq("client_id",id); b.innerHTML=`<div class="agrid">${(data||[]).map(a=>{const u=a.file_path?supaImg(a.file_path):"";const img=(a.mime_type||"").startsWith("image");return `<div class="acard"><div class="ath">${img&&u?`<img src="${esc(u)}">`:'📄'}</div><div class="ab"><b>${esc(a.name)}</b><span class="status ${a.is_deliverable?'g':'n'}" style="font-size:11px;padding:3px 8px;margin-top:4px;display:inline-block">${a.is_deliverable?'Approved':'Working'}</span></div></div>`;}).join("")||'<div class="sub1">No assets.</div>'}</div>`; }
   else if(CW_TAB==="reports"){ const {data}=await sb.from("cr_reports").select("*").eq("client_id",id); b.innerHTML=cwList(data||[],["Report","Period","Status"],r=>`<td><b>${esc(r.title||'Report')}</b></td><td>${r.period_start?fmtD(r.period_start):'—'}</td><td>${cwStatus(r.status)}</td>`); }
+  else if(CW_TAB==="analytics"){
+    const {data:ins}=await sb.from("cr_meta_insights").select("*").eq("client_id",id);
+    const by={}; (ins||[]).forEach(r=>by[r.scope]=r);
+    if(!CW_CLIENT.meta_ad_account){ b.innerHTML=`<div class="empty"><div class="ei">${IC.adanalytics}</div><div>No Meta ad account linked</div><div class="sub1" style="margin:6px 0">Map this client to their ad account in Ad Analytics, then refresh.</div>${isAdmin()?`<button class="btn" onclick="location.hash='#/adanalytics'">Open Ad Analytics</button>`:''}</div>`; return; }
+    const ov=(by.overview&&by.overview.data&&by.overview.data[0])||null;
+    const spend=ov?Number(ov.spend||0):0, impr=ov?Number(ov.impressions||0):0, reach=ov?Number(ov.reach||0):0, res=ov?metaResult(ov):0;
+    b.innerHTML=`<div class="btnrow" style="justify-content:space-between;align-items:center;margin-bottom:12px"><div class="sub1">${by.overview?('Last synced '+fmtDT(by.overview.fetched_at)):'Not synced yet'}</div>${isAdmin()?`<button class="btn sm" onclick="metaRefreshClient('${id}')">↻ Refresh from Meta</button>`:''}</div>
+     <div class="stat-row att-stats"><div class="stat"><div class="lbl">Amount spent</div><div class="val">${money(spend)}</div></div><div class="stat"><div class="lbl">Results</div><div class="val">${res}</div></div><div class="stat"><div class="lbl">Impressions</div><div class="val">${impr.toLocaleString('en-IN')}</div></div><div class="stat"><div class="lbl">Reach</div><div class="val">${reach.toLocaleString('en-IN')}</div></div></div>
+     <div class="two"><div class="card pad"><div class="card-h"><h3 class="sec-title" style="font-size:16px">Spend &amp; results over time</h3></div><div style="height:220px"><canvas id="meta-daily"></canvas></div></div>
+     <div class="card pad"><div class="card-h"><h3 class="sec-title" style="font-size:16px">Age &amp; gender</h3></div><div style="height:220px"><canvas id="meta-ag"></canvas></div></div></div>`;
+    if(by.daily&&by.daily.data&&by.daily.data.length){ const d=by.daily.data; const labels=d.map(x=>x.date_start?fmtD(x.date_start):''); const spendL=d.map(x=>Number(x.spend||0)); const resL=d.map(x=>metaResult(x)); chart("meta-daily",{type:'line',data:{labels,datasets:[{label:'Spend',...areaDS(spendL,"#2563eb","#2563eb22","#2563eb02"),yAxisID:'y'},{label:'Results',...areaDS(resL,"#22d3ee","#22d3ee33","#22d3ee03"),yAxisID:'y1'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,align:'end'}},scales:{x:{grid:{display:false}},y:{position:'left'},y1:{position:'right',grid:{display:false}}}}}); }
+    if(by.agegender&&by.agegender.data&&by.agegender.data.length){ const d=by.agegender.data; const ages=[...new Set(d.map(x=>x.age))].sort(); const men=ages.map(a=>d.filter(x=>x.age===a&&x.gender==='male').reduce((t,x)=>t+metaResult(x),0)); const women=ages.map(a=>d.filter(x=>x.age===a&&x.gender==='female').reduce((t,x)=>t+metaResult(x),0)); chart("meta-ag",{type:'bar',data:{labels:ages,datasets:[{label:'Men',data:men,backgroundColor:'#7c3aed'},{label:'Women',data:women,backgroundColor:'#22d3ee'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,align:'end'}},scales:{x:{grid:{display:false}}}}}); }
+  }
   else if(CW_TAB==="billing"){ const {data}=await sb.from("cr_invoices").select("*").eq("client_id",id).order("issue_date",{ascending:false}); b.innerHTML=(canStaff()?`<div style="margin-bottom:12px"><button class="btn" onclick="invForm('${id}')"><span>${IC.plus}</span> New invoice</button></div>`:"")+cwList(data||[],["Invoice","Total","Balance","Status"],r=>`<td><b>${esc(r.invoice_no||'(draft)')}</b></td><td>${money(r.total)}</td><td>${money((Number(r.total)||0)-(Number(r.paid)||0))}</td><td>${cwStatus(invStatusLabel(r))}</td>`); }
 }
 function cli_poc(){ return (CW_CLIENT&&(CW_CLIENT.full_name||CW_CLIENT.designation))?((CW_CLIENT.full_name||"")+(CW_CLIENT.designation?" · "+CW_CLIENT.designation:"")):"Client contact"; }
