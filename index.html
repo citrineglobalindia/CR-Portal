@@ -351,7 +351,7 @@ button{font-family:inherit;cursor:pointer}
 .total-row{display:flex;align-items:center;justify-content:space-between;background:var(--tint);border:1px solid var(--tint2);border-radius:11px;padding:11px 15px;margin:10px 0 4px;font-weight:600;color:var(--green-ink)}
 .total-row b{font-family:var(--font-head);font-size:18px;color:var(--green)}
 /* clients page redesign */
-.cl-banner{position:relative;overflow:hidden;border-radius:16px;background:linear-gradient(100deg,#0a1430 0%,#124a9e 46%,#1f8fd8 80%,#22cdf0 100%);color:#fff;padding:0 40px;margin-bottom:18px;height:96px;display:flex;align-items:center}
+.cl-banner{position:relative;overflow:hidden;border-radius:16px;background:linear-gradient(100deg,#0a1430 0%,#124a9e 46%,#1f8fd8 80%,#22cdf0 100%);color:#fff;padding:0 40px;margin-bottom:18px;height:110px;display:flex;align-items:center}
 .cl-banner-t{font-family:var(--font-head);font-weight:800;font-size:28px;letter-spacing:-.6px;position:relative;z-index:2}
 .cl-steps{position:absolute;right:14px;top:0;bottom:0;width:400px;display:flex;align-items:center;justify-content:flex-end;overflow:hidden}
 .cl-steps svg{height:118%}
@@ -399,6 +399,21 @@ button{font-family:inherit;cursor:pointer}
 .cl-table td:last-child{text-align:right}
 .cl-banner-wrap{margin-bottom:18px;line-height:0}
 .cl-banner-gif{width:100%;height:auto;display:block;border-radius:16px}
+/* animated rising cylinders */
+.cl-cyls{position:absolute;right:34px;bottom:0;height:100%;width:250px;pointer-events:none}
+.cyl{position:absolute;bottom:18px;width:33px;height:6px;border-radius:15px 15px 11px 11px;
+ background:linear-gradient(90deg,#1766a2 0%,#79d6f6 27%,#d9f7ff 50%,#5cc6f0 73%,#1766a2 100%);
+ box-shadow:0 0 16px rgba(90,220,250,.55)}
+.cyl::after{content:"";position:absolute;left:-1px;right:-1px;top:-7px;height:13px;border-radius:50%;
+ background:radial-gradient(ellipse at 50% 38%,#f3feff,#8fe4ff);box-shadow:0 0 11px rgba(130,235,255,.85)}
+.cyl::before{content:"";position:absolute;left:-1px;right:-1px;bottom:-5px;height:10px;border-radius:50%;background:#124f85;z-index:-1}
+.c1{left:0;--h:34px}.c2{left:47px;--h:52px}.c3{left:94px;--h:72px}.c4{left:141px;--h:96px}.c5{left:188px;--h:118px}
+@media (prefers-reduced-motion:no-preference){
+ .cyl{animation:grow 3.6s ease-in-out infinite}
+ .c1{animation-delay:0s}.c2{animation-delay:.14s}.c3{animation-delay:.28s}.c4{animation-delay:.42s}.c5{animation-delay:.56s}
+}
+@media (prefers-reduced-motion:reduce){ .cyl{height:var(--h)} }
+@keyframes grow{0%{height:6px}34%{height:var(--h)}84%{height:var(--h)}100%{height:6px}}
 @media(max-width:860px){.docs-wrap{grid-template-columns:1fr}}
 @media(max-width:860px){.app{grid-template-columns:1fr}.side{position:fixed;left:0;top:0;bottom:0;width:252px;z-index:120;transform:translateX(-100%);transition:.25s}.side.open{transform:none}.search{display:none}.auth{grid-template-columns:1fr}.auth-art{display:none}.auth-form{padding:36px 22px}.ph h1{font-size:26px}}
 
@@ -984,7 +999,7 @@ function ovRenderClients(q){
 async function viewClients(c){
   const parts=routeParts();
   if(parts[1]) return viewClientWorkspace(c,parts[1]);
-  c.innerHTML=`<div class="cl-banner-wrap"><img class="cl-banner-gif" src="assets/StepStones_Shining_Steps.gif" alt="Every Click. A Step Forward."/></div>
+  c.innerHTML=`<div class="cl-banner"><div class="cl-banner-t">Every Click. A Step Forward.</div><div class="cl-cyls"><span class="cyl c1"></span><span class="cyl c2"></span><span class="cyl c3"></span><span class="cyl c4"></span><span class="cyl c5"></span></div><span class="cl-shine"></span></div>
    <div class="ph"><div class="ph-ic">${IC.clients}</div><div><h1>Clients</h1><div class="psub">Every client company, contact and engagement in one place.</div></div><div class="ph-r">${canStaff()?`<button class="btn" onclick="clAddForm()"><span>${IC.plus}</span> Add client</button>`:""}</div></div>
    <div class="card pad"><div class="card-h"><h3 class="sec-title">All clients <span id="cl-count" class="sub1" style="font-weight:500;margin-left:6px"></span></h3><div style="display:flex;gap:10px;align-items:center"><div style="position:relative"><span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--faint)">${IC.search}</span><input class="inp" style="padding-left:38px;height:40px;width:240px" placeholder="Search clients…" oninput="clFilter(this.value)"/></div><button class="btn ghost" onclick="clFiltMenu(event)" style="height:40px">⛭ Filters</button></div></div><div class="tblwrap"><table class="tbl cl-table" id="cl-tbl"></table></div><div class="kebab-menu" id="cl-filt" style="position:absolute"></div></div>`;
   const [cl,svc,staff]=await Promise.all([
