@@ -367,7 +367,7 @@ button{font-family:inherit;cursor:pointer}
 .sarr{color:var(--faint);font-size:11px}.sarr.on{color:var(--green)}
 .cl-av{position:relative;width:46px;height:46px;flex:0 0 auto}
 .cl-av .av2{width:46px;height:46px;border-radius:12px;font-size:16px}
-.cl-logo{width:46px;height:46px;border-radius:12px;object-fit:cover;background:#fff;border:1px solid var(--line);box-shadow:0 1px 3px rgba(16,26,42,.12)}
+.cl-logo{width:46px;height:46px;border-radius:12px;object-fit:contain;background:#fff;border:1px solid var(--line);box-shadow:0 1px 3px rgba(16,26,42,.12);padding:3px}
 .cl-cam{position:absolute;right:-6px;bottom:-6px;width:20px;height:20px;border-radius:50%;background:#fff;border:1px solid var(--line);display:grid;place-items:center;font-size:10px;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.18);opacity:0;transition:.15s}
 .cl-table tbody tr:hover .cl-cam,.cl-cam:focus{opacity:1}
 .cl-cam:hover{background:var(--tint);transform:scale(1.08)}
@@ -999,7 +999,7 @@ function svcLabel(k){ return ({software:'Software',digital:'Digital marketing','
 function clFee(c){ return CL_SVC.filter(s=>s.client_id===c.id&&s.recurring!==false&&s.status!=='cancelled').reduce((a,s)=>a+(Number(s.fee)||0),0); }
 function clBase(c){ const r=CL_SVC.filter(s=>s.client_id===c.id&&s.recurring!==false&&s.status!=='cancelled'); return r.reduce((a,s)=>a+(Number(s.base!=null?s.base:s.fee)||0),0); }
 function clGst(c){ return CL_SVC.some(s=>s.client_id===c.id&&s.gst); }
-function clChips(c){ const types=(c.service_types||[]).map(svcLabel); const named=CL_SVC.filter(s=>s.client_id===c.id).map(s=>s.name).filter(Boolean); return [...new Set([...types,...named])]; }
+function clChips(c){ const types=[...new Set((c.service_types||[]).map(svcLabel))]; if(types.length)return types; return [...new Set(CL_SVC.filter(s=>s.client_id===c.id).map(s=>s.name).filter(Boolean))]; }
 let CL_SORT={key:'client',dir:1}, CL_FILT={status:'',svc:''}, CL_Q='';
 function clSort(k){ if(CL_SORT.key===k)CL_SORT.dir*=-1; else {CL_SORT.key=k;CL_SORT.dir=1;} clRender(); }
 function clSortVal(c,k){ switch(k){ case 'fee': return clFee(c); case 'start': return c.service_start||''; case 'renewal': return c.renewal_date||''; case 'status': return c.client_status||'active'; case 'svc': return clChips(c).join(','); default: return (c.company||c.full_name||'').toLowerCase(); } }
