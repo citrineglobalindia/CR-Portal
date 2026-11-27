@@ -421,7 +421,8 @@ button{font-family:inherit;cursor:pointer}
 @media(max-width:760px){.cw-right{margin-left:0;width:100%}}
 .cw-team{display:flex;align-items:center;gap:16px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:8px 14px;cursor:pointer;transition:.15s;position:relative;flex-wrap:wrap}
 .cw-team:hover{border-color:var(--green2);box-shadow:0 6px 18px -10px rgba(16,26,42,.22)}
-.cwt-item{display:flex;align-items:center;gap:8px}
+.cwt-item{display:flex;align-items:center;gap:8px;cursor:pointer;border-radius:8px;padding:3px 6px;transition:.14s}
+.cwt-item:hover{background:var(--panel2)}
 .cwt-a{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:800;font-size:10.5px;flex:0 0 auto}
 .cwt-a.am{background:linear-gradient(135deg,#2563eb,#0ea5e9)}.cwt-a.de{background:linear-gradient(135deg,#7c3aed,#c026d3)}.cwt-a.sp{background:linear-gradient(135deg,#0d9488,#22d3ee)}
 .cwt-k{display:block;font-size:10px;color:var(--faint);line-height:1}
@@ -1109,6 +1110,20 @@ async function clFeeSave(id){
   if(g.base>0){ await sb.from('cr_client_services').insert({client_id:id,name:st.map(svcLabel).join(' + ')||'Retainer',base:g.base,fee:g.total,gst:g.gst,tax_rate:g.rate,recurring:true,status:'active'}); }
   closeModal(); toast('Saved'); viewClients($("#content"));
 }
+let _cwMenu=null;
+function closeCwMenu(){ if(_cwMenu){_cwMenu.remove();_cwMenu=null;} }
+async function cwPick(el,id,role){
+  const r=el.getBoundingClientRect(); await ensureStaff(); closeCwMenu();
+  const items=STAFF.filter(x=>["admin","super_admin","account_manager","manager","team_member"].includes(x.role));
+  const cur=(CW_CLIENT||{})[role]; const lbl={account_manager:"Account manager",designer:"Designer",spoc:"SPOC"}[role];
+  const m=document.createElement("div"); m.className="kebab-menu open"; m.style.cssText="position:fixed;z-index:300;min-width:200px;max-height:320px;overflow:auto";
+  m.innerHTML=`<div class="km-h">${lbl}</div><a onclick="cwSetRole('${id}','${role}','')" class="${!cur?'on':''}">— Unassigned —</a>`+
+    (items.map(a=>`<a onclick="cwSetRole('${id}','${role}','${a.id}')" class="${cur===a.id?'on':''}">${esc(a.full_name||a.email)}</a>`).join("")||'<div class="sub1" style="padding:10px">No team members yet. Add them in Settings.</div>');
+  document.body.appendChild(m); _cwMenu=m;
+  let top=r.bottom+6, left=r.left; if(left+210>window.innerWidth)left=window.innerWidth-220; m.style.top=top+"px"; m.style.left=Math.max(10,left)+"px";
+  setTimeout(()=>document.addEventListener("click",closeCwMenu,{once:true}),0);
+}
+async function cwSetRole(id,role,uid){ closeCwMenu(); const patch={}; patch[role]=uid||null; const {error}=await sb.from("cr_profiles").update(patch).eq("id",id); if(error){toast(error.message,true);return;} if(CW_CLIENT)CW_CLIENT[role]=uid||null; toast(uid?"Assigned":"Cleared"); viewClientWorkspace($("#content"),id); }
 async function cwAssignForm(id){
   await ensureStaff(); const c=CW_CLIENT||{};
   const opts=sel=>`<option value="">— unassigned —</option>`+STAFF.filter(x=>["admin","super_admin","account_manager","manager","team_member"].includes(x.role)).map(a=>`<option value="${a.id}" ${sel===a.id?'selected':''}>${esc(a.full_name||a.email)}</option>`).join("");
@@ -1137,9 +1152,9 @@ async function viewClientWorkspace(c,id){
   c.innerHTML=`<div class="cw-head"><div class="cw-logo" style="background:linear-gradient(135deg,${avatarColor(cli.company||cli.full_name)})">${esc(initials(cli.company||cli.full_name)).toUpperCase()}</div>
    <div style="flex:1 1 240px;min-width:200px"><h1>${esc(cli.company||cli.full_name)} <span class="status g" style="vertical-align:middle;font-size:12px">${esc(cli.client_status||'active')}</span></h1><div class="psub">${esc(cli.industry||'')}${cli.website?' · '+esc(cli.website):''}</div></div>
    <div class="cw-right"><div class="cw-team" onclick="cwAssignForm('${id}')" title="Assign team">
-     <div class="cwt-item"><span class="cwt-a am">${amn==='Unassigned'?'?':esc(initials(amn)).toUpperCase()}</span><div><span class="cwt-k">Account mgr</span><b>${esc(amn)}</b></div></div>
-     <div class="cwt-item"><span class="cwt-a de">${dn==='—'?'?':esc(initials(dn)).toUpperCase()}</span><div><span class="cwt-k">Designer</span><b>${esc(dn)}</b></div></div>
-     <div class="cwt-item"><span class="cwt-a sp">${sn==='—'?'?':esc(initials(sn)).toUpperCase()}</span><div><span class="cwt-k">SPOC</span><b>${esc(sn)}</b></div></div>
+     <div class="cwt-item" onclick="event.stopPropagation();cwPick(this,'${id}','account_manager')"><span class="cwt-a am">${amn==='Unassigned'?'?':esc(initials(amn)).toUpperCase()}</span><div><span class="cwt-k">Account mgr</span><b>${esc(amn)}</b></div></div>
+     <div class="cwt-item" onclick="event.stopPropagation();cwPick(this,'${id}','designer')"><span class="cwt-a de">${dn==='—'?'?':esc(initials(dn)).toUpperCase()}</span><div><span class="cwt-k">Designer</span><b>${esc(dn)}</b></div></div>
+     <div class="cwt-item" onclick="event.stopPropagation();cwPick(this,'${id}','spoc')"><span class="cwt-a sp">${sn==='—'?'?':esc(initials(sn)).toUpperCase()}</span><div><span class="cwt-k">SPOC</span><b>${esc(sn)}</b></div></div>
      <span class="cwt-edit">✎ Assign</span></div><a class="btn ghost" onclick="location.hash='#/clients'">← All clients</a>${canStaff()?`<button class="btn" onclick="clEditForm('${id}')"><span>${IC.plus}</span> Edit client</button>`:""}</div></div>
    <div class="cw-tabs" id="cw-tabs">${CW_TABS.map(([k,l])=>`<button class="${CW_TAB===k?'on':''}" onclick="CW_TAB='${k}';viewClientWorkspace(document.getElementById('content'),'${id}')">${l}</button>`).join("")}</div>
    <div id="cw-body"><div class="psub">Loading…</div></div>`;
