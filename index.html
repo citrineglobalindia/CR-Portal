@@ -443,6 +443,16 @@ button{font-family:inherit;cursor:pointer}
 .pick-nm b{font-size:13.5px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pick-role{font-size:10.5px;color:var(--faint);text-transform:capitalize}
 .pick-ck{color:var(--green);font-weight:800;margin-left:auto}
+.adv-bar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+.adv-dates{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.adv-dates .inp{height:38px;width:150px}
+.adv-presets{display:flex;gap:6px;margin-left:4px}
+.adv-presets a{font-size:12px;font-weight:700;color:var(--green);background:var(--tint);border-radius:7px;padding:5px 10px;cursor:pointer}
+.adv-presets a:hover{filter:brightness(.97)}
+.adv-chev{display:inline-block;width:15px;cursor:pointer;color:var(--muted);user-select:none}
+.adv-tbl td{white-space:nowrap}.adv-tbl td:first-child{white-space:normal}
+.adv-r.lvl1{background:var(--panel2)}.adv-r.lvl2 td:first-child{color:var(--muted)}
+.adv-r.lvl2{background:#fbfcfe}
 @media(max-width:860px){.docs-wrap{grid-template-columns:1fr}}
 @media(max-width:860px){.app{grid-template-columns:1fr}.side{position:fixed;left:0;top:0;bottom:0;width:252px;z-index:120;transform:translateX(-100%);transition:.25s}.side.open{transform:none}.search{display:none}.auth{grid-template-columns:1fr}.auth-art{display:none}.auth-form{padding:36px 22px}.ph h1{font-size:26px}}
 
@@ -1130,6 +1140,24 @@ async function clFeeSave(id){
   closeModal(); toast('Saved'); viewClients($("#content"));
 }
 function metaResult(row){ const a=row.actions||[]; const pri=a.find(x=>/messaging_conversation_started/.test(x.action_type))||a.find(x=>x.action_type==="lead")||a.find(x=>x.action_type==="purchase")||a.find(x=>/link_click/.test(x.action_type)); if(pri)return Number(pri.value||0); return a.reduce((t,x)=>t+Number(x.value||0),0); }
+let ADV={from:"",until:"",active:true,tree:null,loading:false};
+function advBadge(st){ const m={ACTIVE:'g',PAUSED:'a'}; return `<span class="status ${m[st]||'n'}">${esc((st||'').replace(/_/g,' ').toLowerCase())}</span>`; }
+function advMsg(t,lvl){ return `<tr><td colspan="7" class="sub1" style="padding:8px 0 8px ${12+lvl*22+20}px">${t}</td></tr>`; }
+function advRow(level,item,onToggle,hasChildren){ const pad=12+level*22; const res=metaResult(item); const chev=hasChildren?`<span class="adv-chev" onclick="${onToggle}">${item._open?'\u25BE':'\u25B8'}</span>`:'<span style="display:inline-block;width:15px"></span>'; return `<tr class="adv-r lvl${level}"><td style="padding-left:${pad}px">${chev} <b style="font-weight:${level===0?700:500}">${esc(item.name||'\u2014')}</b></td><td>${advBadge(item.status)}</td><td>${money(item.spend)}</td><td>${res}</td><td>${item.spend&&res?money(item.spend/res):'\u2014'}</td><td>${(item.impressions||0).toLocaleString('en-IN')}</td><td>${(item.reach||0).toLocaleString('en-IN')}</td></tr>`; }
+function advRender(id){ const el=document.getElementById("cw-body"); if(!el)return; const tree=ADV.tree||[];
+  const tSpend=tree.reduce((a,c)=>a+Number(c.spend||0),0),tImpr=tree.reduce((a,c)=>a+Number(c.impressions||0),0),tReach=tree.reduce((a,c)=>a+Number(c.reach||0),0),tRes=tree.reduce((a,c)=>a+metaResult(c),0);
+  let rows="";
+  tree.forEach((c,ci)=>{ rows+=advRow(0,c,`advToggleCamp('${id}',${ci})`,true);
+    if(c._open){ rows+= c._adsets==null?advMsg("Loading ad sets\u2026",1):(!c._adsets.length?advMsg("No ad sets.",1): c._adsets.map((as,si)=>{ let r=advRow(1,as,`advToggleSet('${id}',${ci},${si})`,true); if(as._open){ r+= as._ads==null?advMsg("Loading ads\u2026",2):(!as._ads.length?advMsg("No ads.",2): as._ads.map(ad=>advRow(2,ad,"",false)).join("")); } return r; }).join("")); }
+  });
+  el.innerHTML=`<div class="adv-bar"><div class="adv-dates"><input type="date" class="inp" value="${ADV.from}" onchange="ADV.from=this.value"><span class="sub1">to</span><input type="date" class="inp" value="${ADV.until}" onchange="ADV.until=this.value"><button class="btn sm" onclick="advLoad('${id}')">Apply</button><span class="adv-presets"><a onclick="advPreset('${id}',7)">7d</a><a onclick="advPreset('${id}',30)">30d</a><a onclick="advPreset('${id}','month')">This month</a></span></div><label class="chk" style="margin:0"><input type="checkbox" ${ADV.active?'checked':''} onchange="ADV.active=this.checked;advLoad('${id}')"> Active only</label></div>
+   <div class="stat-row att-stats"><div class="stat"><div class="lbl">Spend</div><div class="val">${money(tSpend)}</div></div><div class="stat"><div class="lbl">Results</div><div class="val">${tRes}</div></div><div class="stat"><div class="lbl">Impressions</div><div class="val">${tImpr.toLocaleString('en-IN')}</div></div><div class="stat"><div class="lbl">Reach</div><div class="val">${tReach.toLocaleString('en-IN')}</div></div></div>
+   <div class="card"><div class="tblwrap"><table class="tbl adv-tbl"><thead><tr><th>Campaign / Ad set / Ad</th><th>Status</th><th>Spend</th><th>Results</th><th>Cost/res</th><th>Impr.</th><th>Reach</th></tr></thead><tbody>${ADV.loading?`<tr><td colspan="7" class="sub1" style="padding:22px;text-align:center">Loading from Meta\u2026</td></tr>`:(rows||`<tr><td colspan="7" class="sub1" style="padding:22px;text-align:center">No ${ADV.active?"active ":""}campaigns in this date range.</td></tr>`)}</tbody></table></div></div>`;
+}
+async function advLoad(id){ ADV.loading=true; ADV.tree=ADV.tree||[]; advRender(id); try{ const r=await callFn("meta-insights",{action:"campaigns",client_id:id,from:ADV.from,until:ADV.until,active_only:ADV.active}); ADV.tree=(r.items||[]).map(x=>({...x,_open:false,_adsets:null})); }catch(e){ ADV.tree=[]; toast(e.message||"Could not load campaigns",true); } ADV.loading=false; advRender(id); }
+function advPreset(id,p){ const t=new Date(); ADV.until=t.toISOString().slice(0,10); if(p==="month")ADV.from=new Date(t.getFullYear(),t.getMonth(),1).toISOString().slice(0,10); else ADV.from=new Date(Date.now()-p*864e5).toISOString().slice(0,10); advLoad(id); }
+async function advToggleCamp(id,ci){ const c=ADV.tree[ci]; if(!c)return; c._open=!c._open; advRender(id); if(c._open&&c._adsets==null){ try{ const r=await callFn("meta-insights",{action:"adsets",campaign_id:c.id,from:ADV.from,until:ADV.until,active_only:ADV.active}); c._adsets=(r.items||[]).map(x=>({...x,_open:false,_ads:null})); }catch(e){ c._adsets=[]; toast(e.message||"Failed",true); } advRender(id); } }
+async function advToggleSet(id,ci,si){ const as=ADV.tree[ci]&&ADV.tree[ci]._adsets&&ADV.tree[ci]._adsets[si]; if(!as)return; as._open=!as._open; advRender(id); if(as._open&&as._ads==null){ try{ const r=await callFn("meta-insights",{action:"ads",adset_id:as.id,from:ADV.from,until:ADV.until,active_only:ADV.active}); as._ads=(r.items||[]); }catch(e){ as._ads=[]; toast(e.message||"Failed",true); } advRender(id); } }
 async function metaRefreshClient(id){ toast("Syncing from Meta\u2026"); try{ const r=await callFn("meta-insights",{action:"refresh",client_id:id}); if(r.errors&&r.errors.length)toast(r.errors[0],true); else toast("Synced"); viewClientWorkspace($("#content"),id); }catch(e){ toast(e.message||"Sync failed",true); } }
 let META_CONNECTED=false;
 async function viewAdAnalytics(c){
@@ -1261,17 +1289,9 @@ async function cwTab(id,amn){
   else if(CW_TAB==="assets"){ const {data}=await sb.from("cr_assets").select("*").eq("client_id",id); b.innerHTML=`<div class="agrid">${(data||[]).map(a=>{const u=a.file_path?supaImg(a.file_path):"";const img=(a.mime_type||"").startsWith("image");return `<div class="acard"><div class="ath">${img&&u?`<img src="${esc(u)}">`:'📄'}</div><div class="ab"><b>${esc(a.name)}</b><span class="status ${a.is_deliverable?'g':'n'}" style="font-size:11px;padding:3px 8px;margin-top:4px;display:inline-block">${a.is_deliverable?'Approved':'Working'}</span></div></div>`;}).join("")||'<div class="sub1">No assets.</div>'}</div>`; }
   else if(CW_TAB==="reports"){ const {data}=await sb.from("cr_reports").select("*").eq("client_id",id); b.innerHTML=cwList(data||[],["Report","Period","Status"],r=>`<td><b>${esc(r.title||'Report')}</b></td><td>${r.period_start?fmtD(r.period_start):'—'}</td><td>${cwStatus(r.status)}</td>`); }
   else if(CW_TAB==="analytics"){
-    const {data:ins}=await sb.from("cr_meta_insights").select("*").eq("client_id",id);
-    const by={}; (ins||[]).forEach(r=>by[r.scope]=r);
-    if(!CW_CLIENT.meta_ad_account){ b.innerHTML=`<div class="empty"><div class="ei">${IC.adanalytics}</div><div>No Meta ad account linked</div><div class="sub1" style="margin:6px 0">Map this client to their ad account in Ad Analytics, then refresh.</div>${isAdmin()?`<button class="btn" onclick="location.hash='#/adanalytics'">Open Ad Analytics</button>`:''}</div>`; return; }
-    const ov=(by.overview&&by.overview.data&&by.overview.data[0])||null;
-    const spend=ov?Number(ov.spend||0):0, impr=ov?Number(ov.impressions||0):0, reach=ov?Number(ov.reach||0):0, res=ov?metaResult(ov):0;
-    b.innerHTML=`<div class="btnrow" style="justify-content:space-between;align-items:center;margin-bottom:12px"><div class="sub1">${by.overview?('Last synced '+fmtDT(by.overview.fetched_at)):'Not synced yet'}</div>${isAdmin()?`<button class="btn sm" onclick="metaRefreshClient('${id}')">↻ Refresh from Meta</button>`:''}</div>
-     <div class="stat-row att-stats"><div class="stat"><div class="lbl">Amount spent</div><div class="val">${money(spend)}</div></div><div class="stat"><div class="lbl">Results</div><div class="val">${res}</div></div><div class="stat"><div class="lbl">Impressions</div><div class="val">${impr.toLocaleString('en-IN')}</div></div><div class="stat"><div class="lbl">Reach</div><div class="val">${reach.toLocaleString('en-IN')}</div></div></div>
-     <div class="two"><div class="card pad"><div class="card-h"><h3 class="sec-title" style="font-size:16px">Spend &amp; results over time</h3></div><div style="height:220px"><canvas id="meta-daily"></canvas></div></div>
-     <div class="card pad"><div class="card-h"><h3 class="sec-title" style="font-size:16px">Age &amp; gender</h3></div><div style="height:220px"><canvas id="meta-ag"></canvas></div></div></div>`;
-    if(by.daily&&by.daily.data&&by.daily.data.length){ const d=by.daily.data; const labels=d.map(x=>x.date_start?fmtD(x.date_start):''); const spendL=d.map(x=>Number(x.spend||0)); const resL=d.map(x=>metaResult(x)); chart("meta-daily",{type:'line',data:{labels,datasets:[{label:'Spend',...areaDS(spendL,"#2563eb","#2563eb22","#2563eb02"),yAxisID:'y'},{label:'Results',...areaDS(resL,"#22d3ee","#22d3ee33","#22d3ee03"),yAxisID:'y1'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,align:'end'}},scales:{x:{grid:{display:false}},y:{position:'left'},y1:{position:'right',grid:{display:false}}}}}); }
-    if(by.agegender&&by.agegender.data&&by.agegender.data.length){ const d=by.agegender.data; const ages=[...new Set(d.map(x=>x.age))].sort(); const men=ages.map(a=>d.filter(x=>x.age===a&&x.gender==='male').reduce((t,x)=>t+metaResult(x),0)); const women=ages.map(a=>d.filter(x=>x.age===a&&x.gender==='female').reduce((t,x)=>t+metaResult(x),0)); chart("meta-ag",{type:'bar',data:{labels:ages,datasets:[{label:'Men',data:men,backgroundColor:'#7c3aed'},{label:'Women',data:women,backgroundColor:'#22d3ee'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,align:'end'}},scales:{x:{grid:{display:false}}}}}); }
+    if(!CW_CLIENT.meta_ad_account){ b.innerHTML=`<div class="empty"><div class="ei">${IC.adanalytics}</div><div>No Meta ad account linked</div><div class="sub1" style="margin:6px 0">Map this client to their ad account in Ad Analytics, then it will show live campaigns here.</div>${isAdmin()?`<button class="btn" onclick="location.hash='#/adanalytics'">Open Ad Analytics</button>`:''}</div>`; return; }
+    const _t=new Date(); ADV={from:new Date(Date.now()-30*864e5).toISOString().slice(0,10), until:_t.toISOString().slice(0,10), active:true, tree:null, loading:true};
+    advLoad(id);
   }
   else if(CW_TAB==="billing"){ const {data}=await sb.from("cr_invoices").select("*").eq("client_id",id).order("issue_date",{ascending:false}); b.innerHTML=(canStaff()?`<div style="margin-bottom:12px"><button class="btn" onclick="invForm('${id}')"><span>${IC.plus}</span> New invoice</button></div>`:"")+cwList(data||[],["Invoice","Total","Balance","Status"],r=>`<td><b>${esc(r.invoice_no||'(draft)')}</b></td><td>${money(r.total)}</td><td>${money((Number(r.total)||0)-(Number(r.paid)||0))}</td><td>${cwStatus(invStatusLabel(r))}</td>`); }
 }
