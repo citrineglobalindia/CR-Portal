@@ -1300,15 +1300,45 @@ async function viewAdAnalytics(c){
 async function metaSaveToken(){ const t=v("meta-tok"); if(!t){toast("Paste a token",true);return;} try{ await callFn("meta-insights",{action:"save_token",token:t}); toast("Token saved"); viewAdAnalytics($("#content")); }catch(e){ toast(e.message||"Failed",true); } }
 async function metaTest(){ try{ const r=await callFn("meta-insights",{action:"test"}); toast("Connected as "+(r.name||"Meta")); }catch(e){ toast(e.message||"Test failed",true); } }
 async function metaRefreshAll(){ toast("Syncing all clients\u2026 this can take a moment"); try{ const r=await callFn("meta-insights",{action:"refresh"}); toast("Synced "+r.refreshed+" client(s)"+(r.errors&&r.errors.length?" \u00b7 "+r.errors.length+" error(s)":"")); viewAdAnalytics($("#content")); }catch(e){ toast(e.message||"Sync failed",true); } }
+let _mapC={};
+function campLbl(cl){ const n=(cl.meta_campaign_ids||[]).length; if(!cl.meta_ad_account) return "No account \u2014 maps nothing yet"; return n?`<span style="color:#2563eb;font-weight:700">${n} campaign(s) selected</span> \u00b7 shared-account mode`:"All campaigns in this account"; }
 async function metaMapForm(){
   let accts=[]; try{ const r=await callFn("meta-insights",{action:"list_accounts"}); accts=r.accounts||[]; }catch(e){ toast(e.message||"Could not list accounts \u2014 save a token first",true); return; }
-  const {data:clients}=await sb.from("cr_profiles").select("id,company,full_name,meta_ad_account").eq("role","client").order("company");
+  const {data:clients}=await sb.from("cr_profiles").select("id,company,full_name,meta_ad_account,meta_campaign_ids").eq("role","client").order("company");
+  _mapC={}; (clients||[]).forEach(cl=>_mapC[cl.id]={meta_ad_account:cl.meta_ad_account,meta_campaign_ids:cl.meta_campaign_ids||[]});
   const opts=sel=>`<option value="">\u2014 unassigned \u2014</option>`+(accts.map(a=>`<option value="act_${a.account_id}" ${sel==='act_'+a.account_id||sel===a.account_id?'selected':''}>${esc(a.name)} (act_${a.account_id})</option>`).join(""));
-  const body=`<div class="sub1" style="margin-bottom:10px">${accts.length} ad account(s) visible to your token. Assign each client to their account.</div>`+
-    (clients||[]).map(cl=>`<div class="g2" style="align-items:center;margin-bottom:8px"><div class="fld2" style="margin:0"><b>${esc(cl.company||cl.full_name)}</b></div><div class="fld2" style="margin:0"><select class="inp" onchange="metaMapSet('${cl.id}',this.value)">${opts(cl.meta_ad_account)}</select></div></div>`).join("");
-  sheet("Map Meta ad accounts",body,{icon:IC.adanalytics,subtitle:"Link each client to their Meta ad account."});
+  const body=`<div class="sub1" style="margin-bottom:12px">${accts.length} ad account(s) visible to your token. Assign each client to their account. If several clients share one ad account, use <b>Choose specific campaigns</b> so each client only shows their own campaigns, spend and results.</div>`+
+    (clients||[]).map(cl=>`<div style="border:1px solid var(--line,#e7eaf0);border-radius:12px;padding:12px 13px;margin-bottom:10px">
+      <div class="g2" style="align-items:center;gap:12px"><div class="fld2" style="margin:0"><b>${esc(cl.company||cl.full_name)}</b><div class="sub1" id="mc-lbl-${cl.id}" style="margin-top:2px">${campLbl(_mapC[cl.id])}</div></div>
+      <div class="fld2" style="margin:0"><select class="inp" id="mc-acct-${cl.id}" onchange="metaMapSet('${cl.id}',this.value)">${opts(cl.meta_ad_account)}</select></div></div>
+      <div style="margin-top:9px"><a class="linkg" onclick="metaCampaignPick('${cl.id}')">\uD83C\uDFAF Choose specific campaigns \u203a</a></div>
+      <div id="mc-pick-${cl.id}"></div></div>`).join("");
+  sheet("Map Meta ad accounts",body,{icon:IC.adanalytics,subtitle:"Link each client to their Meta ad account \u2014 or specific campaigns in a shared account."});
 }
-async function metaMapSet(clientId,acct){ await sb.from("cr_profiles").update({meta_ad_account:acct||null}).eq("id",clientId); toast("Mapped"); }
+async function metaMapSet(clientId,acct){ await sb.from("cr_profiles").update({meta_ad_account:acct||null,meta_campaign_ids:null}).eq("id",clientId); if(_mapC[clientId]){_mapC[clientId].meta_ad_account=acct||null;_mapC[clientId].meta_campaign_ids=[];} const l=document.getElementById("mc-lbl-"+clientId); if(l)l.innerHTML=campLbl(_mapC[clientId]); const p=document.getElementById("mc-pick-"+clientId); if(p)p.innerHTML=""; toast("Mapped"); }
+async function metaCampaignPick(clientId){
+  const box=document.getElementById("mc-pick-"+clientId); if(!box)return;
+  if(box.dataset.open==="1"){ box.innerHTML=""; box.dataset.open=""; return; }
+  const sel=document.getElementById("mc-acct-"+clientId); const acct=(sel&&sel.value)||(_mapC[clientId]&&_mapC[clientId].meta_ad_account); if(!acct){ toast("Pick an ad account first",true); return; }
+  box.dataset.open="1"; box.innerHTML=`<div class="sub1" style="padding:8px 2px">Loading campaigns\u2026</div>`;
+  let items=[]; try{ const r=await callFn("meta-insights",{action:"account_campaigns",ad_account:acct}); items=r.items||[]; }catch(e){ box.innerHTML=`<div class="sub1" style="color:#b4740f;padding:6px 2px">${esc(e.message||"Could not load campaigns")}</div>`; return; }
+  const cur=new Set(((_mapC[clientId]&&_mapC[clientId].meta_campaign_ids)||[]).map(String));
+  if(!items.length){ box.innerHTML=`<div class="sub1" style="padding:6px 2px">No campaigns found in this account.</div>`; return; }
+  box.innerHTML=`<div style="background:var(--panel2,#f6f8fc);border-radius:10px;padding:10px;margin-top:8px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><b style="font-size:13px">Select this client's campaigns</b><a class="linkg" onclick="document.querySelectorAll('.mcck-${clientId}').forEach(c=>c.checked=false)">Clear</a></div>
+    <div style="max-height:220px;overflow:auto;display:flex;flex-direction:column;gap:5px">${items.map(it=>`<label class="chk" style="margin:0;font-size:13px"><input type="checkbox" class="mcck-${clientId}" value="${it.id}" ${cur.has(String(it.id))?'checked':''}> ${esc(it.name||it.id)} <span class="sub1">\u00b7 ${esc((it.status||'').toLowerCase())}</span></label>`).join("")}</div>
+    <div style="display:flex;gap:8px;margin-top:10px"><button class="btn sm" onclick="metaCampSave('${clientId}')">Save selection</button><span class="sub1" style="align-self:center">Leave all unchecked = use the whole account.</span></div></div>`;
+}
+async function metaCampSave(clientId){
+  const ids=[...document.querySelectorAll(".mcck-"+clientId+":checked")].map(c=>c.value);
+  const val=ids.length?ids:null;
+  const {error}=await sb.from("cr_profiles").update({meta_campaign_ids:val}).eq("id",clientId);
+  if(error){toast(error.message,true);return;}
+  if(_mapC[clientId])_mapC[clientId].meta_campaign_ids=ids;
+  const l=document.getElementById("mc-lbl-"+clientId); if(l)l.innerHTML=campLbl(_mapC[clientId]);
+  const box=document.getElementById("mc-pick-"+clientId); if(box){box.innerHTML="";box.dataset.open="";}
+  toast(ids.length?`${ids.length} campaign(s) linked \u2014 Refresh to update totals`:"Using whole account");
+}
 let _cwMenu=null;
 function closeCwMenu(){ if(_cwMenu){_cwMenu.remove();_cwMenu=null;} }
 async function cwPick(el,id,role){
