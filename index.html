@@ -348,6 +348,8 @@ button{font-family:inherit;cursor:pointer}
 .svc-chip{display:inline-block;background:var(--tint);color:var(--green-ink);border:1px solid var(--tint2);border-radius:999px;padding:3px 10px;font-size:11.5px;font-weight:700;margin:2px 3px 2px 0}
 .cl-fee{font-family:var(--font-head);color:var(--green);font-size:14px}
 .mini-date{font-size:12.5px;color:var(--ink2);background:var(--panel2);border:1px solid var(--line);border-radius:7px;padding:3px 9px;white-space:nowrap}
+.total-row{display:flex;align-items:center;justify-content:space-between;background:var(--tint);border:1px solid var(--tint2);border-radius:11px;padding:11px 15px;margin:10px 0 4px;font-weight:600;color:var(--green-ink)}
+.total-row b{font-family:var(--font-head);font-size:18px;color:var(--green)}
 @media(max-width:860px){.docs-wrap{grid-template-columns:1fr}}
 @media(max-width:860px){.app{grid-template-columns:1fr}.side{position:fixed;left:0;top:0;bottom:0;width:252px;z-index:120;transform:translateX(-100%);transition:.25s}.side.open{transform:none}.search{display:none}.auth{grid-template-columns:1fr}.auth-art{display:none}.auth-form{padding:36px 22px}.ph h1{font-size:26px}}
 
@@ -836,7 +838,7 @@ async function viewOverview(c){
   const from30=new Date(Date.now()-30*864e5).toISOString();
   const [cl,svc,content,inv,bud,prop,con,req,enq,staff]=await Promise.all([
     sb.from("cr_profiles").select("id,company,full_name,username,industry,account_manager,client_status,logo_path,renewal_date,service_start").eq("role","client"),
-    sb.from("cr_client_services").select("client_id,name,fee,recurring,status"),
+    sb.from("cr_client_services").select("client_id,name,fee,base,gst,tax_rate,recurring,status"),
     sb.from("cr_content_items").select("client_id,status,planned_at,platform,content_type,caption"),
     sb.from("cr_invoices").select("client_id,total,paid,status,due_date,recurring"),
     sb.from("cr_ad_budgets").select("client_id,spent,approved,period_month"),
@@ -947,6 +949,8 @@ let CL_SVC=[];
 function clFilter(q){clRender(q);}
 function svcLabel(k){ return ({software:'Software',digital:'Digital marketing','digital marketing':'Digital marketing',web:'Web / Software'})[(k||'').toLowerCase()]||k; }
 function clFee(c){ return CL_SVC.filter(s=>s.client_id===c.id&&s.recurring!==false&&s.status!=='cancelled').reduce((a,s)=>a+(Number(s.fee)||0),0); }
+function clBase(c){ const r=CL_SVC.filter(s=>s.client_id===c.id&&s.recurring!==false&&s.status!=='cancelled'); return r.reduce((a,s)=>a+(Number(s.base!=null?s.base:s.fee)||0),0); }
+function clGst(c){ return CL_SVC.some(s=>s.client_id===c.id&&s.gst); }
 function clChips(c){ const types=(c.service_types||[]).map(svcLabel); const named=CL_SVC.filter(s=>s.client_id===c.id).map(s=>s.name).filter(Boolean); return [...new Set([...types,...named])]; }
 function clRender(q){
   q=(q||"").toLowerCase(); const el=$("#cl-tbl"); if(!el)return;
@@ -957,7 +961,7 @@ function clRender(q){
     const st=c.client_status==="inactive"?`<span class="status n">Inactive</span>`:(c.client_status==="onboarding"?`<span class="status a">Onboarding</span>`:`<span class="status g">Active</span>`);
     return `<tr class="rowlink"><td onclick="location.hash='#/clients/${c.id}'"><div class="cell-lead"><div class="av2" style="background:linear-gradient(135deg,${avatarColor(c.company||c.full_name)})">${esc(initials(c.company||c.full_name)).toUpperCase()}</div><div><b>${esc(c.company||c.full_name||c.username)}</b><div class="sub1">${esc(c.industry||c.client_code||"—")}</div></div></div></td>
     <td>${chips.length?chips.slice(0,3).map(x=>`<span class="svc-chip">${esc(x)}</span>`).join(""):'<span class="sub1">—</span>'}</td>
-    <td>${fee?`<b class="cl-fee">${money(fee)}<span class="sub1" style="font-weight:500">/mo</span></b>`:`<a class="linkg" onclick="event.stopPropagation();clFeeForm('${c.id}')">+ Set fee</a>`}</td>
+    <td>${fee?`<b class="cl-fee">${money(fee)}<span class="sub1" style="font-weight:500">/mo</span></b>${clGst(c)?'<div class="sub1" style="font-size:10.5px">incl. 18% GST</div>':'<div class="sub1" style="font-size:10.5px">no GST</div>'}`:`<a class="linkg" onclick="event.stopPropagation();clFeeForm('${c.id}')">+ Set fee</a>`}</td>
     <td>${c.service_start?`<span class="mini-date">${fmtD(c.service_start)}</span>`:'<span class="sub1">—</span>'}</td>
     <td>${c.renewal_date?`<span class="mini-date">${fmtD(c.renewal_date)}</span>`:'<span class="sub1">—</span>'}</td>
     <td>${st}</td>
@@ -968,17 +972,18 @@ function clFeeForm(id){
   const c=CLIENTS.find(x=>x.id===id)||{}; const has=t=>(c.service_types||[]).includes(t);
   sheet("Services & billing",`<div class="sub1" style="margin-bottom:12px">${esc(c.company||c.full_name||'')}</div>
    <div class="fld2"><label>Services</label><div style="display:flex;gap:10px"><label class="svc-pick"><input type="checkbox" id="cf-sw" ${has('software')?'checked':''}> <span>💻 Software / Web</span></label><label class="svc-pick"><input type="checkbox" id="cf-dm" ${has('digital')?'checked':''}> <span>📈 Digital marketing</span></label></div></div>
-   <div class="g2"><div class="fld2"><label>Monthly service cost (₹)</label><input id="cf-fee" type="number" class="inp" value="${clFee(c)||''}" placeholder="e.g. 25000"/></div><div class="fld2"><label>Service start</label><input id="cf-start" type="date" class="inp" value="${c.service_start||''}"/></div></div>
-   <div class="fld2"><label>Renewal / expiry date</label><input id="cf-renew" type="date" class="inp" value="${c.renewal_date||''}"/></div>
+   <div class="g2"><div class="fld2"><label>Monthly service cost (₹) <span class="sub1">base</span></label><input id="cf-fee" type="number" class="inp" value="${clBase(c)||''}" placeholder="e.g. 25000" oninput="cfTotal()"/></div><div class="fld2"><label>GST</label><select id="cf-gstopt" class="inp" onchange="cfTotal()"><option value="0" ${!clGst(c)?'selected':''}>Non-GST</option><option value="18" ${clGst(c)?'selected':''}>GST payer · 18%</option></select></div></div>
+   <div class="total-row">Total monthly billing <b id="cf-total">${money(clFee(c))}</b></div>
+   <div class="g2"><div class="fld2"><label>Service start</label><input id="cf-start" type="date" class="inp" value="${c.service_start||''}"/></div><div class="fld2"><label>Renewal / expiry date</label><input id="cf-renew" type="date" class="inp" value="${c.renewal_date||''}"/></div></div>
    <button class="btn block" onclick="clFeeSave('${id}')">Save</button>`,{icon:IC.clients,subtitle:'Set services, monthly cost and renewal.'});
 }
 async function clFeeSave(id){
   const st=[]; if(document.getElementById('cf-sw').checked)st.push('software'); if(document.getElementById('cf-dm').checked)st.push('digital');
-  const fee=Number(v('cf-fee'))||0;
+  const g=gstCalc(v('cf-fee'),v('cf-gstopt'));
   const {error}=await sb.from('cr_profiles').update({service_types:st.length?st:null,service_start:v('cf-start')||null,renewal_date:v('cf-renew')||null}).eq('id',id);
   if(error){toast(error.message,true);return;}
   await sb.from('cr_client_services').delete().eq('client_id',id);
-  if(fee>0){ await sb.from('cr_client_services').insert({client_id:id,name:st.map(svcLabel).join(' + ')||'Retainer',fee,recurring:true,status:'active'}); }
+  if(g.base>0){ await sb.from('cr_client_services').insert({client_id:id,name:st.map(svcLabel).join(' + ')||'Retainer',base:g.base,fee:g.total,gst:g.gst,tax_rate:g.rate,recurring:true,status:'active'}); }
   closeModal(); toast('Saved'); viewClients($("#content"));
 }
 async function viewClientWorkspace(c,id){
@@ -1688,12 +1693,17 @@ async function clAddForm(){
    <div class="fld2" style="margin-top:12px"><label>Billing address</label><textarea id="nc-addr" class="inp" rows="2"></textarea></div>
    <div class="sheet-sec">Engagement</div>
    <div class="g2"><div class="fld2"><label>Service start</label><input id="nc-start" type="date" class="inp"/></div><div class="fld2"><label>Renewal / expiry date</label><input id="nc-renew" type="date" class="inp"/></div></div>
-   <div class="fld2"><label>Monthly service cost (₹) <span class="sub1">shows in billing & dashboard</span></label><input id="nc-fee" type="number" class="inp" placeholder="e.g. 25000"/></div>
+   <div class="g2"><div class="fld2"><label>Monthly service cost (₹) <span class="sub1">base</span></label><input id="nc-fee" type="number" class="inp" placeholder="e.g. 25000" oninput="ncTotal()"/></div>
+   <div class="fld2"><label>GST</label><select id="nc-gstopt" class="inp" onchange="ncTotal()"><option value="0">Non-GST</option><option value="18">GST payer · 18%</option></select></div></div>
+   <div class="total-row">Total monthly billing <b id="nc-total">₹0</b></div>
    <div class="fld2"><label>Services</label><div style="display:flex;gap:10px"><label class="svc-pick"><input type="checkbox" id="nc-sw"> <span>💻 Software</span></label><label class="svc-pick"><input type="checkbox" id="nc-dm" checked> <span>📈 Digital marketing</span></label></div></div>
    <div class="fld2"><label>Internal notes <span class="sub1">🔒 not shown to client</span></label><textarea id="nc-notes" class="inp" rows="2" placeholder="Private notes for your team"></textarea></div>`;
   const foot=`<button class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn" id="nc-btn" onclick="clAddSave()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg> Create client</button>`;
   sheet("Create client",body,{icon:IC.clients,subtitle:"Set up the client, their login and engagement.",foot});
 }
+function gstCalc(base,rate){ base=Number(base)||0; rate=Number(rate)||0; return {base,rate,gst:rate>0,total:Math.round(base*(1+rate/100))}; }
+function ncTotal(){ const t=gstCalc(v("nc-fee"),v("nc-gstopt")); const el=document.getElementById("nc-total"); if(el)el.textContent=money(t.total); }
+function cfTotal(){ const t=gstCalc(v("cf-fee"),v("cf-gstopt")); const el=document.getElementById("cf-total"); if(el)el.textContent=money(t.total); }
 function ncCode(){ const c=document.getElementById("nc-code"); if(c&&!c.dataset.t){ c.value=(v("nc-company")||"").replace(/[^A-Za-z]/g,"").slice(0,3).toUpperCase(); const p=document.getElementById("nc-prefix"); if(p&&!p.dataset.t)p.value="CR-"+c.value; } }
 async function clAddSave(){
   const name=v("nc-name"),company=v("nc-company"),code=v("nc-code"),user=v("nc-user"),pass=v("nc-pass"),emails=(v("nc-email")||"").split(",").map(x=>x.trim()).filter(Boolean);
@@ -1701,7 +1711,7 @@ async function clAddSave(){
   const st=[]; if(document.getElementById("nc-sw").checked)st.push("software"); if(document.getElementById("nc-dm").checked)st.push("digital"); if(!st.length)st.push("digital");
   const btn=document.getElementById("nc-btn"); if(btn){btn.disabled=true;btn.textContent="Creating…";}
   try{ const res=await callFn("admin-create-client",{username:user,password:pass,email:emails[0],notify_emails:emails,full_name:name,company,client_code:code,cr_prefix:v("nc-prefix")||("CR-"+code),phone:v("nc-phone"),whatsapp:v("nc-phone"),industry:v("nc-industry")||null,website:v("nc-web")||null,gst_no:v("nc-gst")||null,billing_address:v("nc-addr")||null,address:v("nc-addr")||null,service_types:st,account_manager:v("nc-am")||null,service_start:v("nc-start")||null,renewal_date:v("nc-renew")||null,client_status:"active",internal_notes:v("nc-notes")||null});
-    const cid=res&&res.id; const fee=Number(v("nc-fee"))||0; if(cid&&fee>0){ try{ await sb.from("cr_client_services").insert({client_id:cid,name:st.map(svcLabel).join(" + ")||"Retainer",fee,recurring:true,status:"active"}); }catch(_){ } }
+    const cid=res&&res.id; const g=gstCalc(v("nc-fee"),v("nc-gstopt")); if(cid&&g.base>0){ try{ await sb.from("cr_client_services").insert({client_id:cid,name:st.map(svcLabel).join(" + ")||"Retainer",base:g.base,fee:g.total,gst:g.gst,tax_rate:g.rate,recurring:true,status:"active"}); }catch(_){ } }
     closeModal();toast(`Client "${company}" created`);viewClients($("#content"));
   }catch(e){toast(e.message||"Could not create",true);if(btn){btn.disabled=false;btn.textContent="Create client";}}
 }
