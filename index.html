@@ -345,6 +345,9 @@ button{font-family:inherit;cursor:pointer}
 .an-row span{width:110px;flex:0 0 auto;color:var(--ink2)}
 .an-bar{flex:1;height:8px;background:var(--panel2);border-radius:5px;overflow:hidden}.an-bar i{display:block;height:100%;background:var(--grad)}
 .an-row b{width:28px;text-align:right}
+.svc-chip{display:inline-block;background:var(--tint);color:var(--green-ink);border:1px solid var(--tint2);border-radius:999px;padding:3px 10px;font-size:11.5px;font-weight:700;margin:2px 3px 2px 0}
+.cl-fee{font-family:var(--font-head);color:var(--green);font-size:14px}
+.mini-date{font-size:12.5px;color:var(--ink2);background:var(--panel2);border:1px solid var(--line);border-radius:7px;padding:3px 9px;white-space:nowrap}
 @media(max-width:860px){.docs-wrap{grid-template-columns:1fr}}
 @media(max-width:860px){.app{grid-template-columns:1fr}.side{position:fixed;left:0;top:0;bottom:0;width:252px;z-index:120;transform:translateX(-100%);transition:.25s}.side.open{transform:none}.search{display:none}.auth{grid-template-columns:1fr}.auth-art{display:none}.auth-form{padding:36px 22px}.ph h1{font-size:26px}}
 
@@ -931,10 +934,10 @@ async function viewClients(c){
   const parts=routeParts();
   if(parts[1]) return viewClientWorkspace(c,parts[1]);
   c.innerHTML=`<div class="ph"><div class="ph-ic">${IC.clients}</div><div><h1>Clients</h1><div class="psub">Every client company, contact and engagement in one place.</div></div><div class="ph-r">${canStaff()?`<button class="btn" onclick="clAddForm()"><span>${IC.plus}</span> Add client</button>`:""}</div></div>
-   <div class="card pad"><div class="card-h"><h3 class="sec-title">All clients</h3><div style="position:relative"><span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--faint)">${IC.search}</span><input class="inp" style="padding-left:38px;height:40px;width:260px" placeholder="Search clients…" oninput="clFilter(this.value)"/></div></div><div class="tblwrap"><table class="tbl" id="cl-tbl"></table></div></div>`;
+   <div class="card pad"><div class="card-h"><h3 class="sec-title">All clients <span id="cl-count" class="sub1" style="font-weight:500;margin-left:6px"></span></h3><div style="position:relative"><span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--faint)">${IC.search}</span><input class="inp" style="padding-left:38px;height:40px;width:260px" placeholder="Search clients…" oninput="clFilter(this.value)"/></div></div><div class="tblwrap"><table class="tbl" id="cl-tbl"></table></div></div>`;
   const [cl,svc,staff]=await Promise.all([
     sb.from("cr_profiles").select("*").eq("role","client").order("company"),
-    sb.from("cr_client_services").select("client_id,name"),
+    sb.from("cr_client_services").select("client_id,name,fee,recurring,status"),
     sb.from("cr_profiles").select("id,full_name,email").in("role",["admin","super_admin","account_manager","manager"])
   ]);
   CLIENTS=cl.data||[]; STAFF=staff.data||[]; CL_SVC=svc.data||[];
@@ -942,15 +945,41 @@ async function viewClients(c){
 }
 let CL_SVC=[];
 function clFilter(q){clRender(q);}
+function svcLabel(k){ return ({software:'Software',digital:'Digital marketing','digital marketing':'Digital marketing',web:'Web / Software'})[(k||'').toLowerCase()]||k; }
+function clFee(c){ return CL_SVC.filter(s=>s.client_id===c.id&&s.recurring!==false&&s.status!=='cancelled').reduce((a,s)=>a+(Number(s.fee)||0),0); }
+function clChips(c){ const types=(c.service_types||[]).map(svcLabel); const named=CL_SVC.filter(s=>s.client_id===c.id).map(s=>s.name).filter(Boolean); return [...new Set([...types,...named])]; }
 function clRender(q){
   q=(q||"").toLowerCase(); const el=$("#cl-tbl"); if(!el)return;
   const rows=CLIENTS.filter(c=>!q||((c.company||c.full_name||c.username||"")+(c.industry||"")+(c.client_code||"")).toLowerCase().includes(q));
-  el.innerHTML=`<thead><tr><th>Client</th><th>Services</th><th>Account manager</th><th>Renewal</th><th>Status</th><th></th></tr></thead><tbody>${rows.map(c=>{
-    const am=STAFF.find(s=>s.id===c.account_manager); const amn=am?(am.full_name||am.email):"—";
-    const svcs=CL_SVC.filter(s=>s.client_id===c.id).map(s=>s.name).slice(0,2);
+  const cntEl=document.getElementById("cl-count"); if(cntEl)cntEl.textContent=CLIENTS.length+" client"+(CLIENTS.length!==1?"s":"");
+  el.innerHTML=`<thead><tr><th>Client</th><th>Services</th><th>Monthly fee</th><th>Start</th><th>Renewal</th><th>Status</th><th></th></tr></thead><tbody>${rows.map(c=>{
+    const chips=clChips(c); const fee=clFee(c);
     const st=c.client_status==="inactive"?`<span class="status n">Inactive</span>`:(c.client_status==="onboarding"?`<span class="status a">Onboarding</span>`:`<span class="status g">Active</span>`);
-    return `<tr class="rowlink"><td><div class="cell-lead"><div class="av2" style="background:linear-gradient(135deg,${avatarColor(c.company||c.full_name)})">${esc(initials(c.company||c.full_name)).toUpperCase()}</div><div><b>${esc(c.company||c.full_name||c.username)}</b><div class="sub1">${esc(c.industry||c.client_code||"—")}</div></div></div></td><td>${svcs.map(s=>`<span class="tag">${esc(s)}</span>`).join("")||'<span class="sub1">—</span>'}</td><td>${esc(amn)}</td><td>${c.renewal_date?fmtD(c.renewal_date):"—"}</td><td>${st}</td><td style="text-align:right"><a class="linkg" onclick="location.hash='#/clients/${c.id}'">Open workspace ↗</a></td></tr>`;
-  }).join("")||`<tr><td colspan="6" class="psub" style="text-align:center;padding:24px">No clients yet.</td></tr>`}</tbody>`;
+    return `<tr class="rowlink"><td onclick="location.hash='#/clients/${c.id}'"><div class="cell-lead"><div class="av2" style="background:linear-gradient(135deg,${avatarColor(c.company||c.full_name)})">${esc(initials(c.company||c.full_name)).toUpperCase()}</div><div><b>${esc(c.company||c.full_name||c.username)}</b><div class="sub1">${esc(c.industry||c.client_code||"—")}</div></div></div></td>
+    <td>${chips.length?chips.slice(0,3).map(x=>`<span class="svc-chip">${esc(x)}</span>`).join(""):'<span class="sub1">—</span>'}</td>
+    <td>${fee?`<b class="cl-fee">${money(fee)}<span class="sub1" style="font-weight:500">/mo</span></b>`:`<a class="linkg" onclick="event.stopPropagation();clFeeForm('${c.id}')">+ Set fee</a>`}</td>
+    <td>${c.service_start?`<span class="mini-date">${fmtD(c.service_start)}</span>`:'<span class="sub1">—</span>'}</td>
+    <td>${c.renewal_date?`<span class="mini-date">${fmtD(c.renewal_date)}</span>`:'<span class="sub1">—</span>'}</td>
+    <td>${st}</td>
+    <td style="text-align:right;white-space:nowrap"><a class="linkg" onclick="event.stopPropagation();clFeeForm('${c.id}')" title="Edit services & fee">✎</a> &nbsp; <a class="linkg" onclick="location.hash='#/clients/${c.id}'">Open ↗</a></td></tr>`;
+  }).join("")||`<tr><td colspan="7" class="psub" style="text-align:center;padding:30px">No clients yet. Click <b>Add client</b> to begin.</td></tr>`}</tbody>`;
+}
+function clFeeForm(id){
+  const c=CLIENTS.find(x=>x.id===id)||{}; const has=t=>(c.service_types||[]).includes(t);
+  sheet("Services & billing",`<div class="sub1" style="margin-bottom:12px">${esc(c.company||c.full_name||'')}</div>
+   <div class="fld2"><label>Services</label><div style="display:flex;gap:10px"><label class="svc-pick"><input type="checkbox" id="cf-sw" ${has('software')?'checked':''}> <span>💻 Software / Web</span></label><label class="svc-pick"><input type="checkbox" id="cf-dm" ${has('digital')?'checked':''}> <span>📈 Digital marketing</span></label></div></div>
+   <div class="g2"><div class="fld2"><label>Monthly service cost (₹)</label><input id="cf-fee" type="number" class="inp" value="${clFee(c)||''}" placeholder="e.g. 25000"/></div><div class="fld2"><label>Service start</label><input id="cf-start" type="date" class="inp" value="${c.service_start||''}"/></div></div>
+   <div class="fld2"><label>Renewal / expiry date</label><input id="cf-renew" type="date" class="inp" value="${c.renewal_date||''}"/></div>
+   <button class="btn block" onclick="clFeeSave('${id}')">Save</button>`,{icon:IC.clients,subtitle:'Set services, monthly cost and renewal.'});
+}
+async function clFeeSave(id){
+  const st=[]; if(document.getElementById('cf-sw').checked)st.push('software'); if(document.getElementById('cf-dm').checked)st.push('digital');
+  const fee=Number(v('cf-fee'))||0;
+  const {error}=await sb.from('cr_profiles').update({service_types:st.length?st:null,service_start:v('cf-start')||null,renewal_date:v('cf-renew')||null}).eq('id',id);
+  if(error){toast(error.message,true);return;}
+  await sb.from('cr_client_services').delete().eq('client_id',id);
+  if(fee>0){ await sb.from('cr_client_services').insert({client_id:id,name:st.map(svcLabel).join(' + ')||'Retainer',fee,recurring:true,status:'active'}); }
+  closeModal(); toast('Saved'); viewClients($("#content"));
 }
 async function viewClientWorkspace(c,id){
   const {data:cli}=await sb.from("cr_profiles").select("*").eq("id",id).maybeSingle();
@@ -1658,7 +1687,8 @@ async function clAddForm(){
    <div class="fld2"><label>GST / Tax</label><input id="nc-gst" class="inp"/></div><div class="fld2"><label>Account manager</label><select id="nc-am" class="inp"><option value="">— unassigned —</option>${amOpts}</select></div></div>
    <div class="fld2" style="margin-top:12px"><label>Billing address</label><textarea id="nc-addr" class="inp" rows="2"></textarea></div>
    <div class="sheet-sec">Engagement</div>
-   <div class="g2"><div class="fld2"><label>Service start</label><input id="nc-start" type="date" class="inp"/></div><div class="fld2"><label>Renewal date</label><input id="nc-renew" type="date" class="inp"/></div></div>
+   <div class="g2"><div class="fld2"><label>Service start</label><input id="nc-start" type="date" class="inp"/></div><div class="fld2"><label>Renewal / expiry date</label><input id="nc-renew" type="date" class="inp"/></div></div>
+   <div class="fld2"><label>Monthly service cost (₹) <span class="sub1">shows in billing & dashboard</span></label><input id="nc-fee" type="number" class="inp" placeholder="e.g. 25000"/></div>
    <div class="fld2"><label>Services</label><div style="display:flex;gap:10px"><label class="svc-pick"><input type="checkbox" id="nc-sw"> <span>💻 Software</span></label><label class="svc-pick"><input type="checkbox" id="nc-dm" checked> <span>📈 Digital marketing</span></label></div></div>
    <div class="fld2"><label>Internal notes <span class="sub1">🔒 not shown to client</span></label><textarea id="nc-notes" class="inp" rows="2" placeholder="Private notes for your team"></textarea></div>`;
   const foot=`<button class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn" id="nc-btn" onclick="clAddSave()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg> Create client</button>`;
@@ -1670,7 +1700,8 @@ async function clAddSave(){
   if(!name||!company||!code||!user||pass.length<6||!emails.length){toast("Fill name, company, code, username, 6+ password and email",true);return;}
   const st=[]; if(document.getElementById("nc-sw").checked)st.push("software"); if(document.getElementById("nc-dm").checked)st.push("digital"); if(!st.length)st.push("digital");
   const btn=document.getElementById("nc-btn"); if(btn){btn.disabled=true;btn.textContent="Creating…";}
-  try{ await callFn("admin-create-client",{username:user,password:pass,email:emails[0],notify_emails:emails,full_name:name,company,client_code:code,cr_prefix:v("nc-prefix")||("CR-"+code),phone:v("nc-phone"),whatsapp:v("nc-phone"),industry:v("nc-industry")||null,website:v("nc-web")||null,gst_no:v("nc-gst")||null,billing_address:v("nc-addr")||null,address:v("nc-addr")||null,service_types:st,account_manager:v("nc-am")||null,service_start:v("nc-start")||null,renewal_date:v("nc-renew")||null,client_status:"active",internal_notes:v("nc-notes")||null});
+  try{ const res=await callFn("admin-create-client",{username:user,password:pass,email:emails[0],notify_emails:emails,full_name:name,company,client_code:code,cr_prefix:v("nc-prefix")||("CR-"+code),phone:v("nc-phone"),whatsapp:v("nc-phone"),industry:v("nc-industry")||null,website:v("nc-web")||null,gst_no:v("nc-gst")||null,billing_address:v("nc-addr")||null,address:v("nc-addr")||null,service_types:st,account_manager:v("nc-am")||null,service_start:v("nc-start")||null,renewal_date:v("nc-renew")||null,client_status:"active",internal_notes:v("nc-notes")||null});
+    const cid=res&&res.id; const fee=Number(v("nc-fee"))||0; if(cid&&fee>0){ try{ await sb.from("cr_client_services").insert({client_id:cid,name:st.map(svcLabel).join(" + ")||"Retainer",fee,recurring:true,status:"active"}); }catch(_){ } }
     closeModal();toast(`Client "${company}" created`);viewClients($("#content"));
   }catch(e){toast(e.message||"Could not create",true);if(btn){btn.disabled=false;btn.textContent="Create client";}}
 }
