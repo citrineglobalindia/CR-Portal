@@ -93,7 +93,8 @@ button{font-family:inherit;cursor:pointer}
 .chk{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:13px}
 
 /* ---------- APP SHELL ---------- */
-.app{display:grid;grid-template-columns:252px 1fr;height:100vh;overflow:hidden}
+.app{display:grid;grid-template-columns:252px 1fr;grid-template-rows:100vh;height:100vh;overflow:hidden}
+.side{min-height:0}
 .side{background:var(--side);display:flex;flex-direction:column;padding:20px 14px;color:var(--side-ink)}
 .side .brand{padding:6px 8px 20px;gap:10px}.side .brand b{color:#fff;font-size:17px}.side .lgo{width:34px;height:34px}
 .nav{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:3px}
