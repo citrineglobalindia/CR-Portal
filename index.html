@@ -2075,15 +2075,24 @@ function gstCalc(base,rate){ base=Number(base)||0; rate=Number(rate)||0; return 
 function ncTotal(){ const t=gstCalc(v("nc-fee"),v("nc-gstopt")); const el=document.getElementById("nc-total"); if(el)el.textContent=money(t.total); }
 function cfTotal(){ const t=gstCalc(v("cf-fee"),v("cf-gstopt")); const el=document.getElementById("cf-total"); if(el)el.textContent=money(t.total); }
 function ncCode(){ const c=document.getElementById("nc-code"); if(c&&!c.dataset.t){ c.value=(v("nc-company")||"").replace(/[^A-Za-z]/g,"").slice(0,3).toUpperCase(); const p=document.getElementById("nc-prefix"); if(p&&!p.dataset.t)p.value="CR-"+c.value; } }
+function _slug(s){ return String(s||"").toLowerCase().replace(/[^a-z0-9]/g,"").slice(0,12); }
+function _rand(n){ const c="abcdefghjkmnpqrstuvwxyz23456789"; let o=""; for(let i=0;i<n;i++)o+=c[Math.floor(Math.random()*c.length)]; return o; }
 async function clAddSave(){
-  const name=v("nc-name"),company=v("nc-company"),code=v("nc-code"),user=v("nc-user"),pass=v("nc-pass"),emails=(v("nc-email")||"").split(",").map(x=>x.trim()).filter(Boolean);
-  if(!name||!company||!code||!user||pass.length<6||!emails.length){toast("Fill name, company, code, username, 6+ password and email",true);return;}
+  let name=v("nc-name"),company=v("nc-company"),code=v("nc-code"),user=v("nc-user"),pass=v("nc-pass");
+  let emails=(v("nc-email")||"").split(",").map(x=>x.trim()).filter(Boolean);
+  // Nothing is mandatory \u2014 auto-fill anything left blank so a client can be created with minimal info.
+  company=company||name||("Client "+_rand(4).toUpperCase());
+  name=name||company;
+  code=code||((_slug(company).replace(/[0-9]/g,"").slice(0,3).toUpperCase()||"CLT")+_rand(3).toUpperCase());
+  const autoPass=pass.length<6; if(autoPass)pass=_rand(10);
+  user=user||(emails[0]?emails[0].split("@")[0]:(_slug(company)||"client")+_rand(3));
+  const autoEmail=!emails.length; if(autoEmail)emails=[user+"@client.local"];
   const st=[]; if(document.getElementById("nc-sw").checked)st.push("software"); if(document.getElementById("nc-dm").checked)st.push("digital"); if(!st.length)st.push("digital");
   const btn=document.getElementById("nc-btn"); if(btn){btn.disabled=true;btn.textContent="Creating…";}
   try{ const res=await callFn("admin-create-client",{username:user,password:pass,email:emails[0],notify_emails:emails,full_name:name,company,client_code:code,cr_prefix:v("nc-prefix")||("CR-"+code),phone:v("nc-phone"),whatsapp:v("nc-phone"),industry:v("nc-industry")||null,website:v("nc-web")||null,gst_no:v("nc-gst")||null,billing_address:v("nc-addr")||null,address:v("nc-addr")||null,service_types:st,account_manager:v("nc-am")||null,service_start:v("nc-start")||null,renewal_date:v("nc-renew")||null,client_status:"active",internal_notes:v("nc-notes")||null});
     const cid=res&&res.id; const g=gstCalc(v("nc-fee"),v("nc-gstopt")); if(cid&&g.base>0){ try{ await sb.from("cr_client_services").insert({client_id:cid,name:st.map(svcLabel).join(" + ")||"Retainer",base:g.base,fee:g.total,gst:g.gst,tax_rate:g.rate,recurring:true,status:"active"}); }catch(_){ } }
     const cyc=v("nc-cycle")||"monthly"; let renew=v("nc-renew")||null; if(!renew&&v("nc-start"))renew=addCycle(v("nc-start"),cyc); if(cid){ try{ await sb.from("cr_profiles").update({renewal_cycle:cyc,renewal_date:renew}).eq("id",cid); }catch(_){ } }
-    closeModal();toast(`Client "${company}" created`);viewClients($("#content"));
+    closeModal(); if(autoPass){ alert("Client \""+company+"\" created.\n\nLogin (auto-generated \u2014 save & share):\nUsername: "+user+"\nPassword: "+pass+(autoEmail?"\nEmail: "+emails[0]+" (placeholder)":"")); } toast(`Client "${company}" created`); viewClients($("#content"));
   }catch(e){toast(e.message||"Could not create",true);if(btn){btn.disabled=false;btn.textContent="Create client";}}
 }
 let STAFF_READY=false;
