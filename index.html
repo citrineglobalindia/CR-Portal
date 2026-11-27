@@ -42,38 +42,37 @@ button{font-family:inherit;cursor:pointer}
 .st-rf{margin-left:auto;background:var(--green);color:#fff;border:0;border-radius:10px;padding:8px 14px;font-family:var(--font-head);font-weight:600;font-size:13px}
 .st-rf:hover{filter:brightness(1.08)}
 .st-if{flex:1;width:100%;border:0;background:#fff}
-/* ---- StepStones rising-steps loader ---- */
-.ssl{position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;background:radial-gradient(130% 100% at 50% 8%,#13325f 0%,#0b1220 62%);color:#fff;animation:sslin .3s ease}
+/* ---- StepStones success-steps loader ---- */
+.ssl{position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;background:#f4f9fe;color:#13233a;animation:sslin .3s ease}
 .ssl.out{animation:sslout .45s ease forwards}
 @keyframes sslin{from{opacity:0}to{opacity:1}}
 @keyframes sslout{to{opacity:0;visibility:hidden}}
-.ssl-logo{width:62px;height:62px;animation:sslfloat 2.4s ease-in-out infinite}
-.ssl-logo svg{width:100%;height:100%;filter:drop-shadow(0 10px 24px rgba(34,211,238,.4))}
-@keyframes sslfloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
-.ssl-stage{position:relative;width:280px;height:130px;overflow:visible}
-.ssl-stairs{position:absolute;left:0;bottom:0;width:280px;height:130px;overflow:visible;filter:drop-shadow(0 10px 20px rgba(37,99,235,.3))}
-.ssl-man{position:absolute;width:126px;height:177px;left:-9px;bottom:17px;filter:drop-shadow(0 9px 13px rgba(34,211,238,.45));animation:sslman 2.4s cubic-bezier(.33,0,.3,1) infinite}
+.ssl-stage{position:relative;width:470px;height:235px}
+.ssl-blob{position:absolute;left:0;top:0;width:470px;height:235px;overflow:visible}
+.ssl-tile{position:absolute;background:#41597a;color:#fff;font-family:var(--font-head),Arial,sans-serif;font-weight:800;font-size:13px;letter-spacing:.09em;padding:7px 11px;border-radius:6px;box-shadow:0 6px 14px rgba(65,89,122,.22);opacity:0;animation:sslTile .5s ease forwards}
+.ssl-man{position:absolute;width:170px;height:170px;left:-14px;bottom:2px;animation:sslrun 3s cubic-bezier(.4,.05,.5,1) infinite}
 .ssl-man svg{width:100%;height:100%;display:block;overflow:visible}
-.ssl-mann{transform-box:view-box;transform-origin:32px 90px;animation:sslBob 2.4s ease-in-out infinite}
-.ssl-legA,.ssl-legB{transform-box:view-box;transform-origin:30px 52px}
-.ssl-armA,.ssl-armB{transform-box:view-box;transform-origin:31px 26px}
-.ssl-legA{animation:sslLegA 2.4s ease-in-out infinite}
-.ssl-legB{animation:sslLegB 2.4s ease-in-out infinite}
-.ssl-armA{animation:sslArmA 2.4s ease-in-out infinite}
-.ssl-armB{animation:sslArmB 2.4s ease-in-out infinite}
-@keyframes sslLegA{0%,12%{transform:rotate(22deg)}17.5%{transform:rotate(0deg)}23%,33%{transform:rotate(-22deg)}38.5%{transform:rotate(0deg)}44%,54%{transform:rotate(22deg)}59.5%{transform:rotate(0deg)}65%,75%{transform:rotate(-22deg)}80.5%{transform:rotate(0deg)}86%,100%{transform:rotate(22deg)}}
-@keyframes sslLegB{0%,12%{transform:rotate(-22deg)}17.5%{transform:rotate(0deg)}23%,33%{transform:rotate(22deg)}38.5%{transform:rotate(0deg)}44%,54%{transform:rotate(-22deg)}59.5%{transform:rotate(0deg)}65%,75%{transform:rotate(22deg)}80.5%{transform:rotate(0deg)}86%,100%{transform:rotate(-22deg)}}
-@keyframes sslArmA{0%,12%{transform:rotate(-11deg)}17.5%{transform:rotate(0deg)}23%,33%{transform:rotate(11deg)}38.5%{transform:rotate(0deg)}44%,54%{transform:rotate(-11deg)}59.5%{transform:rotate(0deg)}65%,75%{transform:rotate(11deg)}80.5%{transform:rotate(0deg)}86%,100%{transform:rotate(-11deg)}}
-@keyframes sslArmB{0%,12%{transform:rotate(12deg)}17.5%{transform:rotate(0deg)}23%,33%{transform:rotate(-12deg)}38.5%{transform:rotate(0deg)}44%,54%{transform:rotate(12deg)}59.5%{transform:rotate(0deg)}65%,75%{transform:rotate(-12deg)}80.5%{transform:rotate(0deg)}86%,100%{transform:rotate(12deg)}}
-@keyframes sslBob{0%,12%{transform:translateY(0)}17.5%{transform:translateY(-5px)}23%,33%{transform:translateY(0)}38.5%{transform:translateY(-5px)}44%,54%{transform:translateY(0)}59.5%{transform:translateY(-5px)}65%,75%{transform:translateY(0)}80.5%{transform:translateY(-5px)}86%,100%{transform:translateY(0)}}
-@keyframes sslman{0%{left:-8px;bottom:17px;opacity:0}4%{opacity:1}12%{left:-8px;bottom:17px}17%{left:11px;bottom:46px}23%{left:30px;bottom:39px}33%{left:30px;bottom:39px}38%{left:49px;bottom:68px}44%{left:68px;bottom:61px}54%{left:68px;bottom:61px}59%{left:87px;bottom:90px}65%{left:106px;bottom:83px}75%{left:106px;bottom:83px}80%{left:125px;bottom:112px}86%{left:144px;bottom:105px}93%{left:144px;bottom:105px;opacity:1}97%{left:144px;bottom:127px;opacity:0}100%{left:-8px;bottom:17px;opacity:0}}
-.ssl-word{font-family:var(--font-head);font-weight:800;font-size:26px;letter-spacing:-.4px}
+.ssl-mann{transform-box:view-box;transform-origin:70px 150px;animation:sslRunBob .5s ease-in-out infinite}
+.ssl-legA,.ssl-legB{transform-box:view-box;transform-origin:61px 84px}
+.ssl-armA,.ssl-armB{transform-box:view-box;transform-origin:80px 48px}
+.ssl-legA{animation:sslRunLegA .5s ease-in-out infinite}
+.ssl-legB{animation:sslRunLegB .5s ease-in-out infinite}
+.ssl-armA{animation:sslRunArmA .5s ease-in-out infinite}
+.ssl-armB{animation:sslRunArmB .5s ease-in-out infinite}
+@keyframes sslRunLegA{0%,100%{transform:rotate(13deg)}50%{transform:rotate(-12deg)}}
+@keyframes sslRunLegB{0%,100%{transform:rotate(-12deg)}50%{transform:rotate(13deg)}}
+@keyframes sslRunArmA{0%,100%{transform:rotate(-9deg)}50%{transform:rotate(8deg)}}
+@keyframes sslRunArmB{0%,100%{transform:rotate(9deg)}50%{transform:rotate(-8deg)}}
+@keyframes sslRunBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@keyframes sslTile{to{opacity:1}}
+@keyframes sslrun{0%{left:-14px;bottom:2px;opacity:0}6%{opacity:1}90%{left:300px;bottom:168px;opacity:1}96%{left:322px;bottom:196px;opacity:0}100%{left:-14px;bottom:2px;opacity:0}}
+.ssl-word{font-family:var(--font-head);font-weight:800;font-size:26px;letter-spacing:-.4px;color:#13233a}
 .ssl-word span{background:linear-gradient(90deg,#2563eb,#22d3ee);-webkit-background-clip:text;background-clip:text;color:transparent}
-.ssl-tag{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:#9fc4e8;margin-top:-12px}
-.ssl-bar{width:200px;height:4px;border-radius:4px;background:rgba(255,255,255,.12);overflow:hidden}
+.ssl-tag{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:#5a7794;margin-top:-10px}
+.ssl-bar{width:200px;height:4px;border-radius:4px;background:#d7e6f3;overflow:hidden}
 .ssl-bar span{display:block;height:100%;width:38%;border-radius:4px;background:linear-gradient(90deg,#2563eb,#22d3ee);animation:sslbar 1.25s ease-in-out infinite}
 @keyframes sslbar{0%{transform:translateX(-120%)}100%{transform:translateX(330%)}}
-@media(max-width:860px){.ssl-stage{transform:scale(.85)}}
+@media(max-width:860px){.ssl-stage{transform:scale(.72)}}
 
 
 /* ---------- LOGIN ---------- */
@@ -838,7 +837,7 @@ const NAV=[["overview","Overview"],["leads","Leads"],["clients","Clients"],["pro
 
 /* ================= AUTH ================= */
 const SSL_LOGO=`<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="sslg" x1="2" y1="2" x2="46" y2="46" gradientUnits="userSpaceOnUse"><stop stop-color="#2563eb"/><stop offset=".5" stop-color="#0ea5e9"/><stop offset="1" stop-color="#22d3ee"/></linearGradient></defs><rect x="1" y="1" width="46" height="46" rx="13" fill="url(#sslg)"/><g fill="#fff"><rect x="13" y="11" width="17" height="6" rx="3"/><rect x="13" y="11" width="6" height="13" rx="3"/><rect x="18.5" y="21" width="17" height="6" rx="3"/><rect x="29.5" y="27" width="6" height="10" rx="3"/><rect x="18.5" y="31" width="17" height="6" rx="3"/></g></svg>`;
-function showLoader(){ if(document.getElementById("ss-loader"))return; const o=document.createElement("div"); o.id="ss-loader"; o.className="ssl"; o.innerHTML=`<div class="ssl-stage"><svg class="ssl-stairs" viewBox="0 0 280 130" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="ssstair" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2bcbe8"/><stop offset="1" stop-color="#2563eb"/></linearGradient></defs><path d="M34 130 V108 H72 V86 H110 V64 H148 V42 H186 V20 H224 V130 Z" fill="url(#ssstair)"/><rect x="34" y="108" width="38" height="5" fill="#6fe6f7"/><rect x="34" y="108" width="38" height="2" fill="#c7f6ff"/><rect x="72" y="86" width="38" height="5" fill="#6fe6f7"/><rect x="72" y="86" width="38" height="2" fill="#c7f6ff"/><rect x="110" y="64" width="38" height="5" fill="#6fe6f7"/><rect x="110" y="64" width="38" height="2" fill="#c7f6ff"/><rect x="148" y="42" width="38" height="5" fill="#6fe6f7"/><rect x="148" y="42" width="38" height="2" fill="#c7f6ff"/><rect x="186" y="20" width="38" height="5" fill="#6fe6f7"/><rect x="186" y="20" width="38" height="2" fill="#c7f6ff"/></svg><div class="ssl-man"><svg viewBox="0 0 64 90" xmlns="http://www.w3.org/2000/svg"><g class="ssl-mann"><g class="ssl-legB"><path d="M27 48 L33 49 L31 68 L27 84 L22 84 L25 67 Z" fill="#1a3557"/><path d="M17 86 Q16 81 23 81 L27 82 Q28 86 24 87 Z" fill="#12161d"/></g><g class="ssl-armB"><path d="M30 25 L34 25 L29 39 L25 47 L21 46 L26 37 Z" fill="#1a3557"/><circle cx="23" cy="47" r="3" fill="#cf9568"/></g><path d="M26 20 Q33 16 40 20 L38 53 L28 53 Z" fill="#264a79"/><path d="M31 20 L35 20 L34 33 L32 33 Z" fill="#eef4fb"/><path d="M32.6 23 L34.4 23 L34 40 L33 40 Z" fill="#15b6cf"/><path d="M31 20 L33 27 L30 24 Z" fill="#1a3557"/><path d="M35 20 L33 27 L36 24 Z" fill="#1a3557"/><rect x="31" y="16" width="5" height="5" fill="#e6b088"/><circle cx="34" cy="11" r="7" fill="#e6b088"/><path d="M27 12 Q27 3 35 3 Q42 4 41 11 Q40 7 35 6.5 Q29 6.5 29 13 Z" fill="#241d18"/><circle cx="29.5" cy="12" r="1.4" fill="#cf9568"/><g class="ssl-legA"><path d="M28 48 L34 48 L37 67 L40 85 L35 86 L33 67 Z" fill="#264a79"/><path d="M33 88 Q32 83 39 83 L44 84 Q45 88 40 89 Z" fill="#12161d"/></g><g class="ssl-armA"><path d="M31 25 L35 26 L41 38 L44 46 L40 48 L36 38 Z" fill="#264a79"/><circle cx="42" cy="47" r="3" fill="#e6b088"/><rect x="37" y="47" width="14" height="10" rx="2" fill="#6d4726"/><rect x="37" y="47" width="14" height="3" rx="1.2" fill="#4f331c"/><path d="M41 47 q3 -4 6 0" fill="none" stroke="#caa269" stroke-width="1.4"/></g></g></svg></div></div><div class="ssl-word">Step<span>Stones</span></div><div class="ssl-tag">Every Click. A Step Forward.</div><div class="ssl-bar"><span></span></div>`; document.body.appendChild(o); }
+function showLoader(){ if(document.getElementById("ss-loader"))return; const o=document.createElement("div"); o.id="ss-loader"; o.className="ssl"; o.innerHTML=`<div class="ssl-stage"><svg class="ssl-blob" viewBox="0 0 470 235" xmlns="http://www.w3.org/2000/svg"><path d="M44 150 C14 120 22 58 82 48 C160 34 206 20 298 40 C408 66 462 118 424 176 C394 222 300 224 200 214 C112 206 74 180 44 150 Z" fill="#cfe8f8"/></svg>${[["IDEA",6,4],["PLAN",92,44],["TEAM",178,84],["BUSINESS",264,124],["SUCCESS",356,164]].map((t,i)=>`<div class="ssl-tile" style="left:${t[1]}px;bottom:${t[2]}px;animation-delay:${.15+i*.12}s">${t[0]}</div>`).join("")}<div class="ssl-man"><svg viewBox="0 0 150 150" xmlns="http://www.w3.org/2000/svg"><g class="ssl-mann"><g class="ssl-legB"><path d="M62 84 C66 82 72 83 73 88 C72 96 66 104 56 112 L48 118 L42 112 L52 104 C58 98 60 92 60 86 Z" fill="#3c4e63"/><path d="M38 112 C36 110 40 106 45 109 L50 113 C52 115 50 118 47 118 L41 117 C39 116 38 114 38 112 Z" fill="#1a1f27"/></g><g class="ssl-armB"><path d="M74 48 C77 46 81 48 81 52 C80 60 74 70 64 78 C62 80 59 80 58 78 C57 76 58 73 60 71 C68 64 72 56 72 50 Z" fill="#415269"/><circle cx="59" cy="78" r="3.3" fill="#cf9365"/><rect x="50" y="80" width="20" height="15" rx="2.6" fill="#3a2a1c"/><rect x="50" y="80" width="20" height="4" rx="1.6" fill="#241910"/><rect x="58" y="86" width="4" height="4" rx="1" fill="#241910"/><path d="M55 80 C56 75 64 75 65 80" fill="none" stroke="#caa269" stroke-width="2"/></g><path d="M55 86 C50 74 54 56 66 46 C74 39 86 38 92 44 C97 49 96 58 90 66 C84 74 78 82 74 88 C70 94 60 96 55 86 Z" fill="#2b3a4f"/><path d="M66 46 C72 42 80 42 85 45 L78 60 C74 54 69 49 66 46 Z" fill="#f1f5fa"/><path d="M74 47 L80 49 L77 60 L74 58 Z" fill="#7d3b3b"/><path d="M66 46 C62 54 60 66 62 78 L58 70 C57 60 60 51 66 46 Z" fill="#415269" opacity=".5"/><path d="M84 40 L92 44 L88 52 L82 48 Z" fill="#e7b184"/><circle cx="95" cy="33" r="10" fill="#e7b184"/><path d="M105 33 C108 33 108 37 104 37 Z" fill="#e7b184"/><path d="M84 30 C84 17 104 14 106 28 C106 22 100 20 95 21 C88 22 86 26 86 33 Z" fill="#20262e"/><path d="M86 24 C92 18 102 19 105 24 C100 20 92 21 89 28 Z" fill="#2e3742" opacity=".6"/><circle cx="99" cy="31" r="1.4" fill="#222a33"/><path d="M96 27 L102 28" stroke="#20262e" stroke-width="1.3" stroke-linecap="round"/><g class="ssl-legA"><path d="M63 84 C68 82 75 84 76 90 C76 97 73 103 72 108 L76 124 L68 126 L62 110 C60 104 58 96 59 90 Z" fill="#2b3a4f"/><path d="M62 124 C60 122 66 119 71 122 L78 126 C80 128 78 131 74 131 L65 130 C62 129 61 126 62 124 Z" fill="#1a1f27"/></g><g class="ssl-armA"><path d="M80 46 C84 44 89 46 90 51 C91 57 90 63 92 67 C94 71 99 71 103 68 C106 66 108 62 106 58 C105 56 102 56 100 57 C99 54 97 50 94 48 C90 45 84 44 80 46 Z" fill="#2b3a4f"/><circle cx="104" cy="63" r="4" fill="#e7b184"/></g></g></svg></div></div><div class="ssl-word">Step<span>Stones</span></div><div class="ssl-tag">Every Click. A Step Forward.</div><div class="ssl-bar"><span></span></div>`; document.body.appendChild(o); }
 function hideLoader(){ const o=document.getElementById("ss-loader"); if(!o)return; o.classList.add("out"); setTimeout(()=>{ if(o.parentNode)o.remove(); },450); }
 async function boot(){
   const _t0=Date.now(); showLoader(); let rendered=false;
