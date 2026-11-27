@@ -816,6 +816,7 @@ async function viewOverview(c){
   c.innerHTML=`<div class="ph"><div><h1>Your agency, at a glance</h1><div class="psub">Keep clients, campaigns and your team moving forward.</div></div>
     <div class="ph-r"><span class="selectbox">${monthLabel()} <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></span>${isAdmin()||canStaff()?`<button class="btn" onclick="location.hash='#/clients'"><span>${IC.plus}</span> Add client</button>`:""}</div></div>
     <div class="stat-row" id="ov-stats">${[0,0,0,0].map(()=>`<div class="stat"><div class="st-ic skel" style="background:#eef1ea"></div><div class="skel" style="height:14px;width:60%;margin-bottom:8px"></div><div class="skel" style="height:26px;width:40%"></div></div>`).join("")}</div>
+    <div class="card pad" style="margin-bottom:16px"><div class="card-h"><h3 class="sec-title">Client billing &amp; renewals</h3><a class="linkg" onclick="location.hash='#/finance'">Finance ↗</a></div><div class="tblwrap"><table class="tbl" id="ov-billing"></table></div></div>
     <div class="two">
       <div class="card pad"><div class="card-h"><h3 class="sec-title">Agency performance</h3><div class="chip-tabs">${["7","30","90","YTD"].map(x=>`<button class="${OVF===x?'on':''}" onclick="OVF='${x}';viewOverview(document.getElementById('content'))">${x==="YTD"?"YTD":x+"D"}</button>`).join("")}</div></div><div style="height:260px"><canvas id="ov-chart"></canvas></div></div>
       <div class="card pad"><h3 class="sec-title" style="margin-bottom:14px">Needs your attention</h3><div id="ov-att"></div></div>
@@ -831,7 +832,7 @@ async function viewOverview(c){
     </div>`;
   const from30=new Date(Date.now()-30*864e5).toISOString();
   const [cl,svc,content,inv,bud,prop,con,req,enq,staff]=await Promise.all([
-    sb.from("cr_profiles").select("id,company,full_name,username,industry,account_manager,client_status,logo_path").eq("role","client"),
+    sb.from("cr_profiles").select("id,company,full_name,username,industry,account_manager,client_status,logo_path,renewal_date,service_start").eq("role","client"),
     sb.from("cr_client_services").select("client_id,name,fee,recurring,status"),
     sb.from("cr_content_items").select("client_id,status,planned_at,platform,content_type,caption"),
     sb.from("cr_invoices").select("client_id,total,paid,status,due_date,recurring"),
@@ -896,6 +897,13 @@ async function viewOverview(c){
   // clients table
   OV_DATA={CLIENTS,STAFF,items};
   ovRenderClients("");
+  // client billing & renewals table
+  const billMap={};
+  services.filter(s=>s.recurring&&s.status!=="cancelled").forEach(s=>{billMap[s.client_id]=(billMap[s.client_id]||0)+(Number(s.fee)||0);});
+  invoices.filter(i=>i.recurring).forEach(i=>{ if(!billMap[i.client_id]) billMap[i.client_id]=Number(i.total)||0; });
+  const billRows=CLIENTS.map(cc=>({c:cc,amt:billMap[cc.id]||0,exp:cc.renewal_date})).sort((a,b)=>{ if(!a.exp)return 1; if(!b.exp)return -1; return new Date(a.exp)-new Date(b.exp); });
+  const _bt=document.getElementById("ov-billing"); const _now=new Date();
+  if(_bt) _bt.innerHTML=`<thead><tr><th style="width:60px">SL.No</th><th>Client</th><th>Billing Amount</th><th>Expiry Date</th></tr></thead><tbody>${billRows.map((r,i)=>{ const exp=r.exp?new Date(r.exp):null; const days=exp?Math.ceil((exp-_now)/864e5):null; const cls=days==null?'':days<0?'r':days<=30?'a':'g'; const lbl=days==null?'':days<0?' · expired':days<=30?` · ${days}d left`:''; return `<tr class="rowlink" onclick="location.hash='#/clients'"><td>${i+1}</td><td><div class="cell-lead"><span class="av2" style="background:${avatarColor(r.c.company||r.c.full_name||'')}">${initials(r.c.company||r.c.full_name||'?')}</span><b>${esc(r.c.company||r.c.full_name||'—')}</b></div></td><td><b>${r.amt?money(r.amt):'—'}</b></td><td>${exp?`<span class="daychip ${cls}">${fmtD(r.exp)}${lbl}</span>`:'<span class="sub1">—</span>'}</td></tr>`; }).join('')||`<tr><td colspan="4" class="sub1" style="text-align:center;padding:22px">No clients yet — add a client to see billing &amp; renewals.</td></tr>`}</tbody>`;
   // upcoming
   const up=items.filter(i=>i.planned_at&&new Date(i.planned_at)>=new Date()).sort((a,b)=>new Date(a.planned_at)-new Date(b.planned_at)).slice(0,6);
   $("#ov-upcoming").innerHTML=up.length?up.map(i=>{const d=new Date(i.planned_at);const cn=(CLIENTS.find(c=>c.id===i.client_id)||{});return `<div class="upc"><div class="dt"><b>${d.getDate()}</b><span>${d.toLocaleDateString("en-IN",{month:"short"})}</span></div><div class="ti"><b>${esc(cn.company||cn.full_name||"Client")} — ${esc(i.content_type||i.platform||"Content")}</b><span>${d.toLocaleDateString("en-IN",{weekday:"short"})}, ${fmtD(i.planned_at)} · ${d.toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"})}</span></div></div>`;}).join(""):`<div class="psub" style="padding:20px 0;text-align:center">No upcoming content scheduled.</div>`;
