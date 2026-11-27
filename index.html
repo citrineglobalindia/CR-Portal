@@ -999,7 +999,7 @@ function ovRenderClients(q){
 async function viewClients(c){
   const parts=routeParts();
   if(parts[1]) return viewClientWorkspace(c,parts[1]);
-  c.innerHTML=`<div class="cl-banner"><div class="cl-banner-t">Every Click. A Step Forward.</div><div class="cl-cyls"><span class="cyl c1"></span><span class="cyl c2"></span><span class="cyl c3"></span><span class="cyl c4"></span><span class="cyl c5"></span></div><span class="cl-shine"></span></div>
+  c.innerHTML=`<div class="cl-banner-wrap"><img class="cl-banner-gif" src="assets/StepStones_Shining_Steps.gif?v=2" alt="Every Click. A Step Forward."/></div>
    <div class="ph"><div class="ph-ic">${IC.clients}</div><div><h1>Clients</h1><div class="psub">Every client company, contact and engagement in one place.</div></div><div class="ph-r">${canStaff()?`<button class="btn" onclick="clAddForm()"><span>${IC.plus}</span> Add client</button>`:""}</div></div>
    <div class="card pad"><div class="card-h"><h3 class="sec-title">All clients <span id="cl-count" class="sub1" style="font-weight:500;margin-left:6px"></span></h3><div style="display:flex;gap:10px;align-items:center"><div style="position:relative"><span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--faint)">${IC.search}</span><input class="inp" style="padding-left:38px;height:40px;width:240px" placeholder="Search clients…" oninput="clFilter(this.value)"/></div><button class="btn ghost" onclick="clFiltMenu(event)" style="height:40px">⛭ Filters</button></div></div><div class="tblwrap"><table class="tbl cl-table" id="cl-tbl"></table></div><div class="kebab-menu" id="cl-filt" style="position:absolute"></div></div>`;
   const [cl,svc,staff]=await Promise.all([
