@@ -1312,7 +1312,9 @@ async function metaRefreshAll(){ toast("Syncing all clients\u2026 this can take 
 let _mapC={};
 function campLbl(cl){ const n=(cl.meta_campaign_ids||[]).length; if(!cl.meta_ad_account) return "No account \u2014 maps nothing yet"; return n?`<span style="color:#2563eb;font-weight:700">${n} campaign(s) selected</span> \u00b7 shared-account mode`:"All campaigns in this account"; }
 async function metaMapForm(){
-  let accts=[], listErr=""; try{ const r=await callFn("meta-insights",{action:"list_accounts"}); accts=r.accounts||[]; }catch(e){ listErr=e.message||"Could not list ad accounts from Meta"; }
+  let accts=[], listErr="", aerrs=[]; try{ const r=await callFn("meta-insights",{action:"list_accounts"}); accts=r.accounts||[]; aerrs=r.errors||[]; }catch(e){ listErr=e.message||"Could not list ad accounts from Meta"; }
+  if(!listErr && !accts.length && aerrs.length){ listErr="Meta returned no ad accounts. "+aerrs.map(x=>`[${x.label}] ${x.error}`).join(" \u2014 "); }
+  else if(!listErr && aerrs.length){ listErr="Some tokens had issues: "+aerrs.map(x=>`[${x.label}] ${x.error}`).join(" \u2014 "); }
   const {data:clients}=await sb.from("cr_profiles").select("id,company,full_name,meta_ad_account,meta_campaign_ids,meta_token_id").eq("role","client").order("company");
   _mapC={}; (clients||[]).forEach(cl=>_mapC[cl.id]={meta_ad_account:cl.meta_ad_account,meta_campaign_ids:cl.meta_campaign_ids||[],meta_token_id:cl.meta_token_id||null});
   const opts=(sel,selTok)=>{ const norm=sel?('act_'+String(sel).replace(/^act_/,'')):''; let known=accts.some(a=>'act_'+a.account_id===norm); let o=`<option value="">\u2014 unassigned \u2014</option>`+(accts.map(a=>`<option value="${a.token_id}::act_${a.account_id}" ${(norm==='act_'+a.account_id)&&(!selTok||selTok===a.token_id)?'selected':''}>${esc(a.name)} (act_${a.account_id})${a.token_label?' \u00b7 '+esc(a.token_label):''}</option>`).join("")); if(sel&&!known)o+=`<option value="${esc(selTok||'')}::${esc(norm)}" selected>${esc(norm)} (currently mapped)</option>`; return o; };
