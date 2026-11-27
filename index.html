@@ -50,18 +50,18 @@ button{font-family:inherit;cursor:pointer}
 .ssl-logo{width:62px;height:62px;animation:sslfloat 2.4s ease-in-out infinite}
 .ssl-logo svg{width:100%;height:100%;filter:drop-shadow(0 10px 24px rgba(34,211,238,.4))}
 @keyframes sslfloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
-.ssl-stage{position:relative;width:240px;height:160px;overflow:visible}
-.ssl-steps{position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:center;gap:10px}
-.ssl-steps i{width:34px;border-radius:9px 9px 5px 5px;background:linear-gradient(180deg,#22d3ee,#2563eb);opacity:.22;transform:translateY(14px);animation:sslstep 1.9s ease-in-out infinite}
-.ssl-steps i:nth-child(1){height:34px;animation-delay:0s}
-.ssl-steps i:nth-child(2){height:58px;animation-delay:.13s}
-.ssl-steps i:nth-child(3){height:82px;animation-delay:.26s}
-.ssl-steps i:nth-child(4){height:106px;animation-delay:.39s}
-.ssl-steps i:nth-child(5){height:130px;animation-delay:.52s}
+.ssl-stage{position:relative;width:320px;height:215px;overflow:visible}
+.ssl-steps{position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:center;gap:14px}
+.ssl-steps i{width:48px;border-radius:11px 11px 6px 6px;background:linear-gradient(180deg,#22d3ee,#2563eb);opacity:.22;transform:translateY(14px);animation:sslstep 1.9s ease-in-out infinite}
+.ssl-steps i:nth-child(1){height:48px;animation-delay:0s}
+.ssl-steps i:nth-child(2){height:80px;animation-delay:.13s}
+.ssl-steps i:nth-child(3){height:112px;animation-delay:.26s}
+.ssl-steps i:nth-child(4){height:144px;animation-delay:.39s}
+.ssl-steps i:nth-child(5){height:176px;animation-delay:.52s}
 @keyframes sslstep{0%,72%,100%{opacity:.22;transform:translateY(14px);box-shadow:none}22%,48%{opacity:1;transform:translateY(0);box-shadow:0 10px 22px rgba(34,211,238,.45)}}
-.ssl-man{position:absolute;width:42px;height:56px;left:11px;bottom:34px;transform-origin:bottom center;filter:drop-shadow(0 7px 11px rgba(34,211,238,.5));animation:sslman 2.7s cubic-bezier(.42,.04,.4,1) infinite}
+.ssl-man{position:absolute;width:72px;height:96px;left:1px;bottom:48px;transform-origin:bottom center;filter:drop-shadow(0 9px 13px rgba(34,211,238,.5));animation:sslman 2.9s cubic-bezier(.42,.04,.4,1) infinite}
 .ssl-man svg{width:100%;height:100%;display:block}
-@keyframes sslman{0%{left:11px;bottom:34px;opacity:0;transform:rotate(-3deg)}5%{opacity:1}15%{left:11px;bottom:34px;transform:rotate(0deg)}23%{left:55px;bottom:62px;transform:rotate(-5deg)}26%{left:55px;bottom:58px;transform:rotate(-2deg)}36%{left:55px;bottom:58px;transform:rotate(0deg)}44%{left:99px;bottom:86px;transform:rotate(-5deg)}47%{left:99px;bottom:82px;transform:rotate(-2deg)}57%{left:99px;bottom:82px;transform:rotate(0deg)}65%{left:143px;bottom:110px;transform:rotate(-5deg)}68%{left:143px;bottom:106px;transform:rotate(-2deg)}78%{left:143px;bottom:106px;transform:rotate(0deg)}86%{left:187px;bottom:134px;transform:rotate(-4deg)}89%{left:187px;bottom:130px;transform:rotate(0deg);opacity:1}95%{left:187px;bottom:130px;opacity:1}98%{left:187px;bottom:150px;opacity:0}100%{left:11px;bottom:34px;opacity:0}}
+@keyframes sslman{0%{left:1px;bottom:48px;opacity:0;transform:rotate(-3deg)}5%{opacity:1}15%{left:1px;bottom:48px;transform:rotate(0deg)}23%{left:63px;bottom:86px;transform:rotate(-6deg)}26%{left:63px;bottom:80px;transform:rotate(-2deg)}36%{left:63px;bottom:80px;transform:rotate(0deg)}44%{left:125px;bottom:118px;transform:rotate(-6deg)}47%{left:125px;bottom:112px;transform:rotate(-2deg)}57%{left:125px;bottom:112px;transform:rotate(0deg)}65%{left:187px;bottom:150px;transform:rotate(-6deg)}68%{left:187px;bottom:144px;transform:rotate(-2deg)}78%{left:187px;bottom:144px;transform:rotate(0deg)}86%{left:249px;bottom:182px;transform:rotate(-5deg)}89%{left:249px;bottom:176px;transform:rotate(0deg);opacity:1}95%{left:249px;bottom:176px;opacity:1}98%{left:249px;bottom:205px;opacity:0}100%{left:1px;bottom:48px;opacity:0}}
 .ssl-word{font-family:var(--font-head);font-weight:800;font-size:26px;letter-spacing:-.4px}
 .ssl-word span{background:linear-gradient(90deg,#2563eb,#22d3ee);-webkit-background-clip:text;background-clip:text;color:transparent}
 .ssl-tag{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:#9fc4e8;margin-top:-12px}
