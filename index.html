@@ -345,11 +345,37 @@ button{font-family:inherit;cursor:pointer}
 .an-row span{width:110px;flex:0 0 auto;color:var(--ink2)}
 .an-bar{flex:1;height:8px;background:var(--panel2);border-radius:5px;overflow:hidden}.an-bar i{display:block;height:100%;background:var(--grad)}
 .an-row b{width:28px;text-align:right}
-.svc-chip{display:inline-block;background:var(--tint);color:var(--green-ink);border:1px solid var(--tint2);border-radius:999px;padding:3px 10px;font-size:11.5px;font-weight:700;margin:2px 3px 2px 0}
+.svc-chip{display:inline-block;background:#eaf2ff;color:#2563eb;border:1px solid #d6e4ff;border-radius:999px;padding:3px 11px;font-size:11.5px;font-weight:700;margin:2px 3px 2px 0}
 .cl-fee{font-family:var(--font-head);color:var(--green);font-size:14px}
 .mini-date{font-size:12.5px;color:var(--ink2);background:var(--panel2);border:1px solid var(--line);border-radius:7px;padding:3px 9px;white-space:nowrap}
 .total-row{display:flex;align-items:center;justify-content:space-between;background:var(--tint);border:1px solid var(--tint2);border-radius:11px;padding:11px 15px;margin:10px 0 4px;font-weight:600;color:var(--green-ink)}
 .total-row b{font-family:var(--font-head);font-size:18px;color:var(--green)}
+/* clients page redesign */
+.cl-banner{position:relative;overflow:hidden;border-radius:16px;background:linear-gradient(90deg,#0b1220 0%,#123b6b 55%,#0e7fb8 100%);color:#fff;padding:26px 28px;margin-bottom:18px;min-height:86px;display:flex;align-items:center}
+.cl-banner-t{font-family:var(--font-head);font-weight:800;font-size:28px;letter-spacing:-.6px;position:relative;z-index:2}
+.cl-banner-art{position:absolute;right:10px;top:0;height:100%;width:260px;opacity:.95}
+.cl-table th.sortable{cursor:pointer;user-select:none;white-space:nowrap}
+.cl-table th.sortable:hover{color:var(--ink)}
+.sarr{color:var(--faint);font-size:11px}.sarr.on{color:var(--green)}
+.cl-av{position:relative;width:40px;height:40px;flex:0 0 auto}
+.cl-av .av2{width:40px;height:40px}
+.cl-logo{width:40px;height:40px;border-radius:11px;object-fit:cover;border:1px solid var(--line)}
+.cl-cam{position:absolute;right:-5px;bottom:-5px;width:18px;height:18px;border-radius:50%;background:#fff;border:1px solid var(--line);display:grid;place-items:center;font-size:9px;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.cl-cam:hover{background:var(--tint)}
+.dotpill{display:inline-flex;align-items:center;gap:5px;font-weight:700;font-size:12px;padding:4px 11px;border-radius:999px}
+.dotpill.g{background:var(--tint);color:var(--green-ink)}.dotpill.a{background:var(--amber-tint);color:var(--amber)}.dotpill.n{background:#eef1ea;color:var(--muted)}
+.cl-actions{display:flex;align-items:center;gap:6px;justify-content:flex-end}
+.cl-open{display:inline-flex;align-items:center;gap:5px;background:#fff;border:1px solid var(--green2);color:var(--green);border-radius:9px;padding:7px 13px;font-weight:700;font-size:12.5px;cursor:pointer;transition:.15s}
+.cl-open:hover{background:var(--tint)}
+.kebab-wrap{position:relative}
+.kebab{background:#fff;border:1px solid var(--line);border-radius:9px;width:32px;height:32px;cursor:pointer;font-size:16px;color:var(--muted);line-height:1}
+.kebab:hover{background:var(--panel2);border-color:var(--green2)}
+.kebab-menu{display:none;position:absolute;right:0;top:38px;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 14px 40px -12px rgba(16,26,42,.28);padding:6px;min-width:190px;z-index:60}
+.kebab-menu.open{display:block;animation:popin .14s ease}
+.kebab-menu a{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:8px;font-size:13px;font-weight:600;color:var(--ink2);cursor:pointer}
+.kebab-menu a:hover{background:var(--panel2);color:var(--green)}
+.kebab-menu a.on{background:var(--tint);color:var(--green)}
+.km-h{font-size:10.5px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--faint);padding:8px 11px 3px}
 @media(max-width:860px){.docs-wrap{grid-template-columns:1fr}}
 @media(max-width:860px){.app{grid-template-columns:1fr}.side{position:fixed;left:0;top:0;bottom:0;width:252px;z-index:120;transform:translateX(-100%);transition:.25s}.side.open{transform:none}.search{display:none}.auth{grid-template-columns:1fr}.auth-art{display:none}.auth-form{padding:36px 22px}.ph h1{font-size:26px}}
 
@@ -935,8 +961,9 @@ function ovRenderClients(q){
 async function viewClients(c){
   const parts=routeParts();
   if(parts[1]) return viewClientWorkspace(c,parts[1]);
-  c.innerHTML=`<div class="ph"><div class="ph-ic">${IC.clients}</div><div><h1>Clients</h1><div class="psub">Every client company, contact and engagement in one place.</div></div><div class="ph-r">${canStaff()?`<button class="btn" onclick="clAddForm()"><span>${IC.plus}</span> Add client</button>`:""}</div></div>
-   <div class="card pad"><div class="card-h"><h3 class="sec-title">All clients <span id="cl-count" class="sub1" style="font-weight:500;margin-left:6px"></span></h3><div style="position:relative"><span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--faint)">${IC.search}</span><input class="inp" style="padding-left:38px;height:40px;width:260px" placeholder="Search clients…" oninput="clFilter(this.value)"/></div></div><div class="tblwrap"><table class="tbl" id="cl-tbl"></table></div></div>`;
+  c.innerHTML=`<div class="cl-banner"><div class="cl-banner-t">Every Click. A Step Forward.</div><svg class="cl-banner-art" viewBox="0 0 240 96" fill="none"><defs><linearGradient id="clb" x1="0" y1="0" x2="240" y2="96"><stop stop-color="#38bdf8"/><stop offset="1" stop-color="#22d3ee"/></linearGradient></defs><g fill="url(#clb)" opacity="0.92"><path d="M120 70l26-12 26 12-26 12z"/><path d="M120 70v16l26 12V82z" opacity=".7"/><path d="M172 70v16l-26 12V82z" opacity=".5"/><path d="M152 50l26-12 26 12-26 12z"/><path d="M152 50v16l26 12V62z" opacity=".7"/><path d="M204 50v16l-26 12V62z" opacity=".5"/><path d="M184 30l26-12 26 12-26 12z"/><path d="M184 30v16l26 12V42z" opacity=".7"/><path d="M236 30v16l-26 12V42z" opacity=".5"/></g></svg></div>
+   <div class="ph"><div class="ph-ic">${IC.clients}</div><div><h1>Clients</h1><div class="psub">Every client company, contact and engagement in one place.</div></div><div class="ph-r">${canStaff()?`<button class="btn" onclick="clAddForm()"><span>${IC.plus}</span> Add client</button>`:""}</div></div>
+   <div class="card pad"><div class="card-h"><h3 class="sec-title">All clients <span id="cl-count" class="sub1" style="font-weight:500;margin-left:6px"></span></h3><div style="display:flex;gap:10px;align-items:center"><div style="position:relative"><span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--faint)">${IC.search}</span><input class="inp" style="padding-left:38px;height:40px;width:240px" placeholder="Search clients…" oninput="clFilter(this.value)"/></div><button class="btn ghost" onclick="clFiltMenu(event)" style="height:40px">⛭ Filters</button></div></div><div class="tblwrap"><table class="tbl cl-table" id="cl-tbl"></table></div><div class="kebab-menu" id="cl-filt" style="position:absolute"></div></div>`;
   const [cl,svc,staff]=await Promise.all([
     sb.from("cr_profiles").select("*").eq("role","client").order("company"),
     sb.from("cr_client_services").select("client_id,name,fee,recurring,status"),
@@ -952,21 +979,63 @@ function clFee(c){ return CL_SVC.filter(s=>s.client_id===c.id&&s.recurring!==fal
 function clBase(c){ const r=CL_SVC.filter(s=>s.client_id===c.id&&s.recurring!==false&&s.status!=='cancelled'); return r.reduce((a,s)=>a+(Number(s.base!=null?s.base:s.fee)||0),0); }
 function clGst(c){ return CL_SVC.some(s=>s.client_id===c.id&&s.gst); }
 function clChips(c){ const types=(c.service_types||[]).map(svcLabel); const named=CL_SVC.filter(s=>s.client_id===c.id).map(s=>s.name).filter(Boolean); return [...new Set([...types,...named])]; }
+let CL_SORT={key:'client',dir:1}, CL_FILT={status:'',svc:''}, CL_Q='';
+function clSort(k){ if(CL_SORT.key===k)CL_SORT.dir*=-1; else {CL_SORT.key=k;CL_SORT.dir=1;} clRender(); }
+function clSortVal(c,k){ switch(k){ case 'fee': return clFee(c); case 'start': return c.service_start||''; case 'renewal': return c.renewal_date||''; case 'status': return c.client_status||'active'; case 'svc': return clChips(c).join(','); default: return (c.company||c.full_name||'').toLowerCase(); } }
+function clFilter(q){ CL_Q=q; clRender(); }
+function clFiltMenu(ev){ ev.stopPropagation(); const m=document.getElementById('cl-filt'); if(!m)return; const open=m.classList.contains('open');
+  document.querySelectorAll('.kebab-menu.open').forEach(x=>x.classList.remove('open')); if(open)return;
+  m.innerHTML=`<div class="km-h">Status</div>${['','active','onboarding','inactive'].map(v2=>`<a onclick="CL_FILT.status='${v2}';clRender();clFiltMenu(event)" class="${CL_FILT.status===v2?'on':''}">${v2?v2[0].toUpperCase()+v2.slice(1):'All statuses'}</a>`).join('')}<div class="km-h">Service</div>${[['','All services'],['software','Software'],['digital','Digital marketing']].map(o=>`<a onclick="CL_FILT.svc='${o[0]}';clRender();clFiltMenu(event)" class="${CL_FILT.svc===o[0]?'on':''}">${o[1]}</a>`).join('')}`;
+  const r=ev.currentTarget.getBoundingClientRect(), pr=ev.currentTarget.closest('.card').getBoundingClientRect(); m.style.top=(r.bottom-pr.top+6)+'px'; m.style.right='18px'; m.style.left='auto'; m.classList.add('open'); }
+function clMenu(ev,id){ ev.stopPropagation(); const m=document.getElementById('km-'+id); const open=m&&m.classList.contains('open'); document.querySelectorAll('.kebab-menu.open').forEach(x=>x.classList.remove('open')); if(m&&!open)m.classList.add('open'); }
+document.addEventListener('click',()=>document.querySelectorAll('.kebab-menu.open').forEach(x=>x.classList.remove('open')));
+function clStatusPill(c){ const s=c.client_status; if(s==='inactive')return '<span class="dotpill n">\u25CF Inactive</span>'; if(s==='onboarding')return '<span class="dotpill a">\u25CF Onboarding</span>'; return '<span class="dotpill g">\u25CF Active</span>'; }
+function clAvatar(c){ const g=`linear-gradient(135deg,${avatarColor(c.company||c.full_name)})`; const inner=c.logo_path?`<img src="${esc(supaImg(c.logo_path))}" class="cl-logo">`:`<div class="av2" style="background:${g}">${esc(initials(c.company||c.full_name)).toUpperCase()}</div>`; return `<div class="cl-av">${inner}<span class="cl-cam" title="Upload logo" onclick="event.stopPropagation();clLogoUpload('${c.id}')">\uD83D\uDCF7</span></div>`; }
 function clRender(q){
-  q=(q||"").toLowerCase(); const el=$("#cl-tbl"); if(!el)return;
-  const rows=CLIENTS.filter(c=>!q||((c.company||c.full_name||c.username||"")+(c.industry||"")+(c.client_code||"")).toLowerCase().includes(q));
+  const query=((q!=null?q:CL_Q)||'').toLowerCase(); CL_Q=query; const el=$("#cl-tbl"); if(!el)return;
+  let rows=CLIENTS.filter(c=>!query||((c.company||c.full_name||c.username||"")+(c.industry||"")+(c.client_code||"")).toLowerCase().includes(query));
+  if(CL_FILT.status)rows=rows.filter(c=>(c.client_status||'active')===CL_FILT.status);
+  if(CL_FILT.svc)rows=rows.filter(c=>(c.service_types||[]).includes(CL_FILT.svc));
+  rows=rows.slice().sort((a,b)=>{const av=clSortVal(a,CL_SORT.key),bv=clSortVal(b,CL_SORT.key); return (av>bv?1:av<bv?-1:0)*CL_SORT.dir;});
   const cntEl=document.getElementById("cl-count"); if(cntEl)cntEl.textContent=CLIENTS.length+" client"+(CLIENTS.length!==1?"s":"");
-  el.innerHTML=`<thead><tr><th>Client</th><th>Services</th><th>Monthly fee</th><th>Start</th><th>Renewal</th><th>Status</th><th></th></tr></thead><tbody>${rows.map(c=>{
+  const sh=(k,l)=>`<th class="sortable" onclick="clSort('${k}')">${l} <span class="sarr ${CL_SORT.key===k?'on':''}">\u21C5</span></th>`;
+  el.innerHTML=`<thead><tr>${sh('client','Client')}${sh('svc','Services')}${sh('fee','Monthly fee')}${sh('start','Start')}${sh('renewal','Renewal')}${sh('status','Status')}<th>Actions</th></tr></thead><tbody>${rows.map(c=>{
     const chips=clChips(c); const fee=clFee(c);
-    const st=c.client_status==="inactive"?`<span class="status n">Inactive</span>`:(c.client_status==="onboarding"?`<span class="status a">Onboarding</span>`:`<span class="status g">Active</span>`);
-    return `<tr class="rowlink"><td onclick="location.hash='#/clients/${c.id}'"><div class="cell-lead"><div class="av2" style="background:linear-gradient(135deg,${avatarColor(c.company||c.full_name)})">${esc(initials(c.company||c.full_name)).toUpperCase()}</div><div><b>${esc(c.company||c.full_name||c.username)}</b><div class="sub1">${esc(c.industry||c.client_code||"—")}</div></div></div></td>
-    <td>${chips.length?chips.slice(0,3).map(x=>`<span class="svc-chip">${esc(x)}</span>`).join(""):'<span class="sub1">—</span>'}</td>
-    <td>${fee?`<b class="cl-fee">${money(fee)}<span class="sub1" style="font-weight:500">/mo</span></b>${clGst(c)?'<div class="sub1" style="font-size:10.5px">incl. 18% GST</div>':'<div class="sub1" style="font-size:10.5px">no GST</div>'}`:`<a class="linkg" onclick="event.stopPropagation();clFeeForm('${c.id}')">+ Set fee</a>`}</td>
-    <td>${c.service_start?`<span class="mini-date">${fmtD(c.service_start)}</span>`:'<span class="sub1">—</span>'}</td>
-    <td>${c.renewal_date?`<span class="mini-date">${fmtD(c.renewal_date)}</span>`:'<span class="sub1">—</span>'}${c.renewal_cycle&&c.renewal_cycle!=="onetime"?`<div class="sub1" style="font-size:10.5px">${cycLabel(c.renewal_cycle)}</div>`:''}</td>
-    <td>${st}</td>
-    <td style="text-align:right;white-space:nowrap"><a class="linkg" onclick="event.stopPropagation();clFeeForm('${c.id}')" title="Edit services & fee">✎</a> &nbsp; <a class="linkg" onclick="location.hash='#/clients/${c.id}'">Open ↗</a></td></tr>`;
+    return `<tr><td onclick="location.hash='#/clients/${c.id}'" style="cursor:pointer"><div class="cell-lead">${clAvatar(c)}<div><b>${esc(c.company||c.full_name||c.username)}</b><div class="sub1">${esc(c.industry||c.client_code||"\u2014")}</div></div></div></td>
+    <td>${chips.length?chips.slice(0,3).map(x=>`<span class="svc-chip">${esc(x)}</span>`).join(""):'<span class="sub1">\u2014</span>'}</td>
+    <td>${fee?`<b class="cl-fee">${money(fee)}<span class="sub1" style="font-weight:500">/mo</span></b><div class="sub1" style="font-size:10.5px">${clGst(c)?'incl. 18% GST':'No GST'}</div>`:`<a class="linkg" onclick="clFeeForm('${c.id}')">+ Set fee</a>`}</td>
+    <td>${c.service_start?`<span class="mini-date">${fmtD(c.service_start)}</span>`:'<span class="sub1">\u2014</span>'}</td>
+    <td>${c.renewal_date?`<span class="mini-date">${fmtD(c.renewal_date)}</span>`:'<span class="sub1">\u2014</span>'}${c.renewal_cycle&&c.renewal_cycle!=="onetime"?`<div class="sub1" style="font-size:10.5px">${cycLabel(c.renewal_cycle)}</div>`:''}</td>
+    <td>${clStatusPill(c)}</td>
+    <td><div class="cl-actions"><button class="cl-open" onclick="location.hash='#/clients/${c.id}'">\u2197 Open</button><div class="kebab-wrap"><button class="kebab" onclick="clMenu(event,'${c.id}')">\u22EE</button><div class="kebab-menu" id="km-${c.id}"><a onclick="clEditForm('${c.id}')">\u270E Edit client</a><a onclick="clLogoUpload('${c.id}')">\u2B06 Upload client logo</a><a onclick="clFeeForm('${c.id}')">\u20B9 Services & billing</a></div></div></div></td></tr>`;
   }).join("")||`<tr><td colspan="7" class="psub" style="text-align:center;padding:30px">No clients yet. Click <b>Add client</b> to begin.</td></tr>`}</tbody>`;
+}
+function clLogoUpload(id){ const inp=document.createElement('input'); inp.type='file'; inp.accept='image/*'; inp.onchange=async()=>{ const f=inp.files&&inp.files[0]; if(!f)return; toast('Uploading logo\u2026'); try{ const path=`logos/${id}/${Date.now()}_${f.name.replace(/[^\w.\-]/g,'_')}`; await sb.storage.from('cr-logos').upload(path,f,{upsert:true}); await sb.from('cr_profiles').update({logo_path:path}).eq('id',id); const c=CLIENTS.find(x=>x.id===id); if(c)c.logo_path=path; toast('Logo updated'); clRender(); }catch(e){ toast(e.message||'Upload failed',true); } }; inp.click(); }
+async function clEditForm(id){
+  await ensureStaff(); const c=CLIENTS.find(x=>x.id===id)||{}; const has=t=>(c.service_types||[]).includes(t);
+  const amOpts=STAFF.filter(x=>["admin","super_admin","account_manager","manager"].includes(x.role)).map(a=>`<option value="${a.id}" ${c.account_manager===a.id?'selected':''}>${esc(a.full_name||a.email)}</option>`).join("");
+  const body=`<div class="sheet-sec">Company</div>
+   <div class="g2"><div class="fld2"><label>Company</label><input id="ce-company" class="inp" value="${esc(c.company||'')}"/></div><div class="fld2"><label>Contact name</label><input id="ce-name" class="inp" value="${esc(c.full_name||'')}"/></div>
+   <div class="fld2"><label>Industry</label><input id="ce-ind" class="inp" value="${esc(c.industry||'')}"/></div><div class="fld2"><label>Phone / WhatsApp</label><input id="ce-phone" class="inp" value="${esc(c.phone||c.whatsapp||'')}"/></div>
+   <div class="fld2"><label>Account manager</label><select id="ce-am" class="inp"><option value="">\u2014 unassigned \u2014</option>${amOpts}</select></div><div class="fld2"><label>Status</label><select id="ce-status" class="inp">${['active','onboarding','inactive'].map(x=>`<option value="${x}" ${(c.client_status||'active')===x?'selected':''}>${x[0].toUpperCase()+x.slice(1)}</option>`).join('')}</select></div></div>
+   <div class="sheet-sec">Services & billing</div>
+   <div class="fld2"><label>Services</label><div style="display:flex;gap:10px"><label class="svc-pick"><input type="checkbox" id="ce-sw" ${has('software')?'checked':''}> <span>\uD83D\uDCBB Software / Web</span></label><label class="svc-pick"><input type="checkbox" id="ce-dm" ${has('digital')?'checked':''}> <span>\uD83D\uDCC8 Digital marketing</span></label></div></div>
+   <div class="g2"><div class="fld2"><label>Monthly service cost (\u20B9) <span class="sub1">base</span></label><input id="ce-fee" type="number" class="inp" value="${clBase(c)||''}" oninput="ceTotal()"/></div><div class="fld2"><label>GST</label><select id="ce-gstopt" class="inp" onchange="ceTotal()"><option value="0" ${!clGst(c)?'selected':''}>Non-GST</option><option value="18" ${clGst(c)?'selected':''}>GST payer \u00b7 18%</option></select></div></div>
+   <div class="total-row">Total monthly billing <b id="ce-total">${money(clFee(c))}</b></div>
+   <div class="g2"><div class="fld2"><label>Service start</label><input id="ce-start" type="date" class="inp" value="${c.service_start||''}"/></div><div class="fld2"><label>Billing cycle</label><select id="ce-cycle" class="inp">${CYCLES.map(x=>`<option value="${x[0]}" ${(c.renewal_cycle||'monthly')===x[0]?'selected':''}>${x[1]}</option>`).join('')}</select></div></div>
+   <div class="fld2"><label>Renewal / expiry date <span class="sub1">blank = auto from start + cycle</span></label><input id="ce-renew" type="date" class="inp" value="${c.renewal_date||''}"/></div>`;
+  const foot=`<button class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn" onclick="clEditSave('${id}')">Save changes</button>`;
+  sheet("Edit client",body,{icon:IC.clients,subtitle:"Update details, services and billing.",foot});
+}
+function ceTotal(){ const t=gstCalc(v("ce-fee"),v("ce-gstopt")); const el=document.getElementById("ce-total"); if(el)el.textContent=money(t.total); }
+async function clEditSave(id){
+  const st=[]; if(document.getElementById('ce-sw').checked)st.push('software'); if(document.getElementById('ce-dm').checked)st.push('digital');
+  const g=gstCalc(v('ce-fee'),v('ce-gstopt')); const cyc=v('ce-cycle')||'monthly'; let renew=v('ce-renew')||null; if(!renew&&v('ce-start'))renew=addCycle(v('ce-start'),cyc);
+  const {error}=await sb.from('cr_profiles').update({company:v('ce-company')||null,full_name:v('ce-name')||null,industry:v('ce-ind')||null,phone:v('ce-phone')||null,whatsapp:v('ce-phone')||null,account_manager:v('ce-am')||null,client_status:v('ce-status'),service_types:st.length?st:null,service_start:v('ce-start')||null,renewal_date:renew,renewal_cycle:cyc}).eq('id',id);
+  if(error){toast(error.message,true);return;}
+  await sb.from('cr_client_services').delete().eq('client_id',id);
+  if(g.base>0){ await sb.from('cr_client_services').insert({client_id:id,name:st.map(svcLabel).join(' + ')||'Retainer',base:g.base,fee:g.total,gst:g.gst,tax_rate:g.rate,recurring:true,status:'active'}); }
+  closeModal(); toast('Client updated'); viewClients($("#content"));
 }
 function clFeeForm(id){
   const c=CLIENTS.find(x=>x.id===id)||{}; const has=t=>(c.service_types||[]).includes(t);
