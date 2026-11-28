@@ -1,0 +1,43 @@
+{
+  "_comment": "Fictional Click-to-WhatsApp inbound message with Meta ad referral. POST this to the webhook to test (sign with WA_APP_SECRET).",
+  "object": "whatsapp_business_account",
+  "entry": [
+    {
+      "id": "WABA_ID_PLACEHOLDER",
+      "changes": [
+        {
+          "field": "messages",
+          "value": {
+            "messaging_product": "whatsapp",
+            "metadata": {
+              "display_phone_number": "919000000000",
+              "phone_number_id": "PHONE_NUMBER_ID_PLACEHOLDER"
+            },
+            "contacts": [
+              { "profile": { "name": "Asha Verma" }, "wa_id": "919812345678" }
+            ],
+            "messages": [
+              {
+                "from": "919812345678",
+                "id": "wamid.TEST000000000000000000000001",
+                "timestamp": "1764345600",
+                "type": "text",
+                "text": { "body": "Hi, I saw your ad for Sobha Mullur. Please share pricing." },
+                "referral": {
+                  "source_url": "https://fb.me/xxxxxxxx",
+                  "source_type": "ad",
+                  "source_id": "120200000000000001",
+                  "ctwa_clid": "ARCtwaClidFICTIONAL123",
+                  "headline": "Sobha Mullur 09/11 — 2 & 3 BHK",
+                  "body": "Launch offer. Book a site visit.",
+                  "media_type": "image",
+                  "image_url": "https://example.com/ad-image.jpg"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

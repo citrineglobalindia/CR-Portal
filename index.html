@@ -1315,10 +1315,61 @@ async function advToggleCamp(id,ci){ const c=ADV.tree[ci]; if(!c)return; c._open
 async function advToggleSet(id,ci,si){ const as=ADV.tree[ci]&&ADV.tree[ci]._adsets&&ADV.tree[ci]._adsets[si]; if(!as)return; as._open=!as._open; advRender(id); if(as._open&&as._ads==null){ try{ const r=await callFn("meta-insights",{action:"ads",adset_id:as.id,from:ADV.from,until:ADV.until,active_only:ADV.active,token_id:ADV.token_id}); as._ads=(r.items||[]); }catch(e){ as._ads=[]; toast(e.message||"Failed",true); } advRender(id); } }
 async function metaRefreshClient(id){ toast("Syncing from Meta\u2026"); try{ const r=await callFn("meta-insights",{action:"refresh",client_id:id}); if(r.errors&&r.errors.length)toast(r.errors[0],true); else toast("Synced"); viewClientWorkspace($("#content"),id); }catch(e){ toast(e.message||"Sync failed",true); } }
 let META_CONNECTED=false;
+// ================= WhatsApp inbound (Click-to-WhatsApp) admin =================
+let WA_FROM=new Date(new Date().getFullYear(),new Date().getMonth(),1).toISOString().slice(0,10);
+let WA_UNTIL=new Date().toISOString().slice(0,10);
+async function waPanel(){
+  if(!isAdmin()){ toast('Admins only',true); return; }
+  let clients=[],nums=[],maps=[],projects=[],events=[],contacts=0,enqs=0,notMigrated=false;
+  try{
+    const r=await Promise.all([
+      sb.from('cr_profiles').select('id,company,full_name').eq('role','client').order('company'),
+      sb.from('cr_wa_numbers').select('*'),
+      sb.from('cr_wa_ad_map').select('*'),
+      sb.from('cr_projects').select('id,name,client_id'),
+      sb.from('cr_wa_events').select('phone_number_id,status,detail,signature_valid,created_at').order('created_at',{ascending:false}).limit(8),
+      sb.from('cr_wa_contacts').select('id',{count:'exact',head:true}).gte('first_seen',WA_FROM).lte('first_seen',WA_UNTIL+'T23:59:59'),
+      sb.from('cr_wa_enquiries').select('id',{count:'exact',head:true}).gte('first_message_at',WA_FROM).lte('first_message_at',WA_UNTIL+'T23:59:59')
+    ]);
+    clients=r[0].data||[]; nums=r[1].data||[]; maps=r[2].data||[]; projects=r[3].data||[]; events=r[4].data||[];
+    if(r[1].error||r[2].error) notMigrated=true;
+    contacts=r[5].count||0; enqs=r[6].count||0;
+  }catch(_){ notMigrated=true; }
+  const cname=id=>{const c=clients.find(x=>x.id===id);return c?(c.company||c.full_name):id;};
+  const pname=id=>{const p=projects.find(x=>x.id===id);return p?p.name:(id||'—');};
+  const copt=sel=>`<option value="">— client —</option>`+clients.map(c=>`<option value="${c.id}" ${sel===c.id?'selected':''}>${esc(c.company||c.full_name)}</option>`).join('');
+  const popt=sel=>`<option value="">— project (optional) —</option>`+projects.map(p=>`<option value="${p.id}" ${sel===p.id?'selected':''}>${esc(p.name)}</option>`).join('');
+  const setup=notMigrated?`<div class="sub1" style="background:#fdf1e3;color:#b4740f;border-radius:10px;padding:10px 12px;margin-bottom:12px">⚠️ WhatsApp tables are not migrated yet. Run <b>whatsapp-integration/supabase/migrations/20261128_whatsapp_inbound.sql</b> and deploy the <b>wa-webhook</b> function, then mappings here go live.</div>`:'';
+  const body=setup+`
+   <div class="stat-row att-stats" style="margin-bottom:12px"><div class="stat"><div class="lbl">Unique WhatsApp contacts</div><div class="val">${contacts}</div></div><div class="stat"><div class="lbl">Meta messaging results</div><div class="val">${enqs}</div></div><div class="stat"><div class="lbl">Numbers mapped</div><div class="val">${nums.length}</div></div></div>
+   <div class="g2" style="align-items:end;margin-bottom:6px"><div class="fld2"><label>From</label><input type="date" class="inp" value="${WA_FROM}" onchange="WA_FROM=this.value"></div><div class="fld2"><label>Until</label><input type="date" class="inp" value="${WA_UNTIL}" onchange="WA_UNTIL=this.value;waPanel()"></div></div>
+   <div class="sheet-sec">WhatsApp number → client</div>
+   <div class="g2" style="align-items:end"><div class="fld2"><label>phone_number_id <span class="sub1">Meta → WhatsApp → API Setup</span></label><input id="wa-pid" class="inp" placeholder="e.g. 112233445566778"></div><div class="fld2"><label>Client</label><select id="wa-cli" class="inp">${copt('')}</select></div></div>
+   <div style="margin:6px 0 10px"><input id="wa-label" class="inp" placeholder="Label / display number (optional)"><button class="btn sm" style="margin-top:8px" onclick="waAddNumber()">+ Map number</button></div>
+   <div class="card"><table class="tbl"><thead><tr><th>phone_number_id</th><th>Client</th><th>Active</th><th></th></tr></thead><tbody>${nums.map(n=>`<tr><td><span class="mini-date">${esc(n.phone_number_id)}</span></td><td>${esc(cname(n.client_id))}</td><td>${n.active?'Yes':'No'}</td><td style="text-align:right"><a class="linkg" style="color:#dc2626" onclick="waDelNumber('${n.id}')">Remove</a></td></tr>`).join('')||'<tr><td colspan="4" class="sub1" style="text-align:center;padding:14px">No numbers mapped.</td></tr>'}</tbody></table></div>
+   <div class="sheet-sec">Meta ad → project</div>
+   <div class="g2" style="align-items:end"><div class="fld2"><label>Client</label><select id="wa-mcli" class="inp">${copt('')}</select></div><div class="fld2"><label>Meta ad id</label><input id="wa-adid" class="inp" placeholder="e.g. 120200000000000001"></div></div>
+   <div class="g2" style="align-items:end;margin:6px 0 10px"><div class="fld2"><label>Project</label><select id="wa-proj" class="inp">${popt('')}</select></div><div style="display:flex;align-items:end"><button class="btn sm" onclick="waAddAdMap()">+ Map ad</button></div></div>
+   <div class="card"><table class="tbl"><thead><tr><th>Ad id</th><th>Client</th><th>Project</th><th></th></tr></thead><tbody>${maps.map(mp=>`<tr><td><span class="mini-date">${esc(mp.meta_ad_id)}</span></td><td>${esc(cname(mp.client_id))}</td><td>${esc(pname(mp.project_id))}</td><td style="text-align:right"><a class="linkg" style="color:#dc2626" onclick="waDelAdMap('${mp.id}')">Remove</a></td></tr>`).join('')||'<tr><td colspan="4" class="sub1" style="text-align:center;padding:14px">No ad mappings.</td></tr>'}</tbody></table></div>
+   <div class="sheet-sec">Recent webhook events</div>
+   <div class="card"><table class="tbl"><thead><tr><th>When</th><th>phone_number_id</th><th>Signature</th><th>Status</th></tr></thead><tbody>${events.map(e=>`<tr><td class="sub1">${fmtDT(e.created_at)}</td><td><span class="mini-date">${esc(e.phone_number_id||'—')}</span></td><td>${e.signature_valid?'<span class="status g">valid</span>':'<span class="status r">invalid</span>'}</td><td>${esc(e.status||'')}${e.detail&&e.status!=='ok'?' · '+esc(String(e.detail).slice(0,40)):''}</td></tr>`).join('')||'<tr><td colspan="4" class="sub1" style="text-align:center;padding:14px">No events yet.</td></tr>'}</tbody></table></div>`;
+  sheet('WhatsApp lead capture', body, {icon:IC.adanalytics, subtitle:'Map numbers to clients and ads to projects. Inbound only.'});
+}
+async function waAddNumber(){ const pid=v('wa-pid'),cli=v('wa-cli'); if(!pid||!cli){toast('Enter number id and client',true);return;} const {error}=await sb.from('cr_wa_numbers').insert({phone_number_id:pid,client_id:cli,label:v('wa-label')||null,display_number:v('wa-label')||null}); if(error){toast(error.message,true);return;} toast('Number mapped'); waPanel(); }
+async function waDelNumber(id){ if(!confirm('Remove this number mapping?'))return; const {error}=await sb.from('cr_wa_numbers').delete().eq('id',id); if(error){toast(error.message,true);return;} toast('Removed'); waPanel(); }
+async function waAddAdMap(){ const cli=v('wa-mcli'),ad=v('wa-adid'),pj=v('wa-proj'); if(!cli||!ad){toast('Enter client and ad id',true);return;} const {error}=await sb.from('cr_wa_ad_map').insert({client_id:cli,meta_ad_id:ad,project_id:pj||null}); if(error){toast(error.message,true);return;} toast('Ad mapped'); waPanel(); }
+async function waDelAdMap(id){ if(!confirm('Remove this ad mapping?'))return; const {error}=await sb.from('cr_wa_ad_map').delete().eq('id',id); if(error){toast(error.message,true);return;} toast('Removed'); waPanel(); }
+async function waAssignProject(enqId,leadId){
+  let projects=[]; try{ const {data}=await sb.from('cr_projects').select('id,name').order('name'); projects=data||[]; }catch(_){}
+  const opts=projects.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('');
+  sheet('Assign project',`<div class="fld2"><label>Project</label><select id="wa-ap" class="inp"><option value="">— unassigned —</option>${opts}</select></div><button class="btn block" style="margin-top:10px" onclick="waAssignSave('${enqId}','${leadId}')">Save</button>`,{icon:IC.projects});
+}
+async function waAssignSave(enqId,leadId){ const pj=v('wa-ap')||null; try{ await sb.from('cr_wa_enquiries').update({project_id:pj,attribution:pj?'assigned':'unknown',status:pj?'assigned':'open'}).eq('id',enqId); await sb.from('cr_leads').update({project_id:pj}).eq('id',leadId); }catch(e){ toast(e.message||'Failed',true); return; } closeModal(); toast('Project assigned'); await leadLoad(); leadDetail(leadId); }
+
 async function viewAdAnalytics(c){
   c=c||$("#content");
   if(!isAdmin()){ c.innerHTML=`<div class="empty"><div class="ei">${IC.adanalytics}</div><div>Ad Analytics is for admins.</div></div>`; return; }
-  c.innerHTML=`<div class="ph"><div class="ph-ic">${IC.adanalytics}</div><div><h1>Ad Analytics</h1><div class="psub">Live Meta campaign data across all your clients.</div></div><div class="ph-r"><button class="btn ghost" onclick="metaMapForm()">\uD83D\uDD17 Map accounts</button><button class="btn" onclick="metaRefreshAll()">\u21BB Refresh all</button></div></div>
+  c.innerHTML=`<div class="ph"><div class="ph-ic">${IC.adanalytics}</div><div><h1>Ad Analytics</h1><div class="psub">Live Meta campaign data across all your clients.</div></div><div class="ph-r"><button class="btn ghost" onclick="metaMapForm()">\uD83D\uDD17 Map accounts</button><button class="btn ghost" onclick="waPanel()">\uD83D\uDCAC WhatsApp</button><button class="btn" onclick="metaRefreshAll()">\u21BB Refresh all</button></div></div>
    <div id="meta-setup"></div><div id="ada-body"><div class="psub">Loading\u2026</div></div>`;
   let st={connected:false}; try{ st=await callFn("meta-insights",{action:"status"}); }catch(_){}
   META_CONNECTED=st.connected;
@@ -2606,7 +2657,7 @@ function leadRenderBody(){
   if(LEAD.view==='followups'){ el.innerHTML=leadFollowups(); return; }
   const rows=leadFiltered();
   const needN=LEAD.rows.filter(leadNeedsAttn).length, dupN=leadDupeIds().size;
-  const chips=`<div class="lead-chips"><button class="lchip ${LEAD.need?'on':''}" onclick="LEAD.need=!LEAD.need;LEAD.dupe=false;leadRenderBody()">⚠ Needs attention ${needN}</button><button class="lchip ${LEAD.dupe?'on':''}" onclick="LEAD.dupe=!LEAD.dupe;LEAD.need=false;leadRenderBody()">⧉ Duplicates ${dupN}</button><span class="sub1" style="margin-left:auto">${rows.length} of ${LEAD.rows.length} leads</span></div>`;
+  const chips=`<div class="lead-chips"><button class="lchip ${LEAD.need?'on':''}" onclick="LEAD.need=!LEAD.need;LEAD.dupe=false;leadRenderBody()">⚠ Needs attention ${needN}</button><button class="lchip ${LEAD.dupe?'on':''}" onclick="LEAD.dupe=!LEAD.dupe;LEAD.need=false;leadRenderBody()">⧉ Duplicates ${dupN}</button><button class="lchip ${LEAD.source==='WhatsApp'?'on':''}" onclick="LEAD.source=LEAD.source==='WhatsApp'?'':'WhatsApp';LEAD.need=false;LEAD.dupe=false;leadRenderBody()">💬 WhatsApp</button><span class="sub1" style="margin-left:auto">${rows.length} of ${LEAD.rows.length} leads</span></div>`;
   el.innerHTML=chips+`<div class="card"><table class="tbl"><thead><tr><th>Lead</th><th>Last contact</th><th>Company</th><th>Source</th><th>Stage</th><th>Owner</th><th>Follow-up</th><th style="text-align:right">Actions</th></tr></thead><tbody>
    ${rows.map(l=>`<tr class="rowlink ${leadNeedsAttn(l)?'attn':''}" onclick="leadDetail('${l.id}')"><td><div class="cell-lead"><span class="av2" style="background:${avatarColor(l.name||'')}">${initials(l.name||'?')}</span><div><b>${esc(l.name||'—')}</b> <span class="status ${tempCls(l.temp)}" style="font-size:10px;padding:1px 6px">${esc(l.temp||'warm')}</span><div class="sub1">${esc(leadMask(l.phone)||l.email||'')}${l.city?' · '+esc(l.city):''}</div></div></div></td>
    <td>${leadDayChip(l)}</td><td>${esc(l.company||'—')}</td><td>${esc(l.source||'—')}</td><td><span class="status ${leadStageCls(l.stage)}">${leadStageLbl(l.stage)}</span></td><td>${esc(l.owner_name||'—')}</td><td>${l.next_follow_up?fmtD(l.next_follow_up):'<span class="sub1">—</span>'}</td>
@@ -2669,10 +2720,30 @@ async function leadSave(id){
 async function leadDetail(id){
   const l=LEAD.rows.find(x=>x.id===id); if(!l)return;
   const {data:acts}=await sb.from('cr_lead_activities').select('*').eq('lead_id',id).order('created_at',{ascending:false});
+  let waHtml='';
+  if(l.wa_enquiry_id){ try{
+    const {data:enq}=await sb.from('cr_wa_enquiries').select('*').eq('id',l.wa_enquiry_id).maybeSingle();
+    if(enq){
+      const {data:msgs}=await sb.from('cr_wa_messages').select('*').eq('enquiry_id',enq.id).order('wa_timestamp',{ascending:true});
+      let projName='—'; if(enq.project_id){ try{ const {data:pj}=await sb.from('cr_projects').select('name').eq('id',enq.project_id).maybeSingle(); if(pj)projName=pj.name; }catch(_){ } }
+      const attr = enq.attribution==='ad'
+        ? `<span class="status g">Meta ad</span> ${esc(enq.ad_headline||enq.ad_id||'')}`
+        : `<span class="status a">WhatsApp · Source unknown</span>`;
+      const assign = (enq.attribution!=='ad'||!enq.project_id)
+        ? `<button class="btn ghost sm" onclick="waAssignProject('${enq.id}','${id}')">Assign project</button>` : '';
+      waHtml=`<div class="sheet-sec">WhatsApp enquiry</div>
+        <div class="g2"><div class="kv"><span class="k">First enquiry</span><b>${enq.first_message_at?fmtDT(enq.first_message_at):'—'}</b></div>
+         <div class="kv"><span class="k">Project</span><b>${esc(projName)}</b></div>
+         <div class="kv" style="grid-column:1/-1"><span class="k">Ad attribution</span><b>${attr} ${assign}</b></div></div>
+        <div class="sheet-sec">Message history</div>
+        <div class="tl2">${(msgs||[]).map(mm=>`<div class="tl2-row"><span class="tl2-ic">💬</span><div>${esc(mm.body|| (mm.msg_type? '['+mm.msg_type+']':'') )}<div class="sub1">${esc(mm.wa_from||'')} · ${mm.wa_timestamp?fmtDT(mm.wa_timestamp):''}</div></div></div>`).join('')||'<div class="sub1">No messages captured yet.</div>'}</div>`;
+    }
+  }catch(_){ /* WhatsApp tables not migrated yet — show nothing */ } }
   const body=`<div class="lead-top"><div><div class="cell-lead"><span class="av2" style="background:${avatarColor(l.name||'')}">${initials(l.name||'?')}</span><div><b style="font-size:16px">${esc(l.name||'—')}</b><div class="sub1">${esc(l.company||'')} ${l.city?'· '+esc(l.city):''}</div></div></div></div>
     <div class="btnrow" style="margin:0">${l.phone?`<a class="btn ghost sm" href="tel:${telLink(l.phone)}">📞 Call</a><a class="btn ghost sm" href="${waLink(l.phone)}" target="_blank">💬 WhatsApp</a>`:''}<button class="btn ghost sm" onclick="leadForm('${id}')">Edit</button></div></div>
    <div class="g2" style="margin:12px 0"><div class="kv"><span class="k">Phone</span><b>${esc(l.phone||'—')}</b></div><div class="kv"><span class="k">Email</span><b>${esc(l.email||'—')}</b></div>
     <div class="kv"><span class="k">Source</span><b>${esc(l.source||'—')}</b></div><div class="kv"><span class="k">Value</span><b>${l.value?money(l.value):'—'}</b></div></div>
+   ${waHtml}
    <div class="sheet-sec">Stage</div>
    <div class="stage-pick">${LEAD_STAGES.map(st=>`<button class="stage-b ${l.stage===st[0]?'on':''}" onclick="leadStage('${id}','${st[0]}')">${st[1]}</button>`).join('')}</div>
    <div class="g2" style="margin-top:10px"><div class="fld2"><label>Next follow-up</label><input id="lddt-fu" type="date" class="inp" value="${l.next_follow_up||''}" onchange="leadSetFu('${id}',this.value)"/></div>
